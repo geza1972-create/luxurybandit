@@ -12,7 +12,10 @@ export const PORTAL_SPRACHEN: Lang[] = ["en", "ro", "de"];
 const TEXTE = {
   en: {
     unter: "Marketing for Art",
-    titel: "Discover art — and why it is special.",
+    /* ── DIE MARKE STEHT IN DER ÜBERSCHRIFT (Owner 18.09.2026: „Descopera Arta Artist Fair") ──
+       Der erste Satz der Seite sagt jetzt, was für ein Laden das ist — nicht nur, dass es Kunst
+       gibt. Warum die Werke besonders sind, steht in der Zeile darunter. */
+    titel: "Discover art — Artist Fair.",
     lead: "Selected artists. Every work comes with the sentence that explains what makes it rare. Interested? Talk to the artist's agent.",
     leer: "The first artists are being reviewed right now. Come back soon.",
     anmelden: "Artist login",
@@ -29,7 +32,12 @@ const TEXTE = {
        „Ești artist?" davor war eine Frage, die niemand beantworten musste, um zu klicken. */
     seiteInEinerMinute: "Sign up as an artist. Still free these days.",
     agent: "Interested in my art? Talk to my agent.",
-    werke: "Works",
+    /* Kurzform für den Knopf oben (Owner 17.09.2026: „der button ist scheisse") — der lange
+       Satz brach dort auf zwei Zeilen und machte aus einem Knopf einen Absatz. */
+    agentKurz: "Talk to my agent",
+    werke: "Originals",
+    werkeReproduktionen: "Living Poster",
+    werkeKleidung: "Clothing",
     pruefung: "This artist is being reviewed and will be online soon.",
     nichtGefunden: "This page doesn't exist (anymore).",
     zurStart: "Go to the start page",
@@ -50,6 +58,39 @@ const TEXTE = {
     folgenFehler: "That didn't work. Please try again.",
     folgenDanke: "Done — you are following this artist.",
     folgenUngueltig: "This link is not valid (anymore).",
+    /* ── NACH DER ZAHLUNG (Owner 16.09.2026: „aber eine Bestätigungsseite gibt es immer noch
+       nicht") — wer bezahlt hat, landete bisher wortlos wieder auf der Werkseite. ─────────── */
+    dankeTitel: "Thank you — your order is with us.",
+    dankeNummer: "Your order number:",
+    dankeDruck: "We print your poster and send it out. You will get a message when the parcel leaves.",
+    dankeDatei: "The print file is on its way to you by email. If it is not there, look in the spam folder too.",
+    dankeMail: "The confirmation went to {mail}.",
+    dankeWeiter: "Back to the works",
+    dankeUnklar: "We cannot find this payment. If you were charged, please write to us.",
+    /* ── SEINE STIMME ZUM WERK (Owner 17.09.2026) — das Living Poster wird erst dadurch lebendig. */
+    stimmeTitel: "Your voice on this work",
+    stimmeAufnehmen: "Record",
+    stimmeStoppen: "Stop",
+    stimmeSpeichern: "Save",
+    stimmeLoeschen: "Delete",
+    stimmeLaeuft: "Recording — speak as if you were telling one person about this work.",
+    stimmeErklaerung: "Whoever scans the code on your poster hears you. Say what the work is, and what was going on when you painted it. One minute is plenty.",
+    stimmeKeinMikro: "We cannot reach your microphone. Allow it in the browser and try again.",
+    stimmeKeinBrowser: "This browser cannot record. Chrome, Safari or Firefox can.",
+    stimmeFehler: "That did not work. Please try again.",
+    stimmeGespeichert: "Saved — your voice is now behind the code.",
+    /* ── DAS ORIGINAL WIRD GEFRAGT, NICHT GEKAUFT (Owner 17.09.2026: „dort wo man die Poster
+       kauft kann man auch das original anfragen aber nicht kaufen") ─────────────────────── */
+    originalAnfragen: "Ask about the original",
+    stimmeNurTon: "Voice only",
+    stimmeNurHoeren: "Don't show the video — play my voice only",
+    hgAus: "No background", hgBlur: "Blurred", hgWerk: "The work",
+    spiegelnWort: "Flip image",
+    musikWort: "Music",
+    stimmeNochmal: "Record again",
+    stimmeWeiter: "tap for next",
+    /* ── DEIN PORTRÄT IM STIL DES KÜNSTLERS (Owner 17.09.2026) ─────────────────────────────── */
+    stimmeMitVideo: "With video",
     fotoPlatzhalter: "Your photo",
     namePlatzhalter: "Your artist name",
     /* Hier stand „Where you work" / „Unde lucrezi" (Owner 12.09.2026: „und lucrezi, was soll
@@ -172,6 +213,99 @@ const TEXTE = {
     agentJaText: "Wonderful! Leave me your name and phone number — {name} will call you personally.",
     agentFeldName: "Name",
     agentFeldTelefon: "Phone",
+    /* Nur auf den Reproduktions-Seiten (Owner 15.09.2026: „wir müssen doch den usern wählen
+       können was er haben will, print auf papier, auf leinwand"). */
+    /* Bei einer Reproduktion sprechen WIR, nicht der tote Maler (Owner 15.09.2026, gesehen im
+       Test: «Vincent van Gogh te sună personal»). */
+    druckPreisText: "The price depends on size and material.",
+    druckJaText: "Leave us your name and phone number — we will get back to you with the price.",
+    druckDanke: "Thank you! We will call you about size, material and price.",
+    druckWaehlen: "Choose material and size.",
+    druckDatenschutz: "Payment and delivery address are handled by Stripe.",
+    /* Warenkorb und Kaufknopf (Owner 15.09.2026). */
+    /* Unter dem QR-Code — sonst ist er nur ein Muster (Owner 15.09.2026). */
+    qrScannen: "Scan — music, and the painting tells you its story, like at the museum.",
+    /* Platzhalter der grossen Zeile im Poster (Owner 17.09.2026: „your name drin stehen, dann
+       verstehen es die leute") — der Kunde überschreibt sie. */
+    deinName: "Your name",
+    posterWand: "Scan it and the painting tells you its story.",
+    /* ── KEIN VIDEO VERSPRECHEN (Owner 16.09.2026: „wir werden nicht alle animieren aber sound
+       hinzufügen ja. also wir dürfen video nicht erwähnen") ─────────────────────────────────
+       Animiert wird nur ein Teil der Werke; Musik und Geschichte bekommt jedes. Ein Versprechen,
+       das bei der Hälfte nicht eingelöst wird, ist schlimmer als gar keines — also steht überall
+       nur, was überall stimmt. */
+    posterErklaerung: "A printed poster like any other — until you scan it. Then the music starts and its story appears on your phone: who painted it, when, and why. Like at the museum, only on your own wall.",
+    kaufKaufen: "Buy",
+    kaufKorb: "Add to basket",
+    kaufGroesse: "Size",
+    korbTitel: "Basket",
+    korbVersand: "Delivery",
+    korbSumme: "Total",
+    korbKasse: "Checkout",
+    korbWeg: "Remove",
+    korbLeeren: "Empty basket",
+    korbFehler: "That didn't work. Please try again.",
+    druckKaufen: "Order now",
+    /* ── DER VERKAUFSSATZ STEHT UNTER DER KACHEL, NICHT AUF DEM POSTER (Owner 16.09.2026:
+       „in den Prints steht ein satz das raus muss Noi vindem printuri … Das muss unter dem
+       Kachel") ─────────────────────────────────────────────────────────────────────────────
+       Auf dem Poster liest man die Geschichte des Bildes; ein Verkaufssatz mittendrin macht
+       aus dem Museumsschild eine Anzeige. Unter der Kachel, direkt über der Grössenwahl, ist
+       er genau da, wo er gebraucht wird. */
+    druckVerkauf: "We sell prints of this painting, in the size you choose.",
+    /* ── WARUM ES BEIM LEBENDEN KÜNSTLER MEHR KOSTET (Owner 16.09.2026: „hier muss noch info
+       dazu warum sie so teuer sind bei den lebendigen künstlern, wegen lizenz. das geht an sie
+       direkt") ──────────────────────────────────────────────────────────────────────────────
+       Ein Van Gogh für 29 € und daneben dasselbe Format für 49 € sieht nach Willkür aus, wenn
+       niemand den Grund nennt. Der Grund ist gut: Das Werk gehört jemandem, der noch lebt, und
+       er wird dafür bezahlt. Gesagt kauft man lieber; verschwiegen wirkt es teuer. */
+    druckVerkaufKuenstler: "We sell prints of this work, in the size you choose. The price includes a licence fee of {anteil}, which goes straight to the artist.",
+    druckVersandDrin: "Printed to order. Delivery in Romania {versand}.",
+    druckAb: "from {preis}",
+    druckTricou: "Black T-shirt",
+    druckHanorac: "Black hoodie",
+    druckMaterial: "Reproduction on",
+    druckPapier: "Living Poster",
+    /* ── DER RAHMEN IST TEIL DES DRUCKS, UND DAS STEHT IN SEINEM NAMEN (Owner 16.09.2026: „wir
+       schreiben gar nicht ohne rahmen" · „schreiben aber dass es ein print ist") ────────────
+       Ohne diesen Zusatz erwartet jemand ein Blatt in einer Leiste und packt Papier aus. Ein
+       Wort in der Auswahl verhindert die Enttäuschung — und erklärt nebenbei, warum es nichts
+       extra kostet. */
+    druckOhneRahmen: "Print",
+    /* Die Wahl in der Rahmenzeile — „Print" ist oben die Ware (Owner 17.09.2026:
+       „Print gibts auch ohne Rahmen"): das blanke Blatt, gleicher Preis. */
+    ohneRahmenWahl: "Without frame",
+    /* ── DIE DATEI (Owner 16.09.2026: „als datei zu herunterladen 5 euro" · „das ist die datei
+       die auch an den printshop geht dann") ─────────────────────────────────────────────────
+       Dasselbe Druck-PDF, das unsere Druckerei bekommt. Wer selbst drucken lassen will, kauft
+       es; wer es bequem will, bestellt das Poster. */
+    dateiKaufen: "Download the file",
+    /* Der Knopf auf der Seite hinter dem QR-Code: Ton startet nur nach einer Berührung — das
+       verlangt jeder Browser (Owner 16.09.2026: „und es hat kein sound"). */
+    filmStarten: "Play with music",
+    /* Die Wege aus dem QR-Fenster (Owner 16.09.2026: „hier müssen eins, zwei buttons je nachdem
+       ob lebender künstler oder nicht. Original kaufen · Poster kaufen"). */
+    kaufOriginal: "Buy the original",
+    /* Die Wahl im Agentenfenster, wenn es das Werk auch als Poster gibt (Owner 16.09.2026:
+       „falls Poster gibt's das Bild vom Poster und das Original — Kunde muss wählen was er
+       kaufen will"). */
+    agentWahl: "This work is available in two ways:",
+    agentWahlOriginal: "The original",
+    agentWahlPoster: "As a Living Poster",
+    kaufPoster: "Buy the poster",
+    dateiErklaerung: "The print-ready file (PDF) — the same one our print shop gets. Print it wherever you like, as often as you like.",
+    druckMitRahmen: "With light wood frame",
+    /* Die Wahl „gerahmt oder nicht" — die Farbe kommt danach als Fleck (Owner 17.09.2026). */
+    mitRahmenWahl: "With wood frame",
+    druckRahmenSchwarz: "With black wood frame",
+    /* Dieselbe Wahl, aber für die Druckdatei (Owner 17.09.2026) — „Print (…)" stand dort ein
+       zweites Mal und las sich, als bestelle man noch ein Papier. */
+    dateiSchwarz: "File with black frame",
+    dateiHolz: "File with light frame",
+    dateiOhne: "File without frame",
+    druckLeinwand: "Canvas",
+    druckGroesse: "Size",
+    druckGroesseAndere: "Another size",
     agentSenden: "Send",
     agentDatenschutz: "Your details go only to {name}.",
     agentDatenschutzLink: "Privacy",
@@ -194,8 +328,68 @@ const TEXTE = {
     baldFein: "Free · your page is online right away",
     letzteWerke: "Latest works",
     /* Reiter über dem Raster (Owner 13.09.2026: „wir brauchen über die Feeds Tabs. Kunstwerke und Künstler"). */
-    tabWerke: "Artworks",
+    /* Der Reiter heisst wie die Überschrift (Owner 16.09.2026: „Lucrări soll heissen Lucrări
+       originale") — „Werke" allein sagt nicht, dass es Unikate sind. */
+    tabWerke: "Original works",
+    tabReproduktionen: "Living Poster",
+    /* Der erste Reiter — die Startseite mit einem Auszug aus jeder Kategorie (Owner 16.09.2026:
+       „die tabs brauchen wir doch und das ist die startseite tab"). */
+    tabStart: "Home",
+    /* ── DIE ÜBERSCHRIFTEN AUF DER STARTSEITE SIND LÄNGER ALS DIE REITER (Owner 16.09.2026:
+       „noch besser machen, die gehen unter auf der seite. Das sind die wichtigsten. Lucrari
+       originale..de la artisti zeitgenössischer…") ─────────────────────────────────────────
+       Ein Reiter hat vier Zeichen Platz, eine Überschrift eine ganze Zeile. „Lucrări" sagt
+       nicht, was es ist; „Lucrări originale" sagt es. */
+    teaserKuenstler: "Contemporary artists",
+    teaserWerke: "Original works",
     tabKuenstler: "Artists",
+    /* ── UNTER JEDEM REITER STEHT, WAS ER IST (Owner 16.09.2026: „du musst direkt unter der
+       kategorie Poster viu erklären was das ist · auch unter Artiști · Lucrări, hier sind
+       originale") ────────────────────────────────────────────────────────────────────────────
+       Drei Reiter nebeneinander sehen aus wie drei Sortierungen derselben Sache. Sie sind aber
+       drei verschiedene Dinge: Menschen, Originale, Drucke. Ein Satz je Reiter kostet eine
+       Zeile und erspart den Irrtum, den Van Gogh für 48 € für ein Original zu halten. */
+    tabTextKuenstler: "The artists on lakatosbandi.com. Every work comes with the sentence that says what makes it rare.",
+    tabTextWerke: "Originals by contemporary artists — one of each, straight from the person who made it.",
+    /* ── HIER STAND EIN SATZ, DER NICHTS VERKAUFT (Owner 16.09.2026: „kann man die kaufen? wie
+       und wo? das hast du aber lieblos beschrieben") ────────────────────────────────────────
+       Er beschrieb den Code und verschwieg, dass es eine Ware ist. Wer davorsteht, will wissen:
+       kann ich das haben, in welcher Grösse, was kostet es, kommt es zu mir. Der Preis kommt aus
+       der Drucktabelle ({von}) — nie abgeschrieben (Skill `bezahlung`, Regel 2). */
+    tabTextRepro: "A printed poster — until you scan it. Then your phone plays the music and tells you the story of the work. A3, A2, A1, with a printed frame or without. From {von}.",
+    /* „Weiter" auf der Startseite (Owner 16.09.2026: „ein auszug aus jeder kategorie mit weiter"). */
+    alleAnsehen: "See all",
+    /* Der Knopf unter den Postern, wenn es mehr gibt als vier (Owner 16.09.2026: „4 werke zeigen
+       und mehr button"). */
+    mehrWerke: "Show all {n} works",
+    /* Der Ausklapper unter langen Texten (Owner 16.09.2026: „die texte sind zu lang. bitte zum
+       ausklappen machen nach 4 zeilen"). */
+    mehrLesen: "Read more",
+    /* Das Häkchen in seinem Formular (Owner 16.09.2026: „er muss aber ankreuzen: ich will meine
+       bilder als Poster viu verkaufen"). */
+    posterViuJa: "I want to sell my works as Living Posters too.",
+    /* Am einzelnen Werk (Owner 16.09.2026: „auch bei jedem bild"). */
+    posterViuWerk: "Offer as Living Poster",
+    kunstWerk: "Customers can generate their own picture in this style",
+    kunstPremium: "Premium",
+    /* Der Stilnachweis auf einem erzeugten Blatt (Owner 18.09.2026: „auf jedem erzeugten
+       bild in ihrem stil kommt der name rein … und ihre adresse"). */
+    stilNachweis: "in the style of {name}",
+    /* ── UNSERE HALTUNG, ALS MARKE (Owner 18.09.2026: „ich weiss, dass Temu dreist die Kunst
+       kopieren und auf T-Shirts drucken und verkaufen. Das soll bei uns nicht sein" ·
+       „dafür wollen wir bekannt werden und schreiben auch in unsere Philosophie" ·
+       „alles was in unserem Shop gekauft wurde ist Artist Fair"). Der Betrag kommt aus
+       der Drucktabelle (Skill `bezahlung`, Regel 2), nie getippt. */
+    philoTitel: "Respect the Artist",
+    /* Die Mail an den Künstler, sobald etwas von ihm verkauft wurde (Owner 18.09.2026:
+       „dann müssen wir es einrichten, dass der Künstler eine E-Mail bekommt"). */
+    lizenzMailBetreff: "Your art has been sold",
+    lizenzMailHallo: "Hello {name},",
+    lizenzMailWas: "Someone just ordered a print of your work. {betrag} licence goes to you — on top of our price, not deducted from yours.",
+    lizenzMailWeiter: "We will pay it out at the end of the month. The order is printed and shipped by us; you do not have to do anything.",
+    philoText: "AI theft cannot be stopped. Temu prints your painting on a T-shirt, and Meta trains its AI on what you post on Instagram — both are already happening, and the artist usually finds out from someone else's photos.\n\nWe cannot prevent that. What we can do is run a shop for people with a conscience. Here nothing is sold in someone's style unless that someone is named, linked and paid. Every piece says whose style it was made in and where to find them. Every order pays a licence to the artist.\n\nArtist Fair: everything you buy here was paid to the person who created it.",    posterViuPremium: "Living Poster is part of Premium. Subscribe, and your works can be sold as posters.",
+    posterViuErklaerung: "You get {anteil} for every poster of yours that we sell — on top of our price, not out of your pocket. Your works then also appear in the Living Poster category and can be ordered as prints, printed to order, with a QR code that plays music and tells your story. Your originals stay yours and stay untouched. You can undo this at any time.",
+    wenigerLesen: "Less",
     seiteWeiter: "Next",
     seiteZurueck: "Back",
     werkeZahl: "{n} works",
@@ -205,7 +399,7 @@ const TEXTE = {
   },
   ro: {
     unter: "Marketing for Art",
-    titel: "Descoperă artă — și de ce este specială.",
+    titel: "Descoperă artă — Artist Fair.",
     lead: "Artiști selectați. Fiecare lucrare vine cu fraza care spune ce o face rară. Te interesează? Vorbește cu agentul artistului.",
     leer: "Primii artiști sunt verificați chiar acum. Revino în curând.",
     anmelden: "Login artist",
@@ -221,7 +415,10 @@ const TEXTE = {
        Versprechen, und „dieser Tage noch" sagt ehrlicher, dass es nicht ewig gratis bleibt. */
     seiteInEinerMinute: "Înscrie-te ca artist. Zilele acestea încă gratuit.",
     agent: "Te interesează arta mea? Vorbește cu agentul meu.",
-    werke: "Lucrări",
+    agentKurz: "Vorbește cu agentul",
+    werke: "Originale",
+    werkeReproduktionen: "Living Poster",
+    werkeKleidung: "Îmbrăcăminte",
     pruefung: "Acest artist este în verificare și va fi online în curând.",
     nichtGefunden: "Această pagină nu există (sau nu mai există).",
     zurStart: "Mergi la pagina de start",
@@ -239,6 +436,33 @@ const TEXTE = {
     folgenFehler: "Nu a mers. Te rog încearcă din nou.",
     folgenDanke: "Gata — urmărești acest artist.",
     folgenUngueltig: "Acest link nu este (mai) valid.",
+    dankeTitel: "Mulțumim — comanda ta a ajuns la noi.",
+    dankeNummer: "Numărul comenzii tale:",
+    dankeDruck: "Tipărim lucrarea și ți-o trimitem. Primești un mesaj când pleacă coletul.",
+    dankeDatei: "Fișierul pentru tipar este pe drum spre tine, pe e-mail. Dacă nu îl găsești, verifică și folderul spam.",
+    dankeMail: "Confirmarea a plecat spre {mail}.",
+    dankeWeiter: "Înapoi la lucrări",
+    dankeUnklar: "Nu găsim această plată. Dacă ai fost debitat, scrie-ne.",
+    stimmeTitel: "Vocea ta pe această lucrare",
+    stimmeAufnehmen: "Înregistrează",
+    stimmeStoppen: "Stop",
+    stimmeSpeichern: "Salvează",
+    stimmeLoeschen: "Șterge",
+    stimmeLaeuft: "Se înregistrează — vorbește ca și cum ai povesti unui singur om despre lucrare.",
+    stimmeErklaerung: "Cine scanează codul de pe posterul tău te aude pe tine. Spune ce e lucrarea și ce era în tine când ai pictat-o. Un minut e suficient.",
+    stimmeKeinMikro: "Nu ajungem la microfon. Permite-l în browser și încearcă din nou.",
+    stimmeKeinBrowser: "Acest browser nu poate înregistra. Chrome, Safari sau Firefox pot.",
+    stimmeFehler: "Nu a mers. Te rog încearcă din nou.",
+    stimmeGespeichert: "Salvat — vocea ta e acum în spatele codului.",
+    originalAnfragen: "Întreabă de original",
+    stimmeNurTon: "Doar vocea",
+    stimmeNurHoeren: "Nu arăta video — redă doar vocea mea",
+    hgAus: "Fără fundal", hgBlur: "Neclar", hgWerk: "Lucrarea",
+    spiegelnWort: "Întoarce imaginea",
+    musikWort: "Muzică",
+    stimmeNochmal: "Încă o dată",
+    stimmeWeiter: "atinge pentru următorul",
+    stimmeMitVideo: "Cu video",
     fotoPlatzhalter: "Fotografia ta",
     namePlatzhalter: "Numele tău de artist",
     ortPlatzhalter: "Orașul tău",
@@ -314,6 +538,53 @@ const TEXTE = {
     agentJaText: "Minunat! Lasă-mi numele și telefonul — {name} te sună personal.",
     agentFeldName: "Nume",
     agentFeldTelefon: "Telefon",
+    druckPreisText: "Prețul depinde de dimensiune și material.",
+    druckJaText: "Lasă-ne numele și telefonul — revenim cu prețul.",
+    druckDanke: "Mulțumim! Te sunăm pentru dimensiune, material și preț.",
+    druckWaehlen: "Alege materialul și dimensiunea.",
+    druckDatenschutz: "Plata și adresa de livrare se fac prin Stripe.",
+    qrScannen: "Scanează — muzică, iar tabloul îți spune povestea lui, ca la muzeu.",
+    deinName: "Numele tău",
+    posterWand: "Îl scanezi și tabloul îți spune povestea lui.",
+    posterErklaerung: "Un poster tipărit, ca oricare altul — până îl scanezi. Atunci pornește muzica, iar pe telefon îți apare povestea lui: cine l-a pictat, când și de ce. Ca la muzeu, doar că e pe peretele tău.",
+    kaufKaufen: "Cumpără",
+    kaufKorb: "Adaugă în coș",
+    kaufGroesse: "Dimensiune",
+    korbTitel: "Coșul tău",
+    korbVersand: "Livrare",
+    korbSumme: "Total",
+    korbKasse: "Finalizează comanda",
+    korbWeg: "Scoate",
+    korbLeeren: "Golește coșul",
+    korbFehler: "N-a mers. Mai încearcă o dată.",
+    druckKaufen: "Comandă acum",
+    druckVerkauf: "Noi vindem printuri după acest tablou, în dimensiunea pe care o alegi.",
+    druckVerkaufKuenstler: "Noi vindem printuri după această lucrare, în dimensiunea pe care o alegi. Prețul include o licență de {anteil}, care merge direct la artist.",
+    druckVersandDrin: "Printat la comandă. Livrare în România {versand}.",
+    druckAb: "de la {preis}",
+    druckTricou: "Tricou negru",
+    druckHanorac: "Hanorac negru",
+    druckMaterial: "Reproducere pe",
+    druckPapier: "Living Poster",
+    druckOhneRahmen: "Print",
+    ohneRahmenWahl: "Fără ramă",
+    dateiKaufen: "Descarcă fișierul",
+    filmStarten: "Pornește cu muzică",
+    kaufOriginal: "Cumpără originalul",
+    agentWahl: "Lucrarea există în două feluri:",
+    agentWahlOriginal: "Originalul",
+    agentWahlPoster: "Ca Living Poster",
+    kaufPoster: "Cumpără posterul",
+    dateiErklaerung: "Fișierul pregătit pentru tipar (PDF) — același pe care îl primește și tipografia noastră. Îl tipărești unde vrei și de câte ori vrei.",
+    druckMitRahmen: "Cu ramă de lemn deschis",
+    mitRahmenWahl: "Cu ramă de lemn",
+    druckRahmenSchwarz: "Cu ramă de lemn neagră",
+    dateiSchwarz: "Fișier cu ramă neagră",
+    dateiHolz: "Fișier cu ramă deschisă",
+    dateiOhne: "Fișier fără ramă",
+    druckLeinwand: "Pânză",
+    druckGroesse: "Dimensiune",
+    druckGroesseAndere: "Altă dimensiune",
     agentSenden: "Trimite",
     agentDatenschutz: "Datele tale ajung doar la {name}.",
     agentDatenschutzLink: "Confidențialitate",
@@ -332,8 +603,31 @@ const TEXTE = {
     baldKnopf: "Aplică ca artist",
     baldFein: "Gratuit · pagina ta e online imediat",
     letzteWerke: "Ultimele lucrări",
-    tabWerke: "Lucrări",
+    tabWerke: "Lucrări originale",
+    tabReproduktionen: "Living Poster",
+    tabStart: "Acasă",
+    teaserKuenstler: "Artiști contemporani",
+    teaserWerke: "Lucrări originale",
     tabKuenstler: "Artiști",
+    tabTextKuenstler: "Artiștii de pe lakatosbandi.com. Fiecare lucrare vine cu fraza care spune ce o face rară.",
+    tabTextWerke: "Lucrări originale de la artiști contemporani — câte una singură, direct de la cel care a făcut-o.",
+    tabTextRepro: "Un poster tipărit — până îl scanezi. Atunci telefonul pornește muzica și îți spune povestea lucrării. A3, A2, A1, cu ramă printată sau fără. De la {von}.",
+    alleAnsehen: "Vezi tot",
+    mehrWerke: "Vezi toate cele {n} lucrări",
+    mehrLesen: "Citește mai mult",
+    posterViuJa: "Vreau să-mi vând lucrările și ca Living Poster.",
+    posterViuWerk: "Oferă ca Living Poster",
+    kunstWerk: "Clienții pot genera propria imagine în acest stil",
+    kunstPremium: "Premium",
+    stilNachweis: "după stilul lui {name}",
+    philoTitel: "Respect the Artist",
+    lizenzMailBetreff: "Arta ta s-a vândut",
+    lizenzMailHallo: "Bună, {name},",
+    lizenzMailWas: "Cineva tocmai a comandat un print după lucrarea ta. {betrag} licență merg la tine — se adaugă la prețul nostru, nu se scade din al tău.",
+    lizenzMailWeiter: "Îți plătim la sfârșitul lunii. Comanda o tipărim și o expediem noi; tu nu trebuie să faci nimic.",
+    philoText: "Furtul prin AI nu poate fi oprit. Temu îți tipărește tabloul pe un tricou, iar Meta își antrenează inteligența artificială cu ce postezi pe Instagram — se întâmplă deja, iar artistul află de obicei din pozele altora.\n\nNoi nu putem împiedica asta. Ce putem face: un magazin pentru oamenii care au conștiință. Aici nu se vinde nimic în stilul cuiva fără ca acel cineva să fie numit, legat și plătit. Pe fiecare lucrare scrie după stilul cui este făcută și unde îl găsești. Din fiecare comandă se plătește o licență artistului.\n\nArtist Fair: tot ce cumperi aici a fost plătit celui care l-a creat.",    posterViuPremium: "Living Poster face parte din Premium. Abonează-te și lucrările tale pot fi vândute ca postere.",
+    posterViuErklaerung: "Primești {anteil} pentru fiecare poster al tău vândut — se adaugă la prețul nostru, nu se scade din al tău. Lucrările tale apar și în categoria Living Poster și pot fi comandate ca print, tipărite la comandă, cu un cod QR care pornește muzica și spune povestea ta. Originalele rămân ale tale și rămân neatinse. Poți renunța oricând.",
+    wenigerLesen: "Mai puțin",
     seiteWeiter: "Înainte",
     seiteZurueck: "Înapoi",
     werkeZahl: "{n} lucrări",
@@ -342,7 +636,7 @@ const TEXTE = {
   },
   de: {
     unter: "Marketing for Art",
-    titel: "Entdecke Kunst — und warum sie besonders ist.",
+    titel: "Entdecke Kunst — Artist Fair.",
     lead: "Ausgewählte Künstler. Zu jedem Werk steht der Satz, der sagt, was es selten macht. Interessiert? Sprich mit dem Agenten des Künstlers.",
     leer: "Die ersten Künstler werden gerade geprüft. Schau bald wieder vorbei.",
     anmelden: "Login für Künstler",
@@ -353,7 +647,10 @@ const TEXTE = {
     fuerKuenstlerKnopf: "Kostenlos starten",
     seiteInEinerMinute: "Melde dich als Künstler an. Dieser Tage noch gratis.",
     agent: "Interessiert an meiner Kunst? Sprich mit meinem Agenten.",
-    werke: "Werke",
+    agentKurz: "Mit dem Agenten sprechen",
+    werke: "Originale",
+    werkeReproduktionen: "Living Poster",
+    werkeKleidung: "Kleidung",
     pruefung: "Dieser Künstler wird gerade geprüft und ist bald online.",
     nichtGefunden: "Diese Seite gibt es nicht (mehr).",
     zurStart: "Zur Startseite",
@@ -368,6 +665,33 @@ const TEXTE = {
     folgenFehler: "Das hat nicht geklappt. Bitte versuch es noch einmal.",
     folgenDanke: "Fertig — du folgst diesem Künstler.",
     folgenUngueltig: "Dieser Link ist nicht (mehr) gültig.",
+    dankeTitel: "Danke — deine Bestellung ist bei uns.",
+    dankeNummer: "Deine Bestellnummer:",
+    dankeDruck: "Wir drucken das Poster und schicken es dir. Du bekommst eine Nachricht, wenn das Paket rausgeht.",
+    dankeDatei: "Die Druckdatei ist per Mail zu dir unterwegs. Falls sie nicht da ist, schau auch im Spam-Ordner nach.",
+    dankeMail: "Die Bestätigung ging an {mail}.",
+    dankeWeiter: "Zurück zu den Werken",
+    dankeUnklar: "Diese Zahlung finden wir nicht. Falls dir Geld abgebucht wurde, schreib uns.",
+    stimmeTitel: "Deine Stimme zu diesem Werk",
+    stimmeAufnehmen: "Aufnehmen",
+    stimmeStoppen: "Stopp",
+    stimmeSpeichern: "Speichern",
+    stimmeLoeschen: "Löschen",
+    stimmeLaeuft: "Nimmt auf — sprich, als würdest du einem einzelnen Menschen von dem Werk erzählen.",
+    stimmeErklaerung: "Wer den Code auf deinem Poster scannt, hört dich. Sag, was das Werk ist und wie es dir dabei ging. Eine Minute reicht.",
+    stimmeKeinMikro: "Wir kommen nicht ans Mikrofon. Erlaub es im Browser und versuch es noch einmal.",
+    stimmeKeinBrowser: "Dieser Browser kann nicht aufnehmen. Chrome, Safari oder Firefox können es.",
+    stimmeFehler: "Das hat nicht geklappt. Bitte noch einmal.",
+    stimmeGespeichert: "Gespeichert — deine Stimme liegt jetzt hinter dem Code.",
+    originalAnfragen: "Nach dem Original fragen",
+    stimmeNurTon: "Nur Stimme",
+    stimmeNurHoeren: "Video nicht zeigen — nur meine Stimme abspielen",
+    hgAus: "Ohne Hintergrund", hgBlur: "Verwischt", hgWerk: "Das Werk",
+    spiegelnWort: "Bild umdrehen",
+    musikWort: "Musik",
+    stimmeNochmal: "Noch einmal",
+    stimmeWeiter: "tippen für weiter",
+    stimmeMitVideo: "Mit Video",
     fotoPlatzhalter: "Dein Foto",
     namePlatzhalter: "Dein Künstlername",
     ortPlatzhalter: "Deine Stadt",
@@ -439,6 +763,53 @@ const TEXTE = {
     agentJaText: "Schön! Hinterlass mir deinen Namen und deine Telefonnummer — {name} ruft dich persönlich an.",
     agentFeldName: "Name",
     agentFeldTelefon: "Telefon",
+    druckPreisText: "Der Preis hängt von Größe und Material ab.",
+    druckJaText: "Hinterlass uns Namen und Telefonnummer — wir melden uns mit dem Preis.",
+    druckDanke: "Danke! Wir rufen dich wegen Größe, Material und Preis an.",
+    druckWaehlen: "Wähle Material und Größe.",
+    druckDatenschutz: "Zahlung und Lieferadresse laufen über Stripe.",
+    qrScannen: "Scannen — Musik, und das Bild erzählt seine Geschichte, wie im Museum.",
+    deinName: "Dein Name",
+    posterWand: "Scannen — und das Bild erzählt dir seine Geschichte.",
+    posterErklaerung: "Ein gedrucktes Poster wie jedes andere — bis du es scannst. Dann beginnt die Musik, und auf dem Telefon steht seine Geschichte: wer es gemalt hat, wann und warum. Wie im Museum, nur an deiner eigenen Wand.",
+    kaufKaufen: "Kaufen",
+    kaufKorb: "In den Korb",
+    kaufGroesse: "Größe",
+    korbTitel: "Warenkorb",
+    korbVersand: "Lieferung",
+    korbSumme: "Summe",
+    korbKasse: "Zur Kasse",
+    korbWeg: "Entfernen",
+    korbLeeren: "Korb leeren",
+    korbFehler: "Das hat nicht geklappt. Bitte noch einmal.",
+    druckKaufen: "Jetzt bestellen",
+    druckVerkauf: "Wir verkaufen Drucke dieses Bildes, in der Grösse, die du wählst.",
+    druckVerkaufKuenstler: "Wir verkaufen Drucke dieses Werks, in der Grösse, die du wählst. Im Preis steckt eine Lizenz von {anteil}, die direkt an den Künstler geht.",
+    druckVersandDrin: "Auf Bestellung gedruckt. Lieferung nach Rumänien {versand}.",
+    druckAb: "ab {preis}",
+    druckTricou: "T-Shirt, schwarz",
+    druckHanorac: "Hoodie, schwarz",
+    druckMaterial: "Reproduktion auf",
+    druckPapier: "Living Poster",
+    druckOhneRahmen: "Print",
+    ohneRahmenWahl: "Ohne Rahmen",
+    dateiKaufen: "Datei herunterladen",
+    filmStarten: "Mit Musik abspielen",
+    kaufOriginal: "Original kaufen",
+    agentWahl: "Das Werk gibt es auf zwei Arten:",
+    agentWahlOriginal: "Das Original",
+    agentWahlPoster: "Als Living Poster",
+    kaufPoster: "Poster kaufen",
+    dateiErklaerung: "Die druckfertige Datei (PDF) — dieselbe, die auch unsere Druckerei bekommt. Druck sie, wo du willst, so oft du willst.",
+    druckMitRahmen: "Mit hellem Holzrahmen",
+    mitRahmenWahl: "Mit Holzrahmen",
+    druckRahmenSchwarz: "Mit schwarzem Holzrahmen",
+    dateiSchwarz: "Datei mit schwarzem Rahmen",
+    dateiHolz: "Datei mit hellem Rahmen",
+    dateiOhne: "Datei ohne Rahmen",
+    druckLeinwand: "Leinwand",
+    druckGroesse: "Größe",
+    druckGroesseAndere: "Andere Größe",
     agentSenden: "Senden",
     agentDatenschutz: "Deine Angaben gehen nur an {name}.",
     agentDatenschutzLink: "Datenschutz",
@@ -457,8 +828,31 @@ const TEXTE = {
     baldKnopf: "Als Künstler bewerben",
     baldFein: "Kostenlos · deine Seite ist sofort online",
     letzteWerke: "Die letzten Kunstwerke",
-    tabWerke: "Kunstwerke",
+    tabWerke: "Originale",
+    tabReproduktionen: "Living Poster",
+    tabStart: "Start",
+    teaserKuenstler: "Zeitgenössische Künstler",
+    teaserWerke: "Originale",
     tabKuenstler: "Künstler",
+    tabTextKuenstler: "Die Künstler auf lakatosbandi.com. Zu jedem Werk steht der Satz, der sagt, was es selten macht.",
+    tabTextWerke: "Originale von zeitgenössischen Künstlern — jedes nur einmal, direkt von dem, der es gemacht hat.",
+    tabTextRepro: "Ein gedrucktes Poster — bis du es scannst. Dann spielt das Telefon die Musik und erzählt dir die Geschichte des Werks. A3, A2, A1, mit gedrucktem Rahmen oder ohne. Ab {von}.",
+    alleAnsehen: "Alle ansehen",
+    mehrWerke: "Alle {n} Werke ansehen",
+    mehrLesen: "Mehr lesen",
+    posterViuJa: "Ich will meine Werke auch als Living Poster verkaufen.",
+    posterViuWerk: "Als Living Poster anbieten",
+    kunstWerk: "Kunden erzeugen ihr eigenes Bild in diesem Stil",
+    kunstPremium: "Premium",
+    stilNachweis: "im Stil von {name}",
+    philoTitel: "Respect the Artist",
+    lizenzMailBetreff: "Deine Kunst wurde verkauft",
+    lizenzMailHallo: "Hallo {name},",
+    lizenzMailWas: "Gerade hat jemand einen Druck nach deinem Werk bestellt. {betrag} Lizenz gehen an dich — oben auf unseren Preis, nicht von deinem abgezogen.",
+    lizenzMailWeiter: "Wir zahlen sie zum Monatsende aus. Gedruckt und verschickt wird von uns; du musst nichts tun.",
+    philoText: "KI-Diebstahl lässt sich nicht stoppen. Temu druckt dein Bild auf ein T-Shirt, und Meta trainiert seine KI mit dem, was du auf Instagram postest — beides passiert längst, und der Künstler erfährt es meist aus fremden Fotos.\n\nWir können das nicht verhindern. Was wir können: einen Shop für Leute mit Gewissen. Hier wird nichts im Stil von jemandem verkauft, ohne dass dieser jemand genannt, verlinkt und bezahlt wird. Auf jedem Stück steht, nach wessen Stil es gemacht ist und wo man ihn findet. Von jeder Bestellung geht eine Lizenz an den Künstler.\n\nArtist Fair: Alles, was du hier kaufst, wurde dem bezahlt, der es geschaffen hat.",    posterViuPremium: "Living Poster gehört zu Premium. Mit dem Abo können deine Werke als Poster verkauft werden.",
+    posterViuErklaerung: "Du bekommst {anteil} für jedes verkaufte Poster von dir — oben auf unseren Preis, nicht von deinem Anteil abgezogen. Deine Werke erscheinen dann zusätzlich in der Kategorie Living Poster und können als Druck bestellt werden, auf Bestellung gedruckt, mit QR-Code, der Musik abspielt und deine Geschichte erzählt. Deine Originale bleiben deine und bleiben unberührt. Du kannst es jederzeit zurücknehmen.",
+    wenigerLesen: "Weniger",
     seiteWeiter: "Weiter",
     seiteZurueck: "Zurück",
     werkeZahl: "{n} Werke",

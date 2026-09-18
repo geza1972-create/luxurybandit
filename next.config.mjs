@@ -91,42 +91,13 @@ const nextConfig = {
         /* Der Klick aus der Folgen-Mail (Owner 13.09.2026). Wie `/bestaetigen` VOR `/:kuenstler`,
            sonst wäre „urmaresti" ein Künstlername. */
         { source: "/urmaresti", has: [{ type: "host", value: "(www\\.)?lakatosbandi\\.com" }], destination: "/portal/urmaresti" },
-        /* Eigene Rechtstexte des Portals (Owner 10.09.2026: „die Inhalte musst du umschreiben") —
-           VOR den Haus-Seiten gleichen Namens, nur auf diesem Host. */
-        { source: "/imprint", has: [{ type: "host", value: "(www\\.)?lakatosbandi\\.com" }], destination: "/portal/imprint" },
-        { source: "/privacy", has: [{ type: "host", value: "(www\\.)?lakatosbandi\\.com" }], destination: "/portal/privacy" },
-        { source: "/terms", has: [{ type: "host", value: "(www\\.)?lakatosbandi\\.com" }], destination: "/portal/terms" },
-      ],
-      afterFiles: [
-        { source: "/admin/:path*", destination: "/:path*" },
-        /**
-         * DIE KURZE MANDANTEN-ADRESSE (Owner 09.09.2026: „er bekommt eine URL, die er in
-         * Insta oder FB eingeben kann: VersusForge/ZahnarztPeter").
-         *
-         * `versusforge.com/zahnarztpeter` liefert `/versusforge/zahnarztpeter` aus, ohne dass
-         * sich die Adresse im Browser ändert.
-         *
-         * ZWEI RIEGEL, DAMIT ES NICHTS ANDERES SCHLUCKT:
-         *  · `has` mit dem Host — auf luxurybandit.com greift die Regel gar nicht, dort
-         *    bliebe `/kiss` sonst an einem Mandanten hängen.
-         *  · `afterFiles` — sie greift erst, wenn KEINE echte Seite passt. `/about`,
-         *    `/imprint`, `/privacy` und `/contact` gibt es wirklich und bleiben, was sie sind.
-         */
-        {
-          source: "/:mandant",
-          has: [{ type: "host", value: "(.*\\.)?versusforge\\.com" }],
-          destination: "/versusforge/:mandant",
-        },
-        /* DIE KÜNSTLER AUF LAKATOSBANDI.COM (Owner 10.09.2026: „die kommen doch unter
-           lakatosbandi.com/{artistname}"). `afterFiles` wie oben: echte Seiten (/about,
-           /imprint, /api/…) behalten Vorrang. Die längeren Pfade zuerst. */
-        /* Das Journal zuerst — sonst hielte `/:kuenstler` „journal" für einen Künstler. */
-        { source: "/journal", has: [{ type: "host", value: "(www\\.)?lakatosbandi\\.com" }], destination: "/portal/journal" },
-        { source: "/journal/:pfad*", has: [{ type: "host", value: "(www\\.)?lakatosbandi\\.com" }], destination: "/portal/journal/:pfad*" },
-        { source: "/:kuenstler/dashboard", has: [{ type: "host", value: "(www\\.)?lakatosbandi\\.com" }], destination: "/versusforge/:kuenstler/dashboard" },
+        /* Die Rückkehr von der Kasse (Owner 16.09.2026). Ebenfalls VOR `/:kuenstler` — sonst
+           wäre „comanda" ein Künstlername und die Bestätigung eine 404. */
+        { source: "/comanda", has: [{ type: "host", value: "(www\\.)?lakatosbandi\\.com" }], destination: "/portal/comanda" },
         /* Löschen auf lakatosbandi.com statt auf der Firmen-Anzeigenseite (Owner 11.09.2026). */
         { source: "/:kuenstler/loeschen", has: [{ type: "host", value: "(www\\.)?lakatosbandi\\.com" }], destination: "/portal/:kuenstler/loeschen" },
         /* Die Seite eines Werks (Owner 11.09.2026: „hier komme ich nicht auf die Kunstwerk-Seite drauf"). */
+        /* Die Seite hinter dem QR-Code auf dem Poster (15.09.2026): nur der Film, formatfüllend. */
         { source: "/:kuenstler/:werk(standard|\\d+)", has: [{ type: "host", value: "(www\\.)?lakatosbandi\\.com" }], destination: "/portal/:kuenstler/:werk" },
         { source: "/:kuenstler", has: [{ type: "host", value: "(www\\.)?lakatosbandi\\.com" }], destination: "/portal/:kuenstler" },
       ],

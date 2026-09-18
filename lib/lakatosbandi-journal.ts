@@ -35,22 +35,107 @@ export type ArtikelText = {
   bild?: string;
 };
 
-export type Artikel = { slug: string; datum: string; texte: Record<JournalSprache, ArtikelText> };
+/**
+ * ── WOHIN DER ABSCHLUSSBLOCK FÜHRT (Owner 16.09.2026: „und in dem anderen artikel der link zum
+ * postershop") ──────────────────────────────────────────────────────────────────────────────
+ *
+ * Die ersten Artikel sprechen Künstler an; ihr Aufruf ist der Trichter. Der Artikel über Poster
+ * viu spricht KÄUFER an — den zu fragen, ob er sich als Künstler bewerben will, wäre die falsche
+ * Tür am Ende des richtigen Textes.
+ */
+export type ArtikelZiel = "trichter" | "shop";
+
+export type Artikel = { slug: string; datum: string; ziel?: ArtikelZiel; texte: Record<JournalSprache, ArtikelText> };
 
 export const JOURNAL_SPRACHEN: JournalSprache[] = ["en", "ro", "de"];
 
-export const JOURNAL_UI: Record<JournalSprache, { titel: string; lead: string; lesen: string; zurueck: string; ctaTitel: string; ctaText: string; ctaKnopf: string; minuten: string }> = {
+export const JOURNAL_UI: Record<JournalSprache, { titel: string; lead: string; lesen: string; zurueck: string; ctaTitel: string; ctaText: string; ctaKnopf: string; shopTitel: string; shopText: string; shopKnopf: string; minuten: string }> = {
   /* DER AUFRUF STAND NOCH AUF DER ALTEN LINIE (bis 12.09.2026: „mindestens drei Werke im selben
      Stil · Prüfung innerhalb von 3 Tagen"). Das widerspricht Anzeige, Trichter und AGB, seit es
      keine Aufnahmeprüfung mehr gibt und bis zu zehn Werke hochgeladen werden (Owner 12.09.2026:
      „es muss klar sein, dass alle mitmachen können, nicht nur berühmte Künstler, jeder wirklich
      jeder" · „bis zu 10 werke dann"). Ein Leser findet solche Widersprüche in einer Sekunde. */
-  en: { titel: "Journal", lead: "Marketing for artists — honest, practical, without empty promises.", lesen: "Read", zurueck: "All articles", ctaTitel: "Want this for your work?", ctaText: "Open your archive: upload up to 10 works, we write the texts, you approve. No entrance exam — anyone can take part. Free.", ctaKnopf: "Apply as an artist", minuten: "min read" },
-  ro: { titel: "Jurnal", lead: "Marketing pentru artiști — sincer, practic, fără promisiuni goale.", lesen: "Citește", zurueck: "Toate articolele", ctaTitel: "Vrei asta pentru lucrările tale?", ctaText: "Deschide-ți arhiva: încarci până la 10 lucrări, noi scriem textele, tu aprobi. Fără examen de admitere — poate participa oricine. Gratuit.", ctaKnopf: "Aplică ca artist", minuten: "min de citit" },
-  de: { titel: "Journal", lead: "Marketing für Künstler — ehrlich, praktisch, ohne leere Versprechen.", lesen: "Lesen", zurueck: "Alle Artikel", ctaTitel: "Willst du das für deine Werke?", ctaText: "Öffne dein Archiv: bis zu 10 Werke hochladen, wir schreiben die Texte, du gibst frei. Keine Aufnahmeprüfung — jeder kann mitmachen. Kostenlos.", ctaKnopf: "Als Künstler bewerben", minuten: "Min. Lesezeit" },
+  en: { titel: "Journal", lead: "Marketing for artists — honest, practical, without empty promises.", lesen: "Read", zurueck: "All articles", ctaTitel: "Want this for your work?", ctaText: "Open your archive: upload up to 10 works, we write the texts, you approve. No entrance exam — anyone can take part. Free.", ctaKnopf: "Apply as an artist", shopTitel: "Want one on your wall?", shopText: "All Living Posters in one place: van Gogh, Klimt, Monet, Hokusai, Munch, Friedrich — and the artists who offer their work as posters. Printed to order, delivered in Romania.", shopKnopf: "See the posters", minuten: "min read" },
+  ro: { titel: "Jurnal", lead: "Marketing pentru artiști — sincer, practic, fără promisiuni goale.", lesen: "Citește", zurueck: "Toate articolele", ctaTitel: "Vrei asta pentru lucrările tale?", ctaText: "Deschide-ți arhiva: încarci până la 10 lucrări, noi scriem textele, tu aprobi. Fără examen de admitere — poate participa oricine. Gratuit.", ctaKnopf: "Aplică ca artist", shopTitel: "Vrei unul pe peretele tău?", shopText: "Toate Living Poster într-un loc: van Gogh, Klimt, Monet, Hokusai, Munch, Friedrich — și artiștii care își oferă lucrările ca postere. Tipărite la comandă, livrate în România.", shopKnopf: "Vezi posterele", minuten: "min de citit" },
+  de: { titel: "Journal", lead: "Marketing für Künstler — ehrlich, praktisch, ohne leere Versprechen.", lesen: "Lesen", zurueck: "Alle Artikel", ctaTitel: "Willst du das für deine Werke?", ctaText: "Öffne dein Archiv: bis zu 10 Werke hochladen, wir schreiben die Texte, du gibst frei. Keine Aufnahmeprüfung — jeder kann mitmachen. Kostenlos.", ctaKnopf: "Als Künstler bewerben", shopTitel: "Willst du eines an deiner Wand?", shopText: "Alle Living Poster an einem Ort: van Gogh, Klimt, Monet, Hokusai, Munch, Friedrich — und die Künstler, die ihre Werke als Poster anbieten. Auf Bestellung gedruckt, Lieferung nach Rumänien.", shopKnopf: "Zu den Postern", minuten: "Min. Lesezeit" },
 };
 
 export const ARTIKEL: Artikel[] = [
+  /* ── 1 · DER STEMPEL — STEHT VORN (Owner 18.09.2026: erster Artikel auf der Startseite) (Owner 18.09.2026: „wir machen einen Artikel zu dem Stempel und posten das
+     auf FB") ─────────────────────────────────────────────────────────────────────────────── */
+  {
+    slug: "artist-fair-stempel",
+    datum: "2026-09-18",
+    ziel: "shop",
+    texte: {
+      en: {
+        titel: "AI theft cannot be stopped. So we built a shop for people with a conscience.",
+        beschreibung: "Anyone can feed a painting to an AI and print it on a T-shirt. We cannot stop that. What we can do: name the artist, link them and pay them — on every single piece.",
+        lead: "Take any painting off Instagram, give it to an AI, print the result on a T-shirt and sell it. That takes four minutes and costs nothing. Temu does it at scale, Meta trains its own AI on what you post there — and the artist usually finds out from someone else's photos.",
+        teile: [
+          { h: "Nobody can stop it", p: [
+            "Not a watermark, not a licence text, not a lawyer in another country. The images are out there, the machines have already learned from them, and the people printing them are not going to ask.",
+            "Pretending otherwise would be a comfortable lie. So we stopped asking how to block it and asked a different question: what would a shop look like where the artist is not the raw material but the seller?",
+          ] },
+          { h: "The seal", p: [
+            "Everything sold here carries one mark: Artist Fair. It means three things, and all three are checkable.",
+            "The artist is NAMED — every piece says whose style it was made in. The artist is LINKED — the address of their page is printed on the work, and the QR code leads to them. The artist is PAID — every order pays them a licence, on top of our price, not deducted from theirs. They get an email the moment it happens.",
+          ] },
+          { h: "Why the amount is not on the seal", p: [
+            "Because it differs: a print is not a T-shirt is not a generated picture. What matters is not the number, it is that there is one at all — and that the artist can see it in their own inbox.",
+          ] },
+          { h: "What this asks of you", p: [
+            "Nothing heroic. Buy the version where the person who made the style gets something. It costs a few euros more than a copy from a marketplace, and those few euros are the entire point.",
+          ] },
+        ],
+        merksatz: "You cannot stop the theft. You can refuse to buy it.",
+      },
+      ro: {
+        titel: "Furtul prin AI nu poate fi oprit. De aceea am făcut un magazin pentru oamenii cu conștiință.",
+        beschreibung: "Oricine poate da o pictură unei inteligențe artificiale și o poate tipări pe un tricou. Nu putem opri asta. Ce putem: artistul e numit, legat și plătit — pe fiecare lucrare.",
+        lead: "Iei o pictură de pe Instagram, o dai unei inteligențe artificiale, tipărești rezultatul pe un tricou și îl vinzi. Durează patru minute și nu costă nimic. Temu o face la scară mare, Meta își antrenează propria inteligență artificială cu ce postezi acolo — iar artistul află de obicei din pozele altora.",
+        teile: [
+          { h: "Nimeni nu poate opri asta", p: [
+            "Nici un filigran, nici un text de licență, nici un avocat din altă țară. Imaginile sunt deja acolo, mașinile au învățat deja din ele, iar cei care le tipăresc nu vor întreba.",
+            "Să pretindem altceva ar fi o minciună comodă. Așa că am încetat să întrebăm cum blocăm și am întrebat altceva: cum ar arăta un magazin în care artistul nu e materia primă, ci vânzătorul?",
+          ] },
+          { h: "Sigiliul", p: [
+            "Tot ce se vinde aici poartă un semn: Artist Fair. Înseamnă trei lucruri, și toate trei se pot verifica.",
+            "Artistul e NUMIT — pe fiecare lucrare scrie după stilul cui este făcută. Artistul e LEGAT — adresa paginii lui e tipărită pe lucrare, iar codul QR duce la el. Artistul e PLĂTIT — din fiecare comandă i se plătește o licență, adăugată la prețul nostru, nu scăzută din al lui. Primește un e-mail în clipa în care se întâmplă.",
+          ] },
+          { h: "De ce suma nu stă pe sigiliu", p: [
+            "Pentru că diferă: un print nu e un tricou, un tricou nu e o imagine generată. Nu contează cifra, contează că există una — și că artistul o vede în propria căsuță poștală.",
+          ] },
+          { h: "Ce îți cere asta ție", p: [
+            "Nimic eroic. Cumpără versiunea în care omul care a făcut stilul primește ceva. Costă câțiva euro mai mult decât o copie dintr-un marketplace, și exact acei câțiva euro sunt tot rostul.",
+          ] },
+        ],
+        merksatz: "Furtul nu poate fi oprit. Dar poți refuza să-l cumperi.",
+      },
+      de: {
+        titel: "KI-Diebstahl lässt sich nicht stoppen. Deshalb haben wir einen Shop für Leute mit Gewissen gebaut.",
+        beschreibung: "Jeder kann ein Bild einer KI geben und auf ein T-Shirt drucken. Wir können das nicht verhindern. Was wir können: den Künstler nennen, verlinken und bezahlen — auf jedem Stück.",
+        lead: "Nimm ein Bild von Instagram, gib es einer KI, druck das Ergebnis auf ein T-Shirt und verkauf es. Das dauert vier Minuten und kostet nichts. Temu macht das in grossem Stil, Meta trainiert mit dem, was du dort postest, seine eigene KI — und der Künstler erfährt es meist aus fremden Fotos.",
+        teile: [
+          { h: "Aufhalten kann das niemand", p: [
+            "Kein Wasserzeichen, kein Lizenztext, kein Anwalt in einem anderen Land. Die Bilder sind draussen, die Maschinen haben längst daraus gelernt, und wer sie druckt, fragt nicht.",
+            "Etwas anderes zu behaupten wäre eine bequeme Lüge. Also haben wir aufgehört zu fragen, wie man es blockiert, und etwas anderes gefragt: Wie sähe ein Shop aus, in dem der Künstler nicht das Rohmaterial ist, sondern der Verkäufer?",
+          ] },
+          { h: "Das Siegel", p: [
+            "Alles, was hier verkauft wird, trägt ein Zeichen: Artist Fair. Es bedeutet drei Dinge, und alle drei kann man nachprüfen.",
+            "Der Künstler wird GENANNT — auf jedem Stück steht, nach wessen Stil es gemacht ist. Der Künstler wird VERLINKT — die Adresse seiner Seite steht auf dem Werk, und der QR-Code führt zu ihm. Der Künstler wird BEZAHLT — jede Bestellung zahlt ihm eine Lizenz, oben auf unseren Preis, nicht von seinem abgezogen. Er bekommt eine Mail in dem Moment, in dem es passiert.",
+          ] },
+          { h: "Warum der Betrag nicht auf dem Siegel steht", p: [
+            "Weil er verschieden ist: Ein Druck ist kein T-Shirt, ein T-Shirt ist kein erzeugtes Bild. Es zählt nicht die Zahl, es zählt, dass es überhaupt eine gibt — und dass der Künstler sie in seinem eigenen Postfach sieht.",
+          ] },
+          { h: "Was das von dir verlangt", p: [
+            "Nichts Heldenhaftes. Kauf die Fassung, bei der der Mensch, der den Stil gemacht hat, etwas bekommt. Sie kostet ein paar Euro mehr als eine Kopie von einem Marktplatz, und genau diese paar Euro sind der ganze Punkt.",
+          ] },
+        ],
+        merksatz: "Den Diebstahl kannst du nicht aufhalten. Du kannst dich weigern, ihn zu kaufen.",
+      },
+    },
+  },
   /* ── 1 · DER STEIN ─────────────────────────────────────────────────────────────────────── */
   {
     slug: "stone-1975-selling-art",
@@ -517,6 +602,330 @@ export const ARTIKEL: Artikel[] = [
           ] },
         ],
         merksatz: "Nicht jeder muss Künstler sein. Aber wer schafft, soll zeigen können.",
+      },
+    },
+  },
+  /* ── 7 · POSTER VIU (Owner 16.09.2026: „machst einen neuen artikel dass wir die kategorie
+     eingeführt haben und jeder künstler hat die chance seine kunstwerke als poster viu zu
+     verkaufen er soll uns nur anschreiben") ────────────────────────────────────────────────
+     NUR, WAS ES WIRKLICH GIBT: QR-Code unter dem Bild, Bewegung mit Musik, die Geschichte auf
+     dem Telefon, Druck auf Bestellung, drei Formate, mit oder ohne Rahmen. Keine Stückzahlen,
+     keine Erlöse, keine Versprechen über Nachfrage — nichts davon wüssten wir. */
+  {
+    slug: "living-poster-new-category",
+    datum: "2026-09-16",
+    ziel: "shop",
+    texte: {
+      en: {
+        titel: "A poster that tells its own story — and how your work can become one",
+        beschreibung: "We have opened a new category: Living Poster. A printed poster with a QR code — scan it, and the music starts and the painting tells you its story.",
+        lead: "A poster on a wall says one thing: look at me. It cannot say who painted it, when, or why. We have opened a category where it can.",
+        bild: "poster-viu-beispiel.jpg",
+        teile: [
+          { h: "What a Living Poster is", p: [
+            "It is a printed poster like any other. Under the image sits a QR code. You scan it with your phone, the music starts — and next to the painting stands its story: who made it, when, and what was going on around it.",
+            "The paper does not change. What changes is what a visitor can find out while standing in front of it.",
+          ] },
+          { h: "Why we built it", p: [
+            "In a museum every work has a little sign beside it, and that sign is half the visit. At home the sign is missing. The guest sees a picture and asks the owner what it is — and the owner tells the part they remember.",
+            "The code puts the sign back, without printing a wall of text under the image.",
+          ] },
+          { h: "It started with the masters", p: [
+            "The first Living Posters are works in the public domain: van Gogh, Klimt, Monet, Hokusai, Munch, Friedrich. The originals stay in their museums; we print posters of them, in three sizes, with a wooden or black frame, or without.",
+            "They were the honest place to start — we could try the whole thing without asking anyone to risk their work on it.",
+          ] },
+          { h: "Now it is open to artists", p: [
+            "Any artist on lakatosbandi.com can have their works as Living Posters: their painting, their story, their name on the poster. The originals stay where they are and stay theirs — a poster sold does not touch the one work that exists.",
+            "We do not do this behind anyone's back. Nothing of yours becomes a poster unless you ask for it.",
+          ] },
+          { h: "What you get for it", p: [
+            "20 € for every poster of yours that we sell. It is added on top of our price, not taken out of it — what the printing and our share cost stays our business.",
+            "You decide which works may be printed, work by work, and you can take that back at any time.",
+          ] },
+          { h: "How to take part", p: [
+            "Register on lakatosbandi.com and tick the box in your profile: I want to sell my works as Living Posters. Then pick the works. That is all — nothing is printed before you have seen it.",
+          ] },
+        ],
+        merksatz: "The original hangs in one place. The story can hang in many.",
+      },
+      ro: {
+        titel: "Un poster care îți spune povestea lui — și cum poate deveni lucrarea ta unul",
+        beschreibung: "Am deschis o categorie nouă: Living Poster. Un poster tipărit cu cod QR — îl scanezi, pornește muzica, iar tabloul îți spune povestea lui.",
+        lead: "Un poster pe perete spune un singur lucru: uită-te la mine. Nu poate spune cine l-a pictat, când sau de ce. Am deschis o categorie în care poate.",
+        bild: "poster-viu-beispiel.jpg",
+        teile: [
+          { h: "Ce este un poster viu", p: [
+            "Este un poster tipărit, ca oricare altul. Sub imagine stă un cod QR. Îl scanezi cu telefonul, pornește muzica — iar alături de tablou apare povestea lui: cine l-a făcut, când și ce se întâmpla în jur.",
+            "Hârtia rămâne hârtie. Se schimbă doar cât poate afla cineva stând în fața ei.",
+          ] },
+          { h: "De ce l-am făcut", p: [
+            "La muzeu, lângă fiecare lucrare stă o plăcuță, iar plăcuța aceea e jumătate din vizită. Acasă lipsește. Musafirul vede un tablou și îl întreabă pe gazdă ce e — iar gazda spune cât își amintește.",
+            "Codul pune plăcuța la loc, fără să tipărim un perete de text sub imagine.",
+          ] },
+          { h: "Am început cu maeștrii", p: [
+            "Primele Living Poster sunt lucrări intrate în domeniul public: van Gogh, Klimt, Monet, Hokusai, Munch, Friedrich. Originalele rămân în muzeele lor; noi tipărim postere după ele, în trei dimensiuni, cu ramă de lemn, cu ramă neagră sau fără.",
+            "Era locul cinstit de unde să începem — am putut încerca totul fără să riște nimeni lucrările lui pe asta.",
+          ] },
+          { h: "Acum e deschis pentru artiști", p: [
+            "Orice artist de pe lakatosbandi.com își poate avea lucrările ca Living Poster: tabloul lui, povestea lui, numele lui pe poster. Originalele rămân unde sunt și rămân ale lui — un poster vândut nu atinge singura lucrare care există.",
+            "Nu facem asta pe la spatele nimănui. Nicio lucrare de-a ta nu devine poster dacă nu ceri tu.",
+          ] },
+          { h: "Ce primești", p: [
+            "20 € pentru fiecare poster al tău vândut. Se adaugă la prețul nostru, nu se scade din el — cât costă tiparul și cât rămâne la noi e treaba noastră.",
+            "Tu alegi ce lucrări pot fi tipărite, lucrare cu lucrare, și poți renunța oricând.",
+          ] },
+          { h: "Cum participi", p: [
+            "Te înregistrezi pe lakatosbandi.com și bifezi în profil: vreau să-mi vând lucrările și ca Living Poster. Apoi alegi lucrările. Atât — nimic nu se tipărește înainte să vezi tu.",
+          ] },
+        ],
+        merksatz: "Originalul atârnă într-un singur loc. Povestea poate atârna în multe.",
+      },
+      de: {
+        titel: "Ein Poster, das seine Geschichte selbst erzählt — und wie dein Werk eines wird",
+        beschreibung: "Wir haben eine neue Kategorie eröffnet: Living Poster. Ein gedrucktes Poster mit QR-Code — du scannst ihn, die Musik beginnt, und das Bild erzählt seine Geschichte.",
+        lead: "Ein Poster an der Wand sagt eines: sieh mich an. Wer es gemalt hat, wann und warum, kann es nicht sagen. Wir haben eine Kategorie eröffnet, in der es das kann.",
+        bild: "poster-viu-beispiel.jpg",
+        teile: [
+          { h: "Was ein lebendes Poster ist", p: [
+            "Es ist ein gedrucktes Poster wie jedes andere. Unter dem Bild sitzt ein QR-Code. Du scannst ihn mit dem Telefon, die Musik beginnt — und neben dem Bild steht seine Geschichte: wer es gemacht hat, wann, und was damals darum herum geschah.",
+            "Das Papier bleibt Papier. Es ändert sich nur, was jemand davor erfahren kann.",
+          ] },
+          { h: "Warum wir es gebaut haben", p: [
+            "Im Museum steht neben jedem Werk ein kleines Schild, und dieses Schild ist der halbe Besuch. Zu Hause fehlt es. Der Gast sieht ein Bild und fragt den Gastgeber, was es ist — und der erzählt, woran er sich erinnert.",
+            "Der Code bringt das Schild zurück, ohne eine Wand aus Text unter das Bild zu drucken.",
+          ] },
+          { h: "Angefangen haben wir mit den Meistern", p: [
+            "Die ersten Living Poster sind gemeinfreie Werke: van Gogh, Klimt, Monet, Hokusai, Munch, Friedrich. Die Originale bleiben in ihren Museen; wir drucken Poster danach, in drei Formaten, mit Holzrahmen, mit schwarzem Rahmen oder ohne.",
+            "Das war der ehrliche Anfang — so konnten wir alles ausprobieren, ohne dass jemand seine Arbeiten dafür hergeben musste.",
+          ] },
+          { h: "Jetzt steht es Künstlern offen", p: [
+            "Jeder Künstler auf lakatosbandi.com kann seine Werke als lebende Poster haben: sein Bild, seine Geschichte, sein Name auf dem Poster. Die Originale bleiben, wo sie sind, und bleiben seine — ein verkauftes Poster rührt das eine Werk nicht an, das es gibt.",
+            "Wir machen das hinter niemandes Rücken. Nichts von dir wird zum Poster, wenn du nicht darum bittest.",
+          ] },
+          { h: "Was du dafür bekommst", p: [
+            "20 € für jedes verkaufte Poster von dir. Es kommt oben auf unseren Preis, nicht davon herunter — was Druck und unser Anteil kosten, ist unsere Sache.",
+            "Du entscheidest Werk für Werk, was gedruckt werden darf, und kannst es jederzeit zurücknehmen.",
+          ] },
+          { h: "Wie du mitmachst", p: [
+            "Registriere dich auf lakatosbandi.com und setze in deinem Profil das Häkchen: Ich will meine Werke auch als Living Poster verkaufen. Dann wählst du die Werke aus. Mehr ist es nicht — gedruckt wird nichts, bevor du es gesehen hast.",
+          ] },
+        ],
+        merksatz: "Das Original hängt an einem Ort. Die Geschichte kann an vielen hängen.",
+      },
+    },
+  },
+  /* ── 8 · FÜR KÜNSTLER: DEIN WERK ALS POSTER (Owner 16.09.2026: „oder sollen wir einen neuen
+     artikel schreiben für künstler. Biete dein Kunstwerk als poster an") ─────────────────────
+     Der Artikel davor erklärt KÄUFERN, was ein Poster viu ist. Dieser hier spricht den Künstler
+     an und beantwortet seine drei Fragen: Was bekomme ich, was kostet es mich, was muss ich tun.
+     NUR WAS GEBAUT IST: 10 € je verkauftem Poster, Häkchen im Profil, Auswahl je Werk, Premium
+     als Voraussetzung, Druck auf Bestellung. Keine Stückzahlen, keine Versprechen über Nachfrage. */
+  {
+    slug: "sell-your-art-as-poster",
+    datum: "2026-09-16",
+    texte: {
+      en: {
+        titel: "Offer your work as a poster",
+        beschreibung: "Your painting stays yours and hangs where it hangs. The poster of it can hang in many places — and you get 10 € for every one we sell.",
+        lead: "A painting exists once. It hangs in one room, and everyone else has to take your word for it. A poster of it can hang in a hundred rooms without you losing anything.",
+        /* Ein Beispiel, damit man sieht, wovon die Rede ist (Owner 16.09.2026: „als beispiel
+           gibst du ein bild von gerry louisett oder van gogh ist besser") — das Bild trägt keinen
+           Text, deshalb in allen drei Sprachen dasselbe. */
+        bild: "poster-viu-beispiel.jpg",
+        teile: [
+          { h: "The original stays yours", p: [
+            "Nothing about your work changes. You keep it, you sell it whenever and to whomever you want, for whatever price you name. A poster sold does not touch the one piece that exists — it is a print of it, on paper, in someone else's hallway.",
+            "And nothing of yours is printed unless you say so. You pick the works yourself, one by one.",
+          ] },
+          { h: "What you get", p: [
+            "10 € for every poster of yours we sell. It is added on top of our price, not taken out of it — what the printing costs and what stays with us is our business, not a deduction from yours.",
+            "We print to order, we handle the payment, we ship. You do not pack anything and you do not chase anyone for money.",
+          ] },
+          { h: "What a Living Poster is", p: [
+            "A printed poster with a QR code under the image. Whoever scans it hears the music on their phone and reads your story next to the painting: who you are and what this work is about.",
+            "That is the part nobody else sells. A poster shop has the picture. It does not have you.",
+          ] },
+          { h: "What it costs you", p: [
+            "Nothing per poster. It is part of Premium — the same subscription that gives you the AI texts and more works on your page.",
+            "There is no second fee, no commission on your originals, and no contract that ties your work to us. Untick the box and it stops.",
+          ] },
+          /* ── EINE AUSSTELLUNG MIT CODES (Owner 16.09.2026: „auch künstler können ausstellungen
+             damit machen, der QR code führt zum shop zum poster oder original") ───────────── */
+          { h: "And for an exhibition", p: [
+            "Hang a small code next to each work. Whoever scans it hears the music, reads the story and sees who painted it — and can order the poster right there, or ask about the original.",
+            "That is what a code is worth in a room full of people: the evening ends, the works come down, and what someone saw is still one tap away.",
+          ] },
+          { h: "How it works, step by step", p: [
+            "1. Sign up as an artist on lakatosbandi.com and upload your works. You get your own page, lakatosbandi.com/yourname, and the link to edit it arrives by email.",
+            "2. Open your page with that link. Under your name and city there is a box: I want to sell my works as Living Posters. Tick it.",
+            "3. Now every work has a second box next to it: Offer as Living Poster. Tick the ones that may be printed — and only those. Then save.",
+            "4. From that moment you appear in the Living Poster section with your portrait, next to van Gogh, Klimt and Monet. The works you picked stand there as posters: with the QR code, your story, and a buy button. Everything else on your page stays exactly as it was.",
+            "Nothing is printed before you have seen it, and unticking the box takes it all back.",
+          ] },
+        ],
+        merksatz: "The original hangs in one place. The poster can hang in many.",
+      },
+      ro: {
+        titel: "Oferă-ți lucrarea ca poster",
+        beschreibung: "Tabloul rămâne al tău și atârnă unde atârnă. Posterul după el poate atârna în multe locuri — iar tu primești 10 € pentru fiecare vândut.",
+        lead: "Un tablou există o singură dată. Atârnă într-o cameră, iar ceilalți trebuie să te creadă pe cuvânt. Un poster după el poate atârna în o sută de camere fără ca tu să pierzi ceva.",
+        /* Ein Beispiel, damit man sieht, wovon die Rede ist (Owner 16.09.2026: „als beispiel
+           gibst du ein bild von gerry louisett oder van gogh ist besser") — das Bild trägt keinen
+           Text, deshalb in allen drei Sprachen dasselbe. */
+        bild: "poster-viu-beispiel.jpg",
+        teile: [
+          { h: "Originalul rămâne al tău", p: [
+            "Nu se schimbă nimic la lucrarea ta. Rămâne a ta, o vinzi când vrei și cui vrei, la prețul pe care îl spui tu. Un poster vândut nu atinge singura piesă care există — e un print după ea, pe hârtie, pe holul altcuiva.",
+            "Și nimic de-al tău nu se tipărește dacă nu spui tu. Alegi lucrările una câte una.",
+          ] },
+          { h: "Ce primești", p: [
+            "10 € pentru fiecare poster al tău vândut. Se adaugă la prețul nostru, nu se scade din el — cât costă tiparul și cât rămâne la noi e treaba noastră, nu o scădere din partea ta.",
+            "Tipărim la comandă, ne ocupăm de plată, livrăm noi. Tu nu împachetezi nimic și nu alergi după nimeni pentru bani.",
+          ] },
+          { h: "Ce e un Living Poster", p: [
+            "Un poster tipărit, cu un cod QR sub imagine. Cine îl scanează aude muzica pe telefon și citește alături povestea ta: cine ești și despre ce e lucrarea.",
+            "Asta e partea pe care n-o vinde nimeni altcineva. Un magazin de postere are imaginea. Pe tine nu te are.",
+          ] },
+          { h: "Cât te costă", p: [
+            "Nimic per poster. Face parte din Premium — același abonament care îți dă textele AI și mai multe lucrări pe pagină.",
+            "Nu există un al doilea comision, niciun procent din originalele tale și niciun contract care să-ți lege lucrările de noi. Debifezi și se oprește.",
+          ] },
+          { h: "Și pentru o expoziție", p: [
+            "Pui un cod mic lângă fiecare lucrare. Cine îl scanează aude muzica, citește povestea și vede cine a pictat-o — și poate comanda posterul pe loc sau poate întreba de original.",
+            "Asta face un cod într-o sală plină de oameni: seara se termină, lucrările se dau jos, iar ce a văzut cineva rămâne la o atingere distanță.",
+          ] },
+          { h: "Cum funcționează, pas cu pas", p: [
+            "1. Te înscrii ca artist pe lakatosbandi.com și îți încarci lucrările. Primești propria pagină, lakatosbandi.com/numeletău, iar linkul de editare îți vine pe e-mail.",
+            "2. Deschizi pagina cu acel link. Sub numele și orașul tău e o casetă: vreau să-mi vând lucrările și ca Living Poster. O bifezi.",
+            "3. Acum fiecare lucrare are lângă ea o a doua casetă: oferă ca Living Poster. Le bifezi pe cele care pot fi tipărite — și doar pe acelea. Apoi salvezi.",
+            "4. Din acel moment apari în secțiunea Living Poster cu portretul tău, lângă van Gogh, Klimt și Monet. Lucrările alese stau acolo ca postere: cu cod QR, cu povestea ta și cu buton de cumpărare. Restul paginii tale rămâne exact cum era.",
+            "Nimic nu se tipărește înainte să vezi tu, iar dacă debifezi, totul se retrage.",
+          ] },
+        ],
+        merksatz: "Originalul atârnă într-un singur loc. Posterul poate atârna în multe.",
+      },
+      de: {
+        titel: "Biete dein Werk als Poster an",
+        beschreibung: "Dein Bild bleibt deins und hängt, wo es hängt. Das Poster davon kann an vielen Wänden hängen — und du bekommst 10 € für jedes verkaufte.",
+        lead: "Ein Bild gibt es einmal. Es hängt in einem Raum, und alle anderen müssen dir glauben. Ein Poster davon kann in hundert Räumen hängen, ohne dass du etwas verlierst.",
+        /* Ein Beispiel, damit man sieht, wovon die Rede ist (Owner 16.09.2026: „als beispiel
+           gibst du ein bild von gerry louisett oder van gogh ist besser") — das Bild trägt keinen
+           Text, deshalb in allen drei Sprachen dasselbe. */
+        bild: "poster-viu-beispiel.jpg",
+        teile: [
+          { h: "Das Original bleibt deins", p: [
+            "An deinem Werk ändert sich nichts. Es bleibt bei dir, du verkaufst es, wann und an wen du willst, zu dem Preis, den du nennst. Ein verkauftes Poster rührt das eine Stück nicht an, das es gibt — es ist ein Druck davon, auf Papier, in fremdem Flur.",
+            "Und nichts von dir wird gedruckt, wenn du es nicht sagst. Du wählst die Werke selbst aus, eines nach dem anderen.",
+          ] },
+          { h: "Was du bekommst", p: [
+            "10 € für jedes verkaufte Poster von dir. Es kommt oben auf unseren Preis, nicht davon herunter — was der Druck kostet und was bei uns bleibt, ist unsere Sache und kein Abzug von deinem.",
+            "Wir drucken auf Bestellung, wickeln die Zahlung ab und verschicken. Du packst nichts ein und läufst niemandem hinterher.",
+          ] },
+          { h: "Was ein Living Poster ist", p: [
+            "Ein gedrucktes Poster mit einem QR-Code unter dem Bild. Wer ihn scannt, hört auf dem Telefon die Musik und liest daneben deine Geschichte: wer du bist und worum es in dieser Arbeit geht.",
+            "Das ist der Teil, den sonst niemand verkauft. Ein Posterladen hat das Bild. Dich hat er nicht.",
+          ] },
+          { h: "Was es dich kostet", p: [
+            "Nichts je Poster. Es gehört zu Premium — dasselbe Abo, das dir die KI-Texte und mehr Werke auf deiner Seite gibt.",
+            "Es gibt keine zweite Gebühr, keinen Anteil an deinen Originalen und keinen Vertrag, der deine Arbeiten an uns bindet. Häkchen weg, und es hört auf.",
+          ] },
+          { h: "Und für eine Ausstellung", p: [
+            "Häng neben jedes Werk einen kleinen Code. Wer ihn scannt, hört die Musik, liest die Geschichte und sieht, wer es gemalt hat — und kann das Poster gleich dort bestellen oder nach dem Original fragen.",
+            "Genau das ist ein Code in einem Raum voller Menschen wert: Der Abend geht zu Ende, die Werke kommen von der Wand, und was jemand gesehen hat, bleibt einen Fingertipp entfernt.",
+          ] },
+          { h: "Wie es geht, Schritt für Schritt", p: [
+            "1. Melde dich als Künstler auf lakatosbandi.com an und lade deine Werke hoch. Du bekommst deine eigene Seite, lakatosbandi.com/deinname, und den Link zum Bearbeiten per E-Mail.",
+            "2. Öffne deine Seite mit diesem Link. Unter deinem Namen und deiner Stadt steht ein Kästchen: Ich will meine Werke auch als Living Poster verkaufen. Setz das Häkchen.",
+            "3. Jetzt hat jedes Werk ein zweites Kästchen daneben: Als Living Poster anbieten. Hak die an, die gedruckt werden dürfen — und nur die. Dann speichern.",
+            "4. Ab dem Moment stehst du mit deinem Porträt in der Kategorie Living Poster, neben van Gogh, Klimt und Monet. Die gewählten Werke stehen dort als Poster: mit QR-Code, mit deiner Geschichte und mit Kaufknopf. Der Rest deiner Seite bleibt genau so, wie er war.",
+            "Gedruckt wird nichts, bevor du es gesehen hast, und wer das Häkchen entfernt, nimmt alles zurück.",
+          ] },
+        ],
+        merksatz: "Das Original hängt an einem Ort. Das Poster kann an vielen hängen.",
+      },
+    },
+  },
+  /* ── 9 · DIE MEISTER SIND DA (Owner 16.09.2026: „ich brauche noch einen artikel … Jetzt könnt
+     ihr auch bekannte kunstwerke bei uns als poster bestellen. Van Gogh…") ──────────────────
+     Der erste Artikel erklärt, WAS ein Living Poster ist. Dieser sagt, was es zu kaufen gibt,
+     was es kostet und wie es ankommt — für Facebook, an Käufer. Alle Zahlen stehen so in der
+     Preistabelle; keine Versprechen über Lieferzeiten, die wir nicht kennen. */
+  {
+    slug: "order-famous-artworks-as-posters",
+    datum: "2026-09-16",
+    ziel: "shop",
+    texte: {
+      en: {
+        titel: "Now you can order famous paintings from us as posters",
+        beschreibung: "van Gogh, Klimt, Monet, Hokusai, Munch, Friedrich — printed to order, in three sizes, from 17 €, delivered in Romania.",
+        lead: "The paintings everyone knows hang in museums in Amsterdam, Vienna, Paris and New York. You cannot buy them. What you can have is a good print of them on your own wall — and from today you can order it from us.",
+        bild: "living-poster-drei.jpg",
+        teile: [
+          { h: "Who you can choose from", p: [
+            "Vincent van Gogh, Gustav Klimt, Claude Monet, Katsushika Hokusai, Edvard Munch and Caspar David Friedrich. Their works are in the public domain — nobody owns the rights to them any more, which is why we may print them and why you may hang them.",
+            "The originals stay in their museums. What you get is a print, and we say so plainly.",
+          ] },
+          { h: "What it costs", p: [
+            "Unframed: A3 for 17 €, A2 for 19 €, A1 for 22 €. In a real wooden frame — black or light oak: 42 €, 59 €, 87 €. Delivery in Romania is 5 € unframed and 12 € framed, because a frame travels in a box and not in a tube.",
+            "We print to order. Nothing sits in a warehouse waiting for you.",
+          ] },
+          { h: "And the part nobody else sells", p: [
+            "Under the image sits a QR code. Scan it, and your phone plays music and tells you the story of that painting: who made it, when, and what was going on around it. Like the little sign next to a work in a museum, only on your own wall.",
+            "That is why we call it a Living Poster.",
+          ] },
+          { h: "How to order", p: [
+            "Open the Living Poster section on lakatosbandi.com, pick a work, choose the size and the frame, and pay by card. That is all.",
+          ] },
+        ],
+        merksatz: "The original hangs in Amsterdam. The story can hang in your hallway.",
+      },
+      ro: {
+        titel: "Acum poți comanda de la noi tablouri celebre ca postere",
+        beschreibung: "van Gogh, Klimt, Monet, Hokusai, Munch, Friedrich — tipărite la comandă, în trei formate, de la 17 €, livrate în România.",
+        lead: "Tablourile pe care le știe toată lumea atârnă în muzee din Amsterdam, Viena, Paris și New York. Pe acelea nu le poți cumpăra. Ce poți avea este un print bun după ele, pe peretele tău — iar de azi îl comanzi de la noi.",
+        bild: "living-poster-drei.jpg",
+        teile: [
+          { h: "Dintre cine poți alege", p: [
+            "Vincent van Gogh, Gustav Klimt, Claude Monet, Katsushika Hokusai, Edvard Munch și Caspar David Friedrich. Lucrările lor sunt în domeniul public — nimeni nu mai deține drepturi asupra lor, de aceea le putem tipări și de aceea le poți atârna.",
+            "Originalele rămân în muzeele lor. Ce primești este un print, și spunem asta pe față.",
+          ] },
+          { h: "Cât costă", p: [
+            "Fără ramă: A3 — 17 €, A2 — 19 €, A1 — 22 €. Cu ramă adevărată de lemn, neagră sau deschisă: 42 €, 59 €, 87 €. Livrarea în România e 5 € fără ramă și 12 € cu ramă, pentru că o ramă călătorește în cutie, nu în tub.",
+            "Tipărim la comandă. Nimic nu stă într-un depozit așteptându-te.",
+          ] },
+          { h: "Și partea pe care n-o vinde nimeni altcineva", p: [
+            "Sub imagine stă un cod QR. Îl scanezi, iar telefonul pornește muzica și îți spune povestea tabloului: cine l-a făcut, când și ce se întâmpla în jur. Ca plăcuța de lângă o lucrare la muzeu, doar că e pe peretele tău.",
+            "De aceea îi spunem Living Poster.",
+          ] },
+          { h: "Cum comanzi", p: [
+            "Deschizi secțiunea Living Poster pe lakatosbandi.com, alegi o lucrare, alegi mărimea și rama și plătești cu cardul. Atât.",
+          ] },
+        ],
+        merksatz: "Originalul atârnă la Amsterdam. Povestea poate atârna pe holul tău.",
+      },
+      de: {
+        titel: "Jetzt kannst du berühmte Gemälde bei uns als Poster bestellen",
+        beschreibung: "van Gogh, Klimt, Monet, Hokusai, Munch, Friedrich — auf Bestellung gedruckt, in drei Formaten, ab 17 €, Lieferung nach Rumänien.",
+        lead: "Die Bilder, die jeder kennt, hängen in Museen in Amsterdam, Wien, Paris und New York. Die kann man nicht kaufen. Was man haben kann, ist ein guter Druck davon an der eigenen Wand — und ab heute bestellst du ihn bei uns.",
+        bild: "living-poster-drei.jpg",
+        teile: [
+          { h: "Wer zur Auswahl steht", p: [
+            "Vincent van Gogh, Gustav Klimt, Claude Monet, Katsushika Hokusai, Edvard Munch und Caspar David Friedrich. Ihre Werke sind gemeinfrei — niemand hält mehr Rechte daran, deshalb dürfen wir sie drucken und du sie aufhängen.",
+            "Die Originale bleiben in ihren Museen. Was du bekommst, ist ein Druck, und das sagen wir offen.",
+          ] },
+          { h: "Was es kostet", p: [
+            "Ohne Rahmen: A3 für 17 €, A2 für 19 €, A1 für 22 €. Im echten Holzrahmen, schwarz oder helle Eiche: 42 €, 59 €, 87 €. Die Lieferung nach Rumänien kostet 5 € ohne Rahmen und 12 € mit, weil ein Rahmen im Karton reist und nicht in der Hülse.",
+            "Wir drucken auf Bestellung. Nichts liegt in einem Lager und wartet auf dich.",
+          ] },
+          { h: "Und der Teil, den sonst niemand verkauft", p: [
+            "Unter dem Bild sitzt ein QR-Code. Du scannst ihn, und das Telefon spielt Musik und erzählt dir die Geschichte dieses Gemäldes: wer es gemacht hat, wann, und was damals darum herum geschah. Wie das Schild neben einem Werk im Museum, nur an deiner eigenen Wand.",
+            "Deshalb heisst es Living Poster.",
+          ] },
+          { h: "Wie du bestellst", p: [
+            "Öffne den Bereich Living Poster auf lakatosbandi.com, wähle ein Werk, dann Grösse und Rahmen, und zahle mit Karte. Mehr ist es nicht.",
+          ] },
+        ],
+        merksatz: "Das Original hängt in Amsterdam. Die Geschichte kann in deinem Flur hängen.",
       },
     },
   },

@@ -9,8 +9,13 @@ import { EIGENER_MANDANT } from "@/lib/versusforge-namen";
 import PortalKopf from "@/components/PortalKopf";
 import PortalFuss from "@/components/PortalFuss";
 import KuenstlerAgent from "@/components/KuenstlerAgent";
+import PosterFilm from "@/components/PosterFilm";
+import KaufKnopf from "@/components/KaufKnopf";
+import Korb from "@/components/Korb";
 import { preisSatz, preisText } from "@/lib/lakatosbandi-preis";
 import PreisLabel from "@/components/PreisLabel";
+import { druckPreisCents, druckGroessenFuer, druckSpanneCents } from "@/lib/lakatosbandi-druck";
+import { eur } from "@/lib/pricing";
 
 /**
  * DIE SEITE EINES WERKS: LAKATOSBANDI.COM/{NAME}/{NR} (Owner 11.09.2026: „hier komme ich nicht auf die Kunstwerk-Seite
@@ -70,8 +75,14 @@ export default async function PortalWerk({ params, searchParams }: Props) {
 
   const w = m.werkInfo?.[i < 0 ? "standard" : String(i)];
   const zeile = w ? [w.titel, w.technik, w.groesse, w.jahr].filter(Boolean).join(" · ") : "";
-  /* Sein Preis für dieses Werk — sonst sein allgemeiner Satz (Owner 12.09.2026). */
-  const preis = preisText(w?.preis) || preisSatz(m.preisSpanne, T.preisAufAnfrage);
+  /* Sein Preis für dieses Werk — sonst sein allgemeiner Satz (Owner 12.09.2026).
+     Bei Reproduktionen steht der echte Preis: fest bei Shirt und Hoodie, sonst die Spanne aus
+     der Drucktabelle (Owner 15.09.2026: „pret la cerere ist es nicht. Die preise haben wir ja"). */
+  const festCents = w?.produkt ? druckPreisCents(w.produkt, druckGroessenFuer(w.produkt)[0] ?? "") : null;
+  const spanne = festCents === null && m.reproduktion ? druckSpanneCents() : null;
+  const preis = festCents !== null ? eur(festCents, L)
+    : spanne ? `${eur(spanne.von, L)} – ${eur(spanne.bis, L)}`
+      : (preisText(w?.preis) || preisSatz(m.preisSpanne, T.preisAufAnfrage));
   const andere = kacheln.filter(x => x.i !== i);
 
   return (
@@ -81,13 +92,64 @@ export default async function PortalWerk({ params, searchParams }: Props) {
       <main className="mx-auto w-full max-w-[1120px] px-5 pb-20 pt-8 md:pt-12">
         <a href={mitAdmin(P.kuenstler(kuenstler))} className="text-[14px] text-[#555] underline">← {n(T.alleWerkeVon)}</a>
 
-        <div className="mt-6 grid gap-8 md:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] md:gap-12">
-          <div className="flex items-start justify-center bg-[#f5f5f5]">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={mitAdmin(P.werkBild(kuenstler, i))} alt={w?.titel || m.name} className="max-h-[80vh] max-w-full object-contain" />
-          </div>
+        <div className={m.reproduktion
+          /* EINE SPALTE (Owner 15.09.2026: „wenn ich jetzt auf einem bild klicke kommt ein
+             anderes layout") — das Poster steht mittig, darunter der Kauf. Zwei Spalten
+             zerrissen genau das Bild, das die Kachel verspricht. */
+          /* `lb-poster-block` umschliesst Poster UND Rahmenwahl — daran hängt die CSS-Regel,
+             die den Rahmen zeichnet (globals.css, 16.09.2026). */
+          ? "lb-poster-block mx-auto mt-6 w-full max-w-[560px]"
+          : "mt-6 grid gap-8 md:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] md:gap-12"}>
+          {/* ── AUCH HIER DAS POSTER (Owner 15.09.2026: „ok nur dass du die seite auch umbaust")
+              ────────────────────────────────────────────────────────────────────────────────────
+              Dieselbe Form wie die Kachel: QR und VIDEOPOSTER oben, das Werk im schwarzen Rahmen
+              mit Schatten, Play-Knopf darauf. Wer von der Übersicht hierher klickt, soll dasselbe
+              Ding grösser sehen und nicht ein anderes Layout. */}
+          {m.reproduktion ? (
+            <div className="lb-poster-karte border border-[#d8d3c6] bg-[#faf9f6] px-6 py-8 text-center">
+              {/* Titel gross über dem Bild, Code darunter (Owner 15.09.2026). */}
+              <p className="m-0 mb-6 font-serif text-[24px] uppercase tracking-[0.26em] text-[#111]">{T.werkeReproduktionen}</p>
+              <div className="flex items-center justify-center">
+                <PosterFilm gross
+                  quelle={w?.film ? `/api/portal-film?m=${encodeURIComponent(kuenstler)}&i=${i < 0 ? "standard" : i}&v=${encodeURIComponent(w?.filmAm ?? "1")}` : undefined}
+                  bild={mitAdmin(P.werkBild(kuenstler, i))} alt={w?.titel || m.name}
+                  kuenstler={m.name} leben={m.leben} titel={zeile}
+                  geschichte={k.hook} ueber={m.ueberMich} />
+              </div>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={`/lakatosbandi/qr/${kuenstler}-${i < 0 ? "standard" : i}.png`} alt=""
+                className="mx-auto mt-6 block h-[66px] w-[66px]" />
+              <p className="m-0 mt-2 font-serif text-[12.5px] italic text-[#8a8375]">{T.qrScannen}</p>
+              <p className="m-0 mt-6 font-serif text-[15px] uppercase tracking-[0.22em] text-[#111]">{m.name}</p>
+              {m.leben ? <p className="m-0 mt-1.5 font-serif text-[13px] text-[#8a8375]">{m.leben}</p> : null}
+              {zeile ? <p className="m-0 mt-3 font-serif text-[15px] italic leading-[1.45] text-[#22201b]">{zeile}</p> : null}
+              <p className="m-0 mt-4 font-serif text-[16px] leading-[1.5] text-[#22201b]">{k.hook}</p>
+              <p className="m-0 mt-7 font-serif text-[10.5px] uppercase tracking-[0.28em] text-[#8a8375]">lakatosbandi.com</p>
+              <p className="m-0 mt-1.5 font-serif text-[10px] leading-[1.4] text-[#a9a294]">
+                Text și design © 2026 lakatosbandi.com · Imagine: domeniu public
+              </p>
+            </div>
+          ) : (
+            <div className="flex items-start justify-center bg-[#f5f5f5]">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={mitAdmin(P.werkBild(kuenstler, i))} alt={w?.titel || m.name} className="max-h-[80vh] max-w-full object-contain" />
+            </div>
+          )}
+          {m.reproduktion ? (
+            /* Unter dem Poster: Größe, Kaufen, Korb, Agent — wie in der Kachel, nichts davon
+               steht im Poster selbst. */
+            <div className="mt-5 text-center">
+              <KaufKnopf mandant={kuenstler} werk={i < 0 ? "standard" : String(i)}
+                material={w?.produkt ?? "posterramaneagra"} sprache={L} anteil={!m.reproduktion}
+                texte={{ kaufen: T.kaufKaufen, korb: T.kaufKorb, groesse: T.kaufGroesse, fehler: T.korbFehler,
+                          ohneRahmen: T.druckOhneRahmen, mitRahmen: T.druckMitRahmen, rahmenSchwarz: T.druckRahmenSchwarz }} />
+              <a href={`?agent=1${admin ? `&s=${encodeURIComponent(adminS)}` : ""}`}
+                className="mt-4 inline-block text-[14px] text-[#111] underline">{T.agent}</a>
+            </div>
+          ) : (
           <div>
-            <p className="m-0 text-[13px] font-semibold uppercase tracking-[0.18em] text-[#777]">{m.name}</p>
+            <p className="m-0 font-serif text-[14px] uppercase tracking-[0.22em] text-[#111]">{m.name}</p>
+            {m.leben ? <p className="m-0 mt-1.5 font-serif text-[13px] text-[#8a8375]">{m.leben}</p> : null}
             <h1 className="mt-3 font-serif text-[28px] font-normal leading-[1.25] md:text-[34px]">{k.hook}</h1>
             {zeile ? <p className="mt-4 text-[15px] leading-[1.5] text-[#555]">{zeile}</p> : null}
             {w?.detalii ? <p className="mt-1 text-[15px] leading-[1.5] text-[#555]">{w.detalii}</p> : null}
@@ -127,6 +189,7 @@ export default async function PortalWerk({ params, searchParams }: Props) {
               </p>
             </div>
           </div>
+          )}
         </div>
 
         {andere.length > 0 && (
@@ -142,6 +205,10 @@ export default async function PortalWerk({ params, searchParams }: Props) {
                     </div>
                     <p className="mt-2 line-clamp-2 text-[14px] font-semibold leading-[1.35]">{x.hook}</p>
                     {(() => {
+                      /* BEI EINEM DRUCK STEHT KEIN „Preis auf Anfrage" (16.09.2026): Was er
+                         kostet, wissen wir — es steht auf seiner Seite am Kaufknopf. Der Satz
+                         gehört zu Originalen, deren Preis der Künstler nicht nennen will. */
+                      if (m.reproduktion || m.posterViu) return null;
                       const wx = m.werkInfo?.[x.i < 0 ? "standard" : String(x.i)];
                       const px = preisText(wx?.preis) || preisSatz(m.preisSpanne, T.preisAufAnfrage);
                       return px ? <p className="mt-1.5"><PreisLabel groesse="klein">{px}</PreisLabel></p> : null;
@@ -154,8 +221,15 @@ export default async function PortalWerk({ params, searchParams }: Props) {
         )}
       </main>
       <PortalFuss lang={L} />
+      {m.reproduktion ? (
+        <Korb sprache={L} texte={{
+          titel: T.korbTitel, versand: T.korbVersand, summe: T.korbSumme,
+          kasse: T.korbKasse, weg: T.korbWeg, leeren: T.korbLeeren, fehler: T.korbFehler,
+          material: { poster: T.druckPapier, posterrama: `${T.druckPapier} · ${T.druckMitRahmen}`, posterramaneagra: `${T.druckPapier} · ${T.druckRahmenSchwarz}`, tricou: T.druckTricou, hanorac: T.druckHanorac },
+        }} />
+      ) : null}
       {/* Sein Agent spricht über GENAU dieses Werk. Der Admin ist kein Besucher. */}
-      <KuenstlerAgent mandant={kuenstler} name={m.name} T={T} messen={!admin} hook={String(i)}
+      <KuenstlerAgent mandant={kuenstler} name={m.name} T={T} messen={!admin} hook={String(i)} reproduktion={!!m.reproduktion} produkt={m.werkInfo?.[i < 0 ? "standard" : String(i)]?.produkt}
         offen={String(sp.agent ?? "") === "1"} datenschutz={datenschutz} sprache={L} />
     </div>
   );

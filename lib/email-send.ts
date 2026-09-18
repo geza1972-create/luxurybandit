@@ -47,7 +47,22 @@ export type SendResult = { ok: boolean; via?: "smtp" | "resend"; skipped?: strin
  * in Vercel VERSUSFORGE_SMTP_USER und VERSUSFORGE_SMTP_PASS setzen. HOST, PORT und FROM
  * haben Vorgaben und sind nur nötig, wenn etwas abweicht.
  */
-export type MailKonto = "haus" | "versusforge";
+/**
+ * ── UND EIN DRITTES FÜR DIE ANSPRACHE (Owner 16.09.2026: „ich bin bei Meta gesperrt") ───────
+ *
+ * `werbung` ist das Postfach, aus dem Künstler angeschrieben werden, die uns noch nicht kennen.
+ * Es MUSS auf einer eigenen Domain liegen, nicht auf lakatosbandi.com.
+ *
+ * Der Grund ist nicht Kosmetik: Ein paar Spam-Klicks auf eine Kaltmail senken den Ruf der
+ * ABSENDERDOMAIN, und dann landen auch die Mails im Nirwana, die jemand bestellt hat — die
+ * Bestellbestätigung, der Login-Link, die Nachricht an den Künstler, dass sich jemand für sein
+ * Werk interessiert. Nach Meta wäre das der zweite Kanal, den wir an einem Tag verlieren.
+ *
+ * OHNE EIGENES POSTFACH GEHT KEINE ANSPRACHE RAUS. Hier fällt nichts auf das Haus zurück
+ * (anders als bei `versusforge`): Lieber keine Werbemail als eine, die die Kundenpost mitreisst.
+ * Anzulegen: eine zweite Domain, dort ein Postfach, dann WERBUNG_SMTP_USER/PASS in Vercel.
+ */
+export type MailKonto = "haus" | "versusforge" | "werbung";
 
 type Zugang = { host?: string; user?: string; pass?: string; port: number; from: string };
 
@@ -73,6 +88,21 @@ function zugang(konto: MailKonto): Zugang {
     );
     return haus;
   }
+  if (konto === "werbung") {
+    const wUser = process.env.WERBUNG_SMTP_USER?.trim();
+    const wPass = process.env.WERBUNG_SMTP_PASS?.trim();
+    /* KEIN RÜCKFALL AUF DAS HAUS — siehe oben. Ohne Zugang bleibt `user` leer, und
+       `sendEmail` bricht mit „no mailer configured" ab, statt über lakatosbandi.com zu gehen. */
+    if (!wUser || !wPass) return { host: undefined, user: undefined, pass: undefined, port: 465, from: "" };
+    return {
+      host: process.env.WERBUNG_SMTP_HOST?.trim(),
+      user: wUser,
+      pass: wPass,
+      port: Number(process.env.WERBUNG_SMTP_PORT?.trim() || "465"),
+      from: process.env.WERBUNG_SMTP_FROM?.trim() || `Geza Lakatos <${wUser}>`,
+    };
+  }
+
   return {
     /* Dieselbe Sorte Postfach beim selben Anbieter: Host und Port erben, wenn nichts
        anderes dasteht. Ein zweiter Anbieter wäre ein zweiter Ort für denselben Fehler. */
@@ -127,6 +157,13 @@ export async function sendEmail(opts: { to: string; subject: string; html: strin
   /* Welches Postfach — siehe `zugang` oben. Ohne Angabe das Haus, damit sich für die
      zwölf bestehenden Produkte nichts ändert. */
   const { host, user, pass, port, from: fromStandard } = zugang(opts.konto ?? "haus");
+  /* DIE ANSPRACHE GEHT NUR AUS IHREM EIGENEN POSTFACH — sonst gar nicht (siehe `MailKonto`).
+     Ohne diese Sperre fiele sie unten auf den Resend-Rückfall und damit auf die Hausadresse
+     zurück, und genau die soll sie ja schützen. */
+  if (opts.konto === "werbung" && !user) {
+    console.warn("[email-send] Ansprache ohne eigenes Postfach — nicht verschickt (WERBUNG_SMTP_USER/PASS fehlen).");
+    return { ok: false, skipped: "kein-werbe-postfach", error: "no outreach mailbox configured" };
+  }
   const anzeigename = (opts.absender ?? "").replace(/[<>"\r\n]/g, "").trim();
   const from = anzeigename && user ? `${anzeigename} <${user}>` : fromStandard;
   const text = (opts.text ?? "").trim() || textAusHtml(opts.html);

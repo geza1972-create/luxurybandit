@@ -82,3 +82,42 @@ export async function kuenstlerListe(passt: (m: MandantAngaben) => boolean): Pro
 
 /** Öffentlich im Portal: vom Owner freigegeben UND „Ja, ins Portal" gesagt. */
 export const imPortalSichtbar = (m: MandantAngaben) => m.freigabe === "frei" && m.portal === true;
+
+/**
+ * DER ANRISS AUF DEM POSTER (Owner 16.09.2026: „nur 2 zeilen und mehr… der rest im fenster" ·
+ * „keine wörter abschneiden").
+ *
+ * ── AN EINEM PUNKT, NICHT AN EINEM PIXEL ────────────────────────────────────────────────────
+ *
+ * Vorher schnitt CSS nach zwei Zeilen ab — mitten im Wort, mit drei Punkten. Auf einem Poster,
+ * das gedruckt an einer Wand hängt, sieht das nach einem Fehler aus, nicht nach einer Einladung.
+ * Deshalb endet der Anriss am letzten SATZ, der noch passt: Er liest sich wie ein ganzer
+ * Gedanke, und wer den Rest will, scannt den Code darunter.
+ *
+ * Ist schon der erste Satz länger als das Mass, bleibt er trotzdem stehen — lieber drei Zeilen
+ * als ein zerhackter Satz.
+ */
+export function posterAnriss(text: string, hoechstens = 100): string {
+  const t = String(text ?? "").trim();
+  if (t.length <= hoechstens) return t;
+  /* Satzenden samt Satzzeichen, damit der Punkt mitkommt. */
+  const saetze = t.match(/[^.!?…]+[.!?…]+(\s|$)/g) ?? [t];
+  let raus = "";
+  for (const s of saetze) {
+    if (raus && (raus + s).trim().length > hoechstens) break;
+    raus += s;
+  }
+  raus = (raus || saetze[0] || t).trim();
+  /**
+   * ── HÖCHSTENS ZWEI ZEILEN (Owner 16.09.2026: „das ist zu hoch, nicht mehr als 2 zeilen text")
+   *
+   * Ein einzelner langer Satz sprengte den Anriss trotzdem auf drei Zeilen. Dann endet er am
+   * letzten WORT, das noch passt, mit drei Punkten — nie mitten im Wort (Owner: „keine Wörter
+   * abschneiden"). Der ganze Satz steht ohnehin hinter dem Code.
+   */
+  if (raus.length > hoechstens * 1.25) {
+    const kurz = raus.slice(0, hoechstens);
+    raus = `${kurz.slice(0, kurz.lastIndexOf(" ")).replace(/[,;:]$/, "")} …`;
+  }
+  return raus;
+}

@@ -29,7 +29,14 @@ import sharp from "sharp";
  * nicht gezahlt — hier keine Zeit mit Dichtmachen verschwenden.
  */
 
-const TEXT = "© luxurybandit.com";
+/**
+ * ── DIE ADRESSE, DIE DAS BILD ERZEUGT HAT (Owner 17.09.2026: „es muss das Wasserzeichen
+ * geändert werden, und zwar in lakatosbandi.com und deutlicher") ────────────────────────────
+ *
+ * Auf einem erzeugten Porträt stand bisher die Adresse des Hauses — das ist der falsche Laden.
+ * Wer das Bild weiterschickt, soll dort landen, wo er es bestellen kann.
+ */
+const TEXT = "© lakatosbandi.com";
 
 /**
  * DIE DICHTE HÄNGT AN DIESEN DREI ZAHLEN — hier drehen, nicht im Code darunter.
@@ -41,11 +48,13 @@ const TEXT = "© luxurybandit.com";
  * Das Gegengewicht: Zu dicht, und er erkennt sich nicht mehr — dann sieht er nicht, dass es gut
  * geworden ist, und kauft die saubere Fassung nicht. Deshalb 20 % Deckkraft und nicht mehr.
  */
-const GROESSE = 0.040;   // Schrifthöhe als Anteil der Bildbreite — nie feste Pixel, sonst
+const GROESSE = 0.050;   // Schrifthöhe als Anteil der Bildbreite — nie feste Pixel, sonst
                          // flüstert es auf grossen Bildern und schreit auf kleinen
 const ABSTAND_X = 1.30;  // Faktor auf die Textbreite (1.0 = Schrift an Schrift)
 const ABSTAND_Y = 3.20;  // Faktor auf die Schrifthöhe
-const DECKKRAFT = 0.20;
+/* Deutlicher (Owner 17.09.2026): Bei 20 % war es auf farbigen Gemälden praktisch unsichtbar —
+   ein Wasserzeichen, das man nicht sieht, schützt nichts und wirbt nicht. */
+const DECKKRAFT = 0.34;
 
 /** Grobe Textbreite für eine fette System-Sans — reicht für die Kachelung völlig. */
 const BREITE_JE_ZEICHEN = 0.50;

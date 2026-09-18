@@ -57,7 +57,7 @@ export default function PortalTeilen({ adresse, name, T }: {
   return (
     <>
       <button type="button" onClick={() => void teilen()}
-        className="inline-flex items-center gap-2 border border-[#111] px-5 py-3.5 text-[15px] font-semibold text-[#111] transition hover:bg-[#111] hover:text-white">
+        className="inline-flex items-center gap-1.5 rounded-full border border-[#111] px-4 py-2 text-[14px] font-semibold text-[#111] transition hover:bg-[#111] hover:text-white">
         <Share2 className="h-[17px] w-[17px]" aria-hidden />
         {T.teilen}
       </button>

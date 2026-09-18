@@ -35,14 +35,27 @@ export type RechtTexte = {
   kontaktWort: string;
 };
 
-const BETREIBER = "VersusForge · Bvd. Mihai Viteazu 44 · Timișoara, Romania";
+/**
+ * ── DER BETREIBER IST DIE PERSON, NICHT DIE MARKE (Owner 15.09.2026: „es gibt keine PFA, ich
+ * bin freelancer und habe die stuernummer RO49830040") ───────────────────────────────────────
+ *
+ * Hier stand „VersusForge" als Betreiber und darunter „persoană fizică autorizată" — eine
+ * Rechtsform, die es nicht gibt. Anlass war Metas Absage vom 15.09.2026
+ * („contradictory account information"): Steht auf dem Zahlungsmittel ein Name, im Werbekonto
+ * ein zweiter und auf der Webseite ein dritter, prüft dort niemand mehr weiter.
+ *
+ * NUR NAME UND STEUERNUMMER (Owner: Antwort „3" auf die Frage nach dem Zusatz) — keine
+ * Bezeichnung der Rechtsform, weil wir sie nicht belegen können. VersusForge bleibt als Marke
+ * erhalten, aber als Marke benannt.
+ */
+const BETREIBER = "Lakatos Geza · Bvd. Mihai Viteazu 44 · Timișoara, Romania";
 const STEUER = "RO49830040";
 
 const EN: RechtTexte = {
   impressum: {
     titel: "Imprint",
     abschnitte: [
-      { h: "Operator", p: [`lakatosbandi.com is operated by ${BETREIBER}.`, `Tax number: ${STEUER} (freelancer, Romania).`] },
+      { h: "Operator", p: [`lakatosbandi.com is operated by ${BETREIBER}.`, `Tax number: ${STEUER}.`, "VersusForge is the brand the platform runs under."] },
       { h: "Who is behind it", p: ["Geza Lakatos (Designer, Dipl., & AI Consultant) and Szidonia Bandi (artist)."] },
       { h: "Contact", p: ["For any request — including legal questions and data protection — please use our contact form. We answer every message."] },
       { h: "Technology", p: ["The platform runs on VersusForge, an AI marketing engine built by the operator."] },
@@ -98,34 +111,45 @@ const EN: RechtTexte = {
         "Anyone who paints can take part — there is no admission test, no minimum number of works and no waiting time. Your page is online right away. We may decline an application or remove a page, in particular if works are not the artist’s own, break the law or these terms.",
         "Your works appear in the overview of the portal only with your consent. You can withdraw it at any time.",
       ] },
-      { h: "3. Your works and rights", p: [
+      /* ── POSTER, DRUCKE UND DATEIEN (Owner 16.09.2026: „muss auch in agb stehen") ─────────
+         Bis heute sagten die AGB, wir verkauften keine Kunst — seit der Poster-Kategorie stimmt
+         das nicht mehr. Hier steht, was wir verkaufen, was der Käufer damit darf und was der
+         Künstler bekommt. Die Datei ist der heikle Teil: Sie lässt sich beliebig kopieren, also
+         muss ihre Grenze schriftlich sein. */
+      { h: "3. Posters, prints and files", p: [
+        "We sell printed posters of works in the public domain and of works by artists who have explicitly offered them for this. We print to order and deliver in Romania. The original of a work is never part of the sale.",
+        "An artist decides for each work whether it may be printed, and can withdraw that at any time. For every poster of theirs we sell, the artist receives a fixed licence fee, which is added on top of our price.",
+        "Digital file: if you buy the print file, you buy the right to print it for yourself, privately, as often as you like. You may not pass it on, publish it, resell it or use it commercially. Every file carries an order number and is assigned to the buyer.",
+        "The layout, the texts and the design of our posters are our work and are protected. The reproduced paintings are in the public domain; on those we claim no rights.",
+      ] },
+      { h: "4. Your works and rights", p: [
         "You confirm that you are the author of the works you show or hold the necessary rights, and that nobody else’s rights are infringed.",
         "You allow us, for as long as your page exists, to store your works, display them on lakatosbandi.com, create sentences and ads from them for you and use them to promote the platform. You keep all rights to your works.",
         "Not allowed: works you did not make, content involving minors in any sexual context, illegal content. Painted and drawn nudes are welcome; nude photography is currently not accepted. Uploads are checked automatically and, if flagged, by a person.",
       ] },
-      { h: "4. AI and results", p: [
+      { h: "5. AI and results", p: [
         "Sentences, ads and the agent’s answers are created with the help of artificial intelligence. Check every text before you use it. AI can make mistakes.",
         "We do not guarantee sales, a number of inquiries or any particular result. Assessments of category and price are orientation, not a valuation.",
       ] },
-      { h: "5. The agent and inquiries", p: [
+      { h: "6. The agent and inquiries", p: [
         "The agent talks to visitors on the artist’s page, answers questions about the platform and collects name and phone number. It does not conclude contracts, does not negotiate binding prices and cannot promise anything on the artist’s behalf.",
         "The artist is responsible for answering inquiries and for any sale.",
       ] },
-      { h: "6. Free start and subscription", p: [
+      { h: "7. Free start and subscription", p: [
         "Starting is free: your sentences, ads, page and agent.",
         /* Owner 11.09.2026: „es ist free jetzt wirklich. wir dürfen nicht von Kosten reden." */
         "Right now, all services are free, with no limit. If the agent becomes a paid service in the future, we will inform the artist beforehand; the artist decides whether to keep it.",
       ] },
-      { h: "7. Visitors and buyers", p: [
+      { h: "8. Visitors and buyers", p: [
         "A conversation with an agent is not an offer and not a purchase. Your details are passed to the artist so the artist can contact you.",
         /* Owner 13.09.2026: „die Follower bekommen auch Newsletter von uns. Muss im AGB stehen." */
         "Following an artist: you can give us your email address to be notified when that artist adds a new work, and to receive occasional news about lakatosbandi.com. It starts only after you confirm the link in our first email. Every email has an unsubscribe link, and we do not pass your address to the artist.",
       ] },
-      { h: "8. Acceptable use", p: ["No misuse: no false information, no attempts to overload or break the platform, no use of the agent or our texts to deceive or harm others."] },
-      { h: "9. Deletion", p: ["Artists can change or delete their page, their works and the sentences we wrote for them at any time. We may delete pages that break these terms."] },
-      { h: "10. Liability", p: ["The platform is provided as it is. To the extent permitted by law, we are not liable for indirect damages, and our total liability is limited to the amount paid to us in the 12 months before the claim. Liability for intent and gross negligence remains unaffected.",
+      { h: "9. Acceptable use", p: ["No misuse: no false information, no attempts to overload or break the platform, no use of the agent or our texts to deceive or harm others."] },
+      { h: "10. Deletion", p: ["Artists can change or delete their page, their works and the sentences we wrote for them at any time. We may delete pages that break these terms."] },
+      { h: "11. Liability", p: ["The platform is provided as it is. To the extent permitted by law, we are not liable for indirect damages, and our total liability is limited to the amount paid to us in the 12 months before the claim. Liability for intent and gross negligence remains unaffected.",
         "You are responsible for the works you publish here: that they are yours, that you hold the necessary rights and that showing them breaks no law and no third party’s rights. If someone raises a claim against us because of a work you published, you cover it."] },
-      { h: "11. Changes and law", p: ["We may update these terms and publish the new version here with a new date. Romanian law applies."] },
+      { h: "12. Changes and law", p: ["We may update these terms and publish the new version here with a new date. Romanian law applies."] },
     ],
   },
   stand: "Last updated: 10 September 2026",
@@ -137,7 +161,7 @@ const RO: RechtTexte = {
   impressum: {
     titel: "Date legale",
     abschnitte: [
-      { h: "Operator", p: [`lakatosbandi.com este operat de ${BETREIBER}.`, `Cod fiscal: ${STEUER} (persoană fizică autorizată, România).`] },
+      { h: "Operator", p: [`lakatosbandi.com este operat de ${BETREIBER}.`, `Cod fiscal: ${STEUER}.`, "VersusForge este marca sub care funcționează platforma."] },
       { h: "Cine suntem", p: ["Geza Lakatos (designer diplomat & consultant AI) și Szidonia Bandi (artistă)."] },
       { h: "Contact", p: ["Pentru orice solicitare — inclusiv întrebări juridice și protecția datelor — folosește formularul nostru de contact. Răspundem la fiecare mesaj."] },
       { h: "Tehnologie", p: ["Platforma funcționează cu VersusForge, un motor de marketing AI construit de operator."] },
@@ -190,32 +214,38 @@ const RO: RechtTexte = {
         "Poate participa oricine pictează — nu există examen de admitere, număr minim de lucrări sau timp de așteptare. Pagina ta e online imediat. Putem refuza o aplicare sau elimina o pagină, în special dacă lucrările nu aparțin artistului, încalcă legea sau acești termeni.",
         "Lucrările tale apar în prezentarea portalului doar cu acordul tău. Îl poți retrage oricând.",
       ] },
-      { h: "3. Lucrările și drepturile tale", p: [
+      { h: "3. Postere, printuri și fișiere", p: [
+        "Vindem postere tipărite după lucrări intrate în domeniul public și după lucrări ale artiștilor care le-au oferit explicit pentru asta. Tipărim la comandă și livrăm în România. Originalul unei lucrări nu face niciodată parte din vânzare.",
+        "Artistul decide pentru fiecare lucrare dacă poate fi tipărită și poate renunța oricând. Pentru fiecare poster al său vândut, artistul primește o licență fixă, care se adaugă la prețul nostru.",
+        "Fișier digital: dacă îl cumperi, cumperi dreptul de a-l tipări pentru tine, în scop personal, de câte ori vrei. Nu ai voie să îl transmiți mai departe, să îl publici, să îl revinzi sau să îl folosești în scopuri comerciale. Fiecare fișier poartă un număr de comandă și este atribuit cumpărătorului.",
+        "Aranjarea în pagină, textele și designul posterelor noastre ne aparțin și sunt protejate. Tablourile reproduse sunt în domeniul public; asupra lor nu revendicăm niciun drept.",
+      ] },
+      { h: "4. Lucrările și drepturile tale", p: [
         "Confirmi că ești autorul lucrărilor pe care le arăți sau deții drepturile necesare și că nu încalci drepturile altcuiva.",
         "Ne permiți, cât timp există pagina ta, să stocăm lucrările, să le afișăm pe lakatosbandi.com, să creăm din ele fraze și reclame pentru tine și să le folosim pentru promovarea platformei. Toate drepturile asupra lucrărilor rămân ale tale.",
         "Nu este permis: lucrări pe care nu le-ai creat, conținut cu minori în orice context sexual, conținut ilegal. Nudurile pictate și desenate sunt binevenite; fotografia de nud nu este acceptată deocamdată. Încărcările sunt verificate automat și, dacă sunt semnalate, de un om.",
       ] },
-      { h: "4. AI și rezultate", p: [
+      { h: "5. AI și rezultate", p: [
         "Frazele, reclamele și răspunsurile agentului sunt create cu ajutorul inteligenței artificiale. Verifică fiecare text înainte să-l folosești. AI poate greși.",
         "Nu garantăm vânzări, un număr de cereri sau un anumit rezultat. Aprecierile despre categorie și preț sunt orientative, nu o evaluare.",
       ] },
-      { h: "5. Agentul și cererile", p: [
+      { h: "6. Agentul și cererile", p: [
         "Agentul vorbește cu vizitatorii de pe pagina artistului, răspunde la întrebări despre platformă și strânge numele și numărul de telefon. Nu încheie contracte, nu negociază prețuri obligatorii și nu poate promite nimic în numele artistului.",
         "Artistul este responsabil pentru răspunsul la cereri și pentru orice vânzare.",
       ] },
-      { h: "6. Început gratuit și abonament", p: [
+      { h: "7. Început gratuit și abonament", p: [
         "Începutul este gratuit: frazele, reclamele, pagina și agentul tău.",
         "Acum toate serviciile sunt gratuite, fără limită. Dacă agentul va deveni cu plată în viitor, îl anunțăm pe artist dinainte; artistul decide dacă vrea să-l păstreze.",
       ] },
-      { h: "7. Vizitatori și cumpărători", p: [
+      { h: "8. Vizitatori și cumpărători", p: [
         "O conversație cu un agent nu este o ofertă și nici o cumpărare. Datele tale sunt transmise artistului ca să te poată contacta.",
         "Dacă urmărești un artist: ne poți da adresa de e-mail ca să fii anunțat când acel artist adaugă o lucrare nouă și ca să primești din când în când noutăți despre lakatosbandi.com. Începe abia după ce confirmi linkul din primul nostru e-mail. Fiecare e-mail conține un link de dezabonare, iar adresa ta nu este transmisă artistului.",
       ] },
-      { h: "8. Utilizare corectă", p: ["Fără abuz: fără informații false, fără încercări de a supraîncărca sau strica platforma, fără folosirea agentului sau a textelor noastre pentru a înșela sau a face rău altora."] },
-      { h: "9. Ștergere", p: ["Artiștii își pot modifica sau șterge oricând pagina, lucrările și frazele scrise de noi. Putem șterge paginile care încalcă acești termeni."] },
-      { h: "10. Răspundere", p: ["Platforma este oferită așa cum este. În limitele permise de lege, nu răspundem pentru daune indirecte, iar răspunderea noastră totală este limitată la suma plătită nouă în cele 12 luni dinaintea reclamației. Răspunderea pentru intenție și culpă gravă rămâne neafectată.",
+      { h: "9. Utilizare corectă", p: ["Fără abuz: fără informații false, fără încercări de a supraîncărca sau strica platforma, fără folosirea agentului sau a textelor noastre pentru a înșela sau a face rău altora."] },
+      { h: "10. Ștergere", p: ["Artiștii își pot modifica sau șterge oricând pagina, lucrările și frazele scrise de noi. Putem șterge paginile care încalcă acești termeni."] },
+      { h: "11. Răspundere", p: ["Platforma este oferită așa cum este. În limitele permise de lege, nu răspundem pentru daune indirecte, iar răspunderea noastră totală este limitată la suma plătită nouă în cele 12 luni dinaintea reclamației. Răspunderea pentru intenție și culpă gravă rămâne neafectată.",
         "Răspunzi pentru lucrările pe care le publici aici: că îți aparțin, că ai drepturile necesare și că prezentarea lor nu încalcă legea sau drepturile altcuiva. Dacă cineva ne reclamă din cauza unei lucrări publicate de tine, suporți tu consecințele."] },
-      { h: "11. Modificări și lege", p: ["Putem actualiza acești termeni și publicăm aici noua versiune cu o dată nouă. Se aplică legea română."] },
+      { h: "12. Modificări și lege", p: ["Putem actualiza acești termeni și publicăm aici noua versiune cu o dată nouă. Se aplică legea română."] },
     ],
   },
   stand: "Ultima actualizare: 10 septembrie 2026",
@@ -227,7 +257,7 @@ const DE: RechtTexte = {
   impressum: {
     titel: "Impressum",
     abschnitte: [
-      { h: "Betreiber", p: [`lakatosbandi.com wird betrieben von ${BETREIBER}.`, `Steuernummer: ${STEUER} (Freiberufler, Rumänien).`] },
+      { h: "Betreiber", p: [`lakatosbandi.com wird betrieben von ${BETREIBER}.`, `Steuernummer: ${STEUER}.`, "VersusForge ist die Marke, unter der die Plattform läuft."] },
       { h: "Wer dahinter steht", p: ["Geza Lakatos (Dipl.-Designer & AI Consultant) und Szidonia Bandi (Künstlerin)."] },
       { h: "Kontakt", p: ["Für jedes Anliegen — auch rechtliche Fragen und Datenschutz — nutze bitte unser Kontaktformular. Wir beantworten jede Nachricht."] },
       { h: "Technik", p: ["Die Plattform läuft mit VersusForge, einer vom Betreiber gebauten KI-Marketing-Engine."] },
@@ -280,32 +310,38 @@ const DE: RechtTexte = {
         "Mitmachen kann jeder, der malt — es gibt keine Aufnahmeprüfung, keine Mindestzahl an Werken und keine Wartezeit. Deine Seite ist sofort online. Wir können eine Bewerbung ablehnen oder eine Seite entfernen, insbesondere wenn Werke nicht vom Künstler stammen, gegen Gesetze oder diese Bedingungen verstoßen.",
         "In der Übersicht des Portals erscheinen deine Werke nur mit deiner Zustimmung. Du kannst sie jederzeit widerrufen.",
       ] },
-      { h: "3. Deine Werke und Rechte", p: [
+      { h: "3. Poster, Drucke und Dateien", p: [
+        "Wir verkaufen gedruckte Poster von gemeinfreien Werken und von Werken solcher Künstler, die sie ausdrücklich dafür angeboten haben. Wir drucken auf Bestellung und liefern nach Rumänien. Das Original eines Werks ist nie Teil des Verkaufs.",
+        "Ein Künstler entscheidet für jedes Werk, ob es gedruckt werden darf, und kann das jederzeit zurücknehmen. Für jedes verkaufte Poster von ihm erhält er eine feste Lizenzgebühr, die auf unseren Preis aufgeschlagen wird.",
+        "Digitale Datei: Wer die Druckdatei kauft, kauft das Recht, sie für sich selbst privat zu drucken, so oft er will. Sie darf nicht weitergegeben, veröffentlicht, weiterverkauft oder gewerblich genutzt werden. Jede Datei trägt eine Bestellnummer und ist dem Käufer zugeordnet.",
+        "Aufbau, Texte und Gestaltung unserer Poster sind unsere Arbeit und geschützt. Die abgebildeten Gemälde sind gemeinfrei; daran beanspruchen wir keine Rechte.",
+      ] },
+      { h: "4. Deine Werke und Rechte", p: [
         "Du bestätigst, dass du Urheber der gezeigten Werke bist oder die nötigen Rechte hast und keine Rechte Dritter verletzt werden.",
         "Du erlaubst uns, solange deine Seite besteht, deine Werke zu speichern, auf lakatosbandi.com zu zeigen, daraus Sätze und Anzeigen für dich zu erstellen und sie zur Werbung für die Plattform zu nutzen. Alle Rechte an deinen Werken bleiben bei dir.",
         "Nicht erlaubt: Werke, die du nicht geschaffen hast, Inhalte mit Minderjährigen in jedem sexuellen Zusammenhang, rechtswidrige Inhalte. Gemalte und gezeichnete Akte sind willkommen; Aktfotografie nehmen wir zurzeit nicht an. Uploads werden automatisch und, wenn markiert, von einem Menschen geprüft.",
       ] },
-      { h: "4. KI und Ergebnisse", p: [
+      { h: "5. KI und Ergebnisse", p: [
         "Sätze, Anzeigen und die Antworten des Agenten entstehen mit Hilfe künstlicher Intelligenz. Prüfe jeden Text, bevor du ihn verwendest. KI kann sich irren.",
         "Wir garantieren keine Verkäufe, keine Zahl von Anfragen und kein bestimmtes Ergebnis. Einschätzungen zu Kategorie und Preis sind Orientierung, keine Bewertung.",
       ] },
-      { h: "5. Der Agent und Anfragen", p: [
+      { h: "6. Der Agent und Anfragen", p: [
         "Der Agent spricht mit Besuchern auf der Künstlerseite, beantwortet Fragen zur Plattform und sammelt Name und Telefonnummer. Er schließt keine Verträge, verhandelt keine verbindlichen Preise und kann im Namen des Künstlers nichts zusagen.",
         "Für die Beantwortung von Anfragen und jeden Verkauf ist der Künstler verantwortlich.",
       ] },
-      { h: "6. Kostenloser Start und Abo", p: [
+      { h: "7. Kostenloser Start und Abo", p: [
         "Der Start ist kostenlos: deine Sätze, Anzeigen, Seite und dein Agent.",
         "Derzeit sind alle Leistungen kostenlos und ohne Limit. Wird der Agent künftig kostenpflichtig, informieren wir den Künstler vorher; er entscheidet selbst, ob er ihn behält.",
       ] },
-      { h: "7. Besucher und Käufer", p: [
+      { h: "8. Besucher und Käufer", p: [
         "Ein Gespräch mit einem Agenten ist kein Angebot und kein Kauf. Deine Angaben gehen an den Künstler, damit er dich kontaktieren kann.",
         "Einem Künstler folgen: Du kannst uns deine E-Mail-Adresse geben, um benachrichtigt zu werden, wenn dieser Künstler ein neues Werk hinzufügt, und um gelegentlich Neuigkeiten über lakatosbandi.com zu bekommen. Es beginnt erst, nachdem du den Link in unserer ersten E-Mail bestätigt hast. Jede E-Mail enthält einen Abmeldelink, und deine Adresse geben wir nicht an den Künstler weiter.",
       ] },
-      { h: "8. Faire Nutzung", p: ["Kein Missbrauch: keine falschen Angaben, keine Versuche, die Plattform zu überlasten oder zu beschädigen, keine Nutzung des Agenten oder unserer Texte, um andere zu täuschen oder ihnen zu schaden."] },
-      { h: "9. Löschen", p: ["Künstler können ihre Seite, ihre Werke und die von uns geschriebenen Sprüche jederzeit ändern oder löschen. Seiten, die gegen diese Bedingungen verstoßen, können wir löschen."] },
-      { h: "10. Haftung", p: ["Die Plattform wird so bereitgestellt, wie sie ist. Soweit gesetzlich zulässig, haften wir nicht für mittelbare Schäden, und unsere Gesamthaftung ist auf den Betrag begrenzt, der in den 12 Monaten vor dem Anspruch an uns gezahlt wurde. Die Haftung für Vorsatz und grobe Fahrlässigkeit bleibt unberührt.",
+      { h: "9. Faire Nutzung", p: ["Kein Missbrauch: keine falschen Angaben, keine Versuche, die Plattform zu überlasten oder zu beschädigen, keine Nutzung des Agenten oder unserer Texte, um andere zu täuschen oder ihnen zu schaden."] },
+      { h: "10. Löschen", p: ["Künstler können ihre Seite, ihre Werke und die von uns geschriebenen Sprüche jederzeit ändern oder löschen. Seiten, die gegen diese Bedingungen verstoßen, können wir löschen."] },
+      { h: "11. Haftung", p: ["Die Plattform wird so bereitgestellt, wie sie ist. Soweit gesetzlich zulässig, haften wir nicht für mittelbare Schäden, und unsere Gesamthaftung ist auf den Betrag begrenzt, der in den 12 Monaten vor dem Anspruch an uns gezahlt wurde. Die Haftung für Vorsatz und grobe Fahrlässigkeit bleibt unberührt.",
         "Für die Werke, die du hier veröffentlichst, haftest du: dass sie von dir sind, dass du die nötigen Rechte hast und dass ihre Veröffentlichung weder Gesetze noch Rechte Dritter verletzt. Wird jemand wegen eines von dir veröffentlichten Werkes gegen uns vorstellig, trägst du die Folgen."] },
-      { h: "11. Änderungen und Recht", p: ["Wir können diese Bedingungen ändern und veröffentlichen die neue Fassung hier mit neuem Datum. Es gilt rumänisches Recht."] },
+      { h: "12. Änderungen und Recht", p: ["Wir können diese Bedingungen ändern und veröffentlichen die neue Fassung hier mit neuem Datum. Es gilt rumänisches Recht."] },
     ],
   },
   stand: "Stand: 10. September 2026",

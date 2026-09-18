@@ -41,16 +41,36 @@ export async function POST(request: Request) {
 
   try {
     const treffer = await kuenstlerListe(m => String(m.mail ?? "").trim().toLowerCase() === mail && m.freigabe !== "abgelehnt");
-    for (const m of treffer) {
-      const L = portalSprache(body.lang, m.sprache ?? "en");
-      const T = MAIL[L as keyof typeof MAIL] ?? MAIL.en;
-      const link = kuenstlerDashboardUrl(m.kennung, m.schluessel);
-      const inhalt = mailTitel(T.titel) + mailText(T.text)
-        + mailKasten(m.name, `${PORTAL_URL.replace("https://", "")}/${m.kennung}`, { adresse: link, wort: T.knopf })
-        + mailFein(T.fein);
-      const res = await sendEmail({ konto: "versusforge", to: mail, subject: `${T.betreff} · ${m.name}`, html: mailHuelle(inhalt) });
-      if (!res.ok) console.error("[portal-login] Versand fehlgeschlagen:", res.error);
-    }
+    if (!treffer.length) return NextResponse.json({ ok: true });
+
+    /**
+     * ── EINE MAIL, AUCH WENN ES ACHT SEITEN SIND (Owner 17.09.2026: „mir wurde eben 8 Mal der
+     * Link verschickt") ─────────────────────────────────────────────────────────────────────
+     *
+     * Hier lief eine Schleife: je Künstlerseite eine Mail. Bei einer Adresse, an der EINE Seite
+     * hängt, fällt das nicht auf — bei uns hängen alle Meister an derselben Adresse, und ein
+     * Klick auf „Login" flutete das Postfach mit acht gleichen Nachrichten.
+     *
+     * Jetzt trägt eine Mail alle Seiten, jede mit ihrem eigenen Knopf. Das ist auch für einen
+     * Künstler richtig, der zwei Seiten hat: Er sieht beide und wählt.
+     */
+    const L = portalSprache(body.lang, treffer[0].sprache ?? "en");
+    const T = MAIL[L as keyof typeof MAIL] ?? MAIL.en;
+    const inhalt = mailTitel(T.titel) + mailText(T.text)
+      + treffer.map(m => mailKasten(
+        m.name,
+        `${PORTAL_URL.replace("https://", "")}/${m.kennung}`,
+        { adresse: kuenstlerDashboardUrl(m.kennung, m.schluessel), wort: T.knopf },
+      )).join("")
+      + mailFein(T.fein);
+    const res = await sendEmail({
+      konto: "versusforge",
+      to: mail,
+      /* Der Name nur, wenn es EINE Seite ist — sonst stünde ein Name über acht. */
+      subject: treffer.length === 1 ? `${T.betreff} · ${treffer[0].name}` : T.betreff,
+      html: mailHuelle(inhalt),
+    });
+    if (!res.ok) console.error("[portal-login] Versand fehlgeschlagen:", res.error);
   } catch (e) {
     console.error("[portal-login] Suche fehlgeschlagen", e);
   }

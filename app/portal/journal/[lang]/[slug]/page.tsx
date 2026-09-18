@@ -6,6 +6,7 @@ import { ARTIKEL, JOURNAL_SPRACHEN, JOURNAL_UI, artikelFinden, lesezeit, type Jo
 import { portalPfade, PORTAL_URL } from "@/lib/lakatosbandi-adressen";
 import { portalTexte } from "@/lib/lakatosbandi-texte";
 import PortalKopf from "@/components/PortalKopf";
+import ArtistFair from "@/components/ArtistFair";
 import PortalFuss from "@/components/PortalFuss";
 
 /**
@@ -24,6 +25,15 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const a = artikelFinden(slug);
   if (!gueltig(lang) || !a) return {};
   const t = a.texte[lang];
+  /**
+   * ── DIE VORSCHAU MIT EINER VERSION (Owner 16.09.2026: „bild fehlt" beim Teilen) ──────────
+   *
+   * Facebook merkt sich die Vorschau eines Links beim ersten Aufruf — auch wenn damals noch
+   * kein Bild dalag. Danach zeigt es für immer die graue Kachel, egal was auf dem Server steht.
+   * Das Datum des Artikels in der Adresse macht daraus eine neue Adresse, sobald wir am Artikel
+   * etwas ändern; dann holt Facebook das Bild neu.
+   */
+  const vorschauBild = `${PORTAL_URL}/lakatosbandi/journal/${slug}-${lang}.jpg?v=${a.datum}`;
   return {
     title: `${t.titel} — lakatosbandi.com`,
     description: t.beschreibung,
@@ -36,9 +46,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
        ein Skript aus dem Titel je Sprache: public/lakatosbandi/journal/<slug>-<sprache>.jpg. */
     openGraph: {
       title: t.titel, description: t.beschreibung, type: "article", url: `${PORTAL_URL}/journal/${lang}/${slug}`, publishedTime: a.datum,
-      images: [{ url: `${PORTAL_URL}/lakatosbandi/journal/${slug}-${lang}.jpg`, width: 1200, height: 630, alt: t.titel }],
+      images: [{ url: vorschauBild, width: 1200, height: 630, alt: t.titel }],
     },
-    twitter: { card: "summary_large_image", title: t.titel, description: t.beschreibung, images: [`${PORTAL_URL}/lakatosbandi/journal/${slug}-${lang}.jpg`] },
+    twitter: { card: "summary_large_image", title: t.titel, description: t.beschreibung, images: [vorschauBild] },
   };
 }
 
@@ -48,6 +58,8 @@ export default async function JournalArtikel({ params }: Props) {
   if (!gueltig(lang) || !a) notFound();
   const t = a.texte[lang];
   const U = JOURNAL_UI[lang];
+  /* Käufer-Artikel enden im Shop, Künstler-Artikel im Trichter (16.09.2026). */
+  const shop = a.ziel === "shop";
   const T = portalTexte(lang);
   const P = portalPfade((await headers()).get("host"));
   const weitere = ARTIKEL.filter(x => x.slug !== slug).slice(0, 3);
@@ -78,6 +90,14 @@ export default async function JournalArtikel({ params }: Props) {
         {/* DAS BILD IM ARTIKEL, wenn der Artikel eines hat (lib/lakatosbandi-journal.ts, `bild`).
             Es trägt Text, deshalb steht in jeder Sprache ein eigenes. Nicht die Linkvorschau —
             die bleibt die 1200×630-Kachel oben in `generateMetadata`. */}
+        {/* ── DAS SIEGEL IM ARTIKEL (Owner 18.09.2026: „stempel auch rein") ──────────────────
+            Im Artikel über „Artist Fair" steht das Zeichen gross unter dem Vorspann — wer den
+            Text auf Facebook teilt, soll es sehen, nicht nur lesen. In den anderen Artikeln hat
+            es nichts zu suchen; dort geht es um anderes. */}
+        {a.slug === "artist-fair-stempel" && (
+          <ArtistFair groesse={200} klasse="mt-10 block text-[#111]" />
+        )}
+
         {t.bild && (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={`/lakatosbandi/journal/${t.bild}`} alt={t.titel} width={1080} height={1350}
@@ -95,10 +115,16 @@ export default async function JournalArtikel({ params }: Props) {
 
         <p className="mt-12 border-l-2 border-[#111] pl-5 font-serif text-[26px] leading-[1.35]">{t.merksatz}</p>
 
+        {/* ── DIE RICHTIGE TÜR AM ENDE (Owner 16.09.2026: „und in dem anderen artikel der link
+            zum postershop") ────────────────────────────────────────────────────────────────────
+            Ein Artikel für Künstler endet beim Trichter, ein Artikel für Käufer beim Shop. */}
         <section className="mt-14 bg-[#111] px-6 py-10 text-white md:px-10">
-          <h2 className="m-0 font-serif text-[28px] font-normal leading-[1.2]">{U.ctaTitel}</h2>
-          <p className="mt-3 text-[16px] leading-[1.6] text-white/80">{U.ctaText}</p>
-          <a href={`https://lakatosbandi.com/start?lang=${lang}`} className="mt-6 inline-block bg-white px-6 py-3.5 text-[15.5px] font-semibold text-[#111] no-underline hover:bg-[#e5e5e5]">{U.ctaKnopf}</a>
+          <h2 className="m-0 font-serif text-[28px] font-normal leading-[1.2]">{shop ? U.shopTitel : U.ctaTitel}</h2>
+          <p className="mt-3 text-[16px] leading-[1.6] text-white/80">{shop ? U.shopText : U.ctaText}</p>
+          <a href={shop ? `https://lakatosbandi.com/?lang=${lang}&ansicht=repro` : `https://lakatosbandi.com/start?lang=${lang}`}
+            className="mt-6 inline-block bg-white px-6 py-3.5 text-[15.5px] font-semibold text-[#111] no-underline hover:bg-[#e5e5e5]">
+            {shop ? U.shopKnopf : U.ctaKnopf}
+          </a>
         </section>
       </article>
 

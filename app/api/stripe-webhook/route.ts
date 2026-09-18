@@ -6,6 +6,7 @@ import { lebenslaufAboFreischalten, lebenslaufAboBeenden } from "@/lib/lebenslau
 import { bezahltVermerken, lieferungAnstossen } from "@/lib/kiss-delivery";
 import { capiKaufMelden } from "@/lib/meta-capi";
 import { mandantLesen, mandantSpeichern } from "@/lib/versusforge-mandanten";
+import { druckBestellungMelden } from "@/lib/lakatosbandi-bestellung";
 
 export const runtime = "nodejs";
 
@@ -158,6 +159,49 @@ export async function POST(request: Request) {
           await lebenslaufAboFreischalten(lebenslaufId, subId);
           console.info(`[stripe-webhook] lebenslauf-abo aktiv — ${lebenslaufId} (${subId || "ohne subId"})`);
         } catch (e) { console.warn("[stripe-webhook] lebenslauf-abo Freischaltung fehlgeschlagen", e); }
+      }
+    } else if (String(meta?.art ?? "") === "druck") {
+      /**
+       * ── DIE DRUCKBESTELLUNG (Owner 16.09.2026: „ich will nicht wissen was nach bestellung
+       * eines bildes passiert. weiss ich auch nicht") ─────────────────────────────────────
+       *
+       * Sie fiel bisher in den Zweig darunter: „no action". Der Käufer zahlte, Stripe schickte
+       * eine Rechnung, und der Auftrag lag in einem Stripe-Konto, in das niemand schaut.
+       * Jetzt geht der Druckauftrag sofort per Mail raus — und der Käufer erfährt, dass etwas
+       * kommt.
+       *
+       * ALLES KOMMT AUS DER STRIPE-SITZUNG, nichts aus dem Browser: der Korb aus unseren
+       * eigenen Metadaten, Adresse und Name aus dem, was Stripe erhoben hat.
+       */
+      const korb = String(meta?.korb ?? "").trim();
+      const posten = korb.split(";").filter(Boolean).map(t => {
+        const [mandant, werk, material, groesse] = t.split("/");
+        return { mandant: mandant ?? "", werk: werk ?? "", material: material ?? "", groesse: groesse ?? "" };
+      });
+      const s = session as unknown as {
+        amount_total?: number; currency?: string;
+        customer_details?: { email?: string; name?: string };
+        collected_information?: { shipping_details?: { address?: Record<string, string>; name?: string } };
+        shipping_details?: { address?: Record<string, string>; name?: string };
+      };
+      const lieferung = s.collected_information?.shipping_details ?? s.shipping_details;
+      const a = lieferung?.address ?? {};
+      const adresse = [lieferung?.name ?? s.customer_details?.name, a.line1, a.line2,
+        [a.postal_code, a.city].filter(Boolean).join(" "), a.country].filter(Boolean).join("\n");
+      try {
+        await druckBestellungMelden({
+          sitzung: String(session.id ?? ""),
+          betragCents: typeof s.amount_total === "number" ? s.amount_total : undefined,
+          waehrung: s.currency,
+          kaeuferMail: s.customer_details?.email,
+          kaeuferName: s.customer_details?.name,
+          adresse,
+          posten,
+          sprache: String(meta?.sprache ?? "ro"),
+        });
+        console.info(`[stripe-webhook] Druckauftrag gemeldet — ${session.id} · ${posten.length} Posten`);
+      } catch (e) {
+        console.warn("[stripe-webhook] Druckauftrag konnte nicht gemeldet werden", e);
       }
     } else {
       // Log-only — fulfilment happens client-side (checkout-status) or via PremiumSync.

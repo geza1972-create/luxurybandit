@@ -214,10 +214,30 @@ export async function createPackCheckout(opts: {
   eingebettet?: boolean;
   /** Sprache der SEITE, nicht des Browsers — siehe `createTryonCheckout` (15.08.2026). */
   sprache?: string;
+  /**
+   * ETWAS WIRD VERSCHICKT (15.09.2026, Drucke): Stripe fragt die Lieferadresse in seinem
+   * eigenen Fenster ab, und sie steht danach in der Sitzung. Wir fragen sie nicht selbst und
+   * speichern sie nicht — eine Adresse weniger bei uns ist eine Adresse weniger zu schützen.
+   * Leer heisst wie bisher: nichts Körperliches, keine Adresse.
+   */
+  versandLaender?: string[];
+  /** Versandkosten als eigene Zeile in der Kasse — nie in den Warenpreis gerechnet. */
+  versandCents?: number;
+  /**
+   * MEHRERE POSTEN IN EINER KASSE (15.09.2026, Warenkorb) — jeder mit eigenem Namen und eigenem
+   * Betrag. Gesetzt, überschreibt es `amount`/`productName`: Ein Korb ist kein Kauf mit einer
+   * grösseren Zahl, sondern eine Rechnung mit mehreren Zeilen, und der Käufer soll sie sehen.
+   */
+  posten?: { amount: number; name: string }[];
 }): Promise<{ id: string; url: string; clientSecret?: string }> {
-  const line_items = opts.priceId
-    ? [{ price: opts.priceId, quantity: 1 }]
-    : [{ quantity: 1, price_data: { currency: opts.currency ?? WAEHRUNG, unit_amount: opts.amount ?? 0, product_data: { name: opts.productName ?? "LuxuryBandit" } } }];
+  const line_items = opts.posten?.length
+    ? opts.posten.map(p => ({
+      quantity: 1,
+      price_data: { currency: opts.currency ?? WAEHRUNG, unit_amount: p.amount, product_data: { name: p.name } },
+    }))
+    : opts.priceId
+      ? [{ price: opts.priceId, quantity: 1 }]
+      : [{ quantity: 1, price_data: { currency: opts.currency ?? WAEHRUNG, unit_amount: opts.amount ?? 0, product_data: { name: opts.productName ?? "LuxuryBandit" } } }];
   const locale = stripeSprache(opts.sprache);
   const session = await stripeRequest("POST", "/checkout/sessions", {
     mode: "payment",
@@ -228,6 +248,10 @@ export async function createPackCheckout(opts: {
     ...(opts.email ? { customer_email: opts.email, client_reference_id: opts.email } : (opts.clientReferenceId ? { client_reference_id: opts.clientReferenceId } : {})),
     line_items,
     allow_promotion_codes: true,
+    ...(opts.versandLaender?.length ? { shipping_address_collection: { allowed_countries: opts.versandLaender } } : {}),
+    ...(opts.versandCents
+      ? { shipping_options: [{ shipping_rate_data: { type: "fixed_amount", fixed_amount: { amount: opts.versandCents, currency: opts.currency ?? WAEHRUNG }, display_name: "Livrare" } }] }
+      : {}),
     metadata: opts.metadata,
     payment_intent_data: { metadata: opts.metadata },
   });

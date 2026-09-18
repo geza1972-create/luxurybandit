@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import StimmeAufnehmen from "@/components/StimmeAufnehmen";
 import { Camera, ImagePlus, LayoutDashboard, Sparkles, Undo2 } from "lucide-react";
 
 /**
@@ -30,6 +31,8 @@ import { Camera, ImagePlus, LayoutDashboard, Sparkles, Undo2 } from "lucide-reac
 const WERKE_MAX = 10;
 import type { PortalTexte } from "@/lib/lakatosbandi-texte";
 import MandantKaufen from "@/components/MandantKaufen";
+import { DRUCK_KUENSTLER_CENTS } from "@/lib/lakatosbandi-druck";
+import { eur } from "@/lib/pricing";
 
 /**
  * SEINE SEITE, DIREKT BEARBEITET — WYSIWYG (Owner 11.09.2026: „Dann wird er den Link bekommen, dass er öffnen
@@ -42,7 +45,7 @@ import MandantKaufen from "@/components/MandantKaufen";
  * BILDER GEHEN SOFORT HOCH (über `api/versusforge-bild`, mit der Inhaltsprüfung). Die Texte sammelt „Speichern".
  */
 
-type Kachel = { i: number; spruch: string; titel: string; technik: string; groesse: string; jahr: string; geschichte: string; preis: string; detalii: string; vertritt: boolean };
+type Kachel = { i: number; spruch: string; titel: string; technik: string; groesse: string; jahr: string; geschichte: string; preis: string; detalii: string; vertritt: boolean; poster: boolean; kunst: boolean; stimme?: boolean; stimmeAm?: string; sprecher?: boolean; nurStimme?: boolean; youtube?: string };
 
 async function verkleinern(f: File): Promise<string> {
   const bitmap = await createImageBitmap(f);
@@ -55,10 +58,12 @@ async function verkleinern(f: File): Promise<string> {
   return flaeche.toDataURL("image/jpeg", 0.85);
 }
 
-export default function PortalBearbeiten({ mandant, k, T, aufbau = false, oeffentlich, start }: {
+export default function PortalBearbeiten({ mandant, k, T, lang, aufbau = false, oeffentlich, start }: {
   mandant: string;
   k: string;
   T: PortalTexte;
+  /* Nur für die Zahlenformatierung („20 €" / „20 €") — die Texte kommen aus `T`. */
+  lang: string;
   /**
    * Seine Inhalte werden gerade angelegt (`aufbauSeit` am Datensatz) — die Bilder sind da, die
    * Sätze entstehen in diesem Augenblick im Hintergrund. Solange das läuft, sagt die Seite es
@@ -71,7 +76,7 @@ export default function PortalBearbeiten({ mandant, k, T, aufbau = false, oeffen
   start: {
     name: string; ort: string; ueberMich: string; preisSpanne: string; profilBild: boolean; frei: boolean;
     /* Seine sozialen Adressen — freiwillig, deshalb optional (Owner 13.09.2026). */
-    instagram?: string; facebook?: string;
+    instagram?: string; facebook?: string; posterViu?: boolean; abo?: boolean;
     kacheln: Kachel[];
   };
 }) {
@@ -82,6 +87,9 @@ export default function PortalBearbeiten({ mandant, k, T, aufbau = false, oeffen
   const [preisSpanne, setPreisSpanne] = useState(start.preisSpanne);
   /* Seine sozialen Adressen (Owner 13.09.2026) — freiwillig, hier gepflegt und nicht in den
      Einstellungen: Dort stehen Impressum und Datenschutz, die einen Künstler nichts angehen. */
+  /* Sein Ja zu Poster viu (Owner 16.09.2026: „er muss aber ankreuzen: ich will meine bilder als
+     Poster viu verkaufen") — ohne Häkchen wird nichts von ihm gedruckt und nichts verkauft. */
+  const [posterViu, setPosterViu] = useState(start.posterViu === true);
   const [instagram, setInstagram] = useState(start.instagram ?? "");
   const [facebook, setFacebook] = useState(start.facebook ?? "");
   const [profilBild, setProfilBild] = useState(start.profilBild);
@@ -240,8 +248,21 @@ export default function PortalBearbeiten({ mandant, k, T, aufbau = false, oeffen
     setKacheln(v => v.map(x => ({ ...x, vertritt: an && x.i === i })));
     setStatus("");
   };
-  const aendern = (i: number, feld: Exclude<keyof Kachel, "i" | "vertritt">, wert: string) => {
+  /* Ein Werk als Poster viu anbieten oder nicht — anders als `vertritt` dürfen hier beliebig
+     viele gesetzt sein (Owner 16.09.2026: „auch bei jedem bild"). */
+  const posterSetzen = (i: number, an: boolean) => {
+    setKacheln(v => v.map(x => (x.i === i ? { ...x, poster: an } : x)));
+    setStatus("");
+  };
+  const aendern = (i: number, feld: Exclude<keyof Kachel, "i" | "vertritt" | "poster" | "kunst" | "nurStimme">, wert: string) => {
     setKacheln(v => v.map(x => (x.i === i ? { ...x, [feld]: wert } : x)));
+    setStatus("");
+  };
+
+  /* „Nur die Stimme zeigen" je Werk (Owner 17.09.2026) — ein Häkchen, also ein eigener Weg;
+     `aendern` nimmt Text. */
+  const nurStimmeSetzen = (i: number, an: boolean) => {
+    setKacheln(v => v.map(x => (x.i === i ? { ...x, nurStimme: an } : x)));
     setStatus("");
   };
 
@@ -285,7 +306,7 @@ export default function PortalBearbeiten({ mandant, k, T, aufbau = false, oeffen
       const res = await fetch("/api/portal-profil", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mandant, k, name, ort, ueberMich, preisSpanne, profilBild, instagram, facebook, kacheln }),
+        body: JSON.stringify({ mandant, k, name, ort, ueberMich, preisSpanne, profilBild, posterViu, instagram, facebook, kacheln }),
       });
       setEntfernt([]);
       setAusstehend({});
@@ -515,7 +536,7 @@ export default function PortalBearbeiten({ mandant, k, T, aufbau = false, oeffen
               const nr = frei.shift();
               if (nr === undefined) break;
               vorgemerkt[String(nr)] = await verkleinern(f);
-              neue.push({ i: nr, spruch: "", titel: "", technik: "", groesse: "", jahr: "", geschichte: "", preis: "", detalii: "", vertritt: false });
+              neue.push({ i: nr, spruch: "", titel: "", technik: "", groesse: "", jahr: "", geschichte: "", preis: "", detalii: "", vertritt: false, poster: false, kunst: true });
             }
             if (neue.length) {
               setAusstehend(v => ({ ...v, ...vorgemerkt }));
@@ -592,6 +613,35 @@ export default function PortalBearbeiten({ mandant, k, T, aufbau = false, oeffen
             <input value={facebook} onChange={e => { setFacebook(e.target.value); setStatus(""); }} maxLength={200}
               placeholder={T.facebookPlatzhalter} className={`${feld} py-0.5 text-[14px] text-[#444]`} />
           </span>
+          {/* ── SEIN JA ZU POSTER VIU (Owner 16.09.2026: „er muss aber ankreuzen: ich will meine
+              bilder als Poster viu verkaufen") ─────────────────────────────────────────────────
+              Das Häkchen ist die Zustimmung, nicht ein Schalter für ein Aussehen: Erst damit
+              stehen seine Werke in der Kategorie und lassen sich als Druck kaufen. Seine
+              Originale bleiben unberührt — das steht in der Zeile darunter, weil genau das die
+              Frage ist, die er sich beim Lesen stellt. */}
+          <label className={`mt-4 flex max-w-[520px] items-start gap-2.5 text-[14px] leading-[1.5] text-[#333] ${start.abo ? "cursor-pointer" : "opacity-60"}`}>
+            <input type="checkbox" checked={posterViu} className="mt-0.5" disabled={!start.abo}
+              onChange={e => { setPosterViu(e.target.checked); setStatus(""); }} />
+            <span>
+              <span className="font-semibold">{T.posterViuJa}</span>
+              {/* Der Betrag kommt aus der Drucktabelle (Skill `bezahlung`, Regel 2) — im Text
+                  steht nur der Platzhalter, sonst altert die Zahl in drei Sprachen. */}
+              <span className="mt-0.5 block text-[13px] text-[#777]">
+                {T.posterViuErklaerung.replace("{anteil}", eur(DRUCK_KUENSTLER_CENTS, lang))}
+              </span>
+            </span>
+          </label>
+          {/* ── POSTER VIU IST PREMIUM (Owner 16.09.2026: „das ist aber eine premium funktion") ──
+              Der Hinweis steht NEBEN der Funktion, die er gerade wollte — nicht irgendwo im
+              Dashboard. Und er kommt mit dem Knopf: ein Satz „das kostet" ohne etwas zum Drücken
+              ist eine Tür ohne Klinke (14.09.2026). */}
+          {!start.abo && (
+            <span className="mt-2 block max-w-[520px]">
+              <span className="block text-[13.5px] font-semibold text-[#14181c]">{T.posterViuPremium}</span>
+              <MandantKaufen mandant={mandant} k={k} abo wort={T.aboUpgradeKnopf}
+                klasse="mt-2 inline-block rounded-xl bg-[#1d6fd0] px-5 py-2.5 text-[15px] font-extrabold text-white transition active:scale-[.99] disabled:opacity-60" />
+            </span>
+          )}
         </div>
       </div>
 
@@ -777,6 +827,64 @@ export default function PortalBearbeiten({ mandant, k, T, aufbau = false, oeffen
                 <input type="checkbox" checked={kc.vertritt} onChange={e => vertrittSetzen(kc.i, e.target.checked)} />
                 {T.vertritt}
               </label>
+              {/* NUR WENN ER ÜBERHAUPT MITMACHT (Owner 16.09.2026: „auch bei jedem bild wenn er
+                  das macht in seinem admin dann erscheint das in der kategorie") — solange das
+                  grosse Häkchen aus ist, wäre diese Zeile an jedem Werk eine Frage zu einer Sache,
+                  die er noch gar nicht gewählt hat. */}
+              {posterViu ? (
+                <label className="flex items-center gap-1.5 text-[13.5px] text-[#555]">
+                  <input type="checkbox" checked={kc.poster} onChange={e => posterSetzen(kc.i, e.target.checked)} />
+                  {T.posterViuWerk}
+                </label>
+              ) : null}
+              {/* ── DARF DAS BILD EINES KUNDEN IN DIESEM STIL ENTSTEHEN ────────────────────
+                  Owner 17.09.2026: „die künstler können das gar nicht einschalten. das ist ein
+                  premium feature". Also steht die Zeile da, damit er sieht, DASS es das gibt —
+                  aber grau und ohne Schalter; eingeschaltet wird sie vom Haus. Der Server nimmt
+                  den Wert ohnehin aus dem Datensatz, nicht aus diesem Formular. */}
+              {posterViu && kc.poster ? (
+                <span className="flex items-center gap-1.5 text-[13.5px] text-[#999]">
+                  <input type="checkbox" checked={kc.kunst} disabled readOnly />
+                  {T.kunstWerk}
+                  <span className="rounded bg-[#f0f0f0] px-1.5 py-0.5 text-[12px] font-semibold uppercase tracking-wide text-[#777]">{T.kunstPremium}</span>
+                </span>
+              ) : null}
+            </div>
+            {/* ── SEINE STIMME ZU DIESEM WERK (Owner 17.09.2026: „gib mir die Möglichkeit,
+                meine Stimme aufzunehmen") ────────────────────────────────────────────────────
+                Steht bei JEDEM Werk, nicht nur bei den Postern: Auch wer heute nur Originale
+                zeigt, hat morgen ein Poster — und die Aufnahme ist dann schon da. */}
+            <div className="mt-3 border-t border-[#f0f0f0] pt-2">
+              <span className="text-[13px] font-semibold text-[#555]">{T.stimmeTitel}</span>
+              {/* Aufgenommen wird ein Film; ob man ihn SIEHT, entscheidet er hier (Owner
+                  17.09.2026). Steht nur da, wenn es überhaupt eine Aufnahme gibt. */}
+              {kc.sprecher ? (
+                <label className="mt-1 flex items-center gap-1.5 text-[13.5px] text-[#555]">
+                  <input type="checkbox" checked={!!kc.nurStimme}
+                    onChange={e => nurStimmeSetzen(kc.i, e.target.checked)} />
+                  {T.stimmeNurHoeren}
+                </label>
+              ) : null}
+              <StimmeAufnehmen
+                mandant={mandant} schluessel={k} i={kc.i}
+                vorhanden={!!kc.stimme} videoDa={!!kc.sprecher} stand={kc.stimmeAm}
+                /* ── DASSELBE BILD WIE IN DER KACHEL (17.09.2026 gemessen: „ich habe ein neues
+                   Bild eingefügt, aber beim Aufnehmen macht er ein anderes Bild") ─────────────
+                   Ein frisch gewähltes Bild liegt bis zum Speichern nur im Browser
+                   (`ausstehend`). Wer hier nur die abgelegte Fassung nimmt, filmt vor dem alten
+                   Werk — und merkt es erst, wenn der Film oben ist. */
+                werkBild={ausstehend[nrVon(kc.i)] ?? bildUrl(nrVon(kc.i))}
+                youtubeId={kc.youtube}
+                /* Sein eigener Text aus dem Feld darüber — die Geschichte, sonst der Satz. */
+                text={kc.geschichte?.trim() || kc.spruch}
+                texte={{
+                  aufnehmen: T.stimmeAufnehmen, stoppen: T.stimmeStoppen, speichern: T.stimmeSpeichern,
+                  loeschen: T.stimmeLoeschen, laeuft: T.stimmeLaeuft, erklaerung: T.stimmeErklaerung,
+                  nurStimme: T.stimmeNurTon, mitVideo: T.stimmeMitVideo, nochmal: T.stimmeNochmal, weiter: T.stimmeWeiter,
+                  hgAus: T.hgAus, hgBlur: T.hgBlur, hgWerk: T.hgWerk, spiegeln: T.spiegelnWort, musik: T.musikWort,
+                  keinMikro: T.stimmeKeinMikro, keinBrowser: T.stimmeKeinBrowser,
+                  fehler: T.stimmeFehler, gespeichert: T.stimmeGespeichert,
+                }} />
             </div>
             <button type="button" onClick={() => void entfernen(kc.i)}
               className="mt-2 text-[13px] text-[#777] underline hover:text-[#b3261e]">{T.entfernen}</button>

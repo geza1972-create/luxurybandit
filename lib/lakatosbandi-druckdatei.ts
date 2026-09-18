@@ -1,0 +1,273 @@
+import { readFile } from "node:fs/promises";
+import path from "node:path";
+import { PDFDocument, rgb, type PDFFont, type PDFPage } from "pdf-lib";
+import fontkit from "@pdf-lib/fontkit";
+import QRCode from "qrcode";
+import { POSTER, POSTER_VERHAELTNIS, POSTER_FORMATE } from "@/lib/lakatosbandi-poster";
+
+/**
+ * DIE DRUCKDATEI ENTSTEHT AUF DEM SERVER (Owner 16.09.2026: „das muss aber automatisch generiert
+ * werden wenn jemand es als poster markiert oder wenn wir künstler anlegen").
+ *
+ * ── WARUM NICHT ALS VORRAT ──────────────────────────────────────────────────────────────────
+ *
+ * Vorproduzierte PDFs müsste jemand anstossen — bei jedem neuen Werk, bei jedem Häkchen, bei
+ * jeder Korrektur an einem Text. Das wird vergessen, und dann verkaufen wir eine Datei, die
+ * nicht mehr zum Poster passt. Hier entsteht sie im Moment des Kaufs: immer aktuell, kein
+ * Speicher, und die Bestellnummer kann direkt hineingedruckt werden.
+ *
+ * ── DIESELBEN ZAHLEN WIE DIE KACHEL ─────────────────────────────────────────────────────────
+ *
+ * Alle Maße kommen aus `lib/lakatosbandi-poster.ts`; dort sind sie Anteile der Blattbreite. Auf
+ * dem Schirm ist das `cqw`, hier sind es Punkte einer A-Seite. Ändert sich das Raster, ändern
+ * sich Bildschirm und Druck gemeinsam — das war der Sinn der Übung.
+ *
+ * ── SCHRIFT ─────────────────────────────────────────────────────────────────────────────────
+ *
+ * Crimson Text (OFL, frei verwendbar) statt Georgia: Georgia gehört Microsoft und darf nicht in
+ * eine Datei eingebettet werden, die wir verkaufen. Die eingebauten PDF-Schriften scheiden aus,
+ * weil ihnen „ș" und „ț" fehlen — auf einem rumänischen Poster keine Option. Und eine VARIABLE
+ * Schriftdatei scheidet auch aus: pdf-lib löst daraus keine Glyphen auf, das Blatt kam mit
+ * einzelnen Buchstaben statt Wörtern heraus (16.09.2026 gesehen). Crimson Text liegt statisch
+ * vor und ist eine Garamond-Verwandte — dieselbe Familie von Formen wie Georgia auf dem Schirm.
+ */
+
+export type DruckAngaben = {
+  /** Das Werk als Bilddaten (JPEG oder PNG) in voller Auflösung. */
+  bild: Uint8Array;
+  bildTyp?: "jpg" | "png";
+  /** Das Profilbild des Künstlers, rund neben dem Namen. */
+  profil?: Uint8Array;
+  profilTyp?: "jpg" | "png";
+  /** Ohne Namen fällt die Künstlerzeile weg (Owner 17.09.2026: „Gerry Louisett raus"). */
+  name?: string;
+  leben?: string;
+  titel?: string;
+  /** Der Anriss — zwei Zeilen, wie auf der Kachel (`posterAnriss`). */
+  text?: string;
+  /** Die Adresse im QR-Code (`filmSeite`). */
+  qrZiel?: string;
+  scan?: string;
+  recht?: string;
+  /** Die Bestellnummer — steht klein in der Fusszeile und ordnet die Datei einem Kauf zu. */
+  nummer?: string;
+  format?: keyof typeof POSTER_FORMATE;
+  rahmen?: "holz" | "schwarz" | null;
+};
+
+const farbe = (hex: string) => {
+  const h = hex.replace("#", "");
+  return rgb(parseInt(h.slice(0, 2), 16) / 255, parseInt(h.slice(2, 4), 16) / 255, parseInt(h.slice(4, 6), 16) / 255);
+};
+
+/** Ein Anteil der Blattbreite in Punkten — dasselbe wie `cqw` auf dem Schirm. */
+const teil = (breiteP: number, anteil: number) => (anteil / 100) * breiteP;
+
+/** Zeilenumbruch nach Breite, an Wortgrenzen. */
+function umbrechen(text: string, font: PDFFont, groesse: number, breite: number): string[] {
+  const zeilen: string[] = [];
+  let zeile = "";
+  for (const wort of text.split(/\s+/).filter(Boolean)) {
+    const versuch = zeile ? `${zeile} ${wort}` : wort;
+    if (font.widthOfTextAtSize(versuch, groesse) <= breite || !zeile) zeile = versuch;
+    else { zeilen.push(zeile); zeile = wort; }
+  }
+  if (zeile) zeilen.push(zeile);
+  return zeilen;
+}
+
+/** Gesperrte Schrift — Zeichen für Zeichen, um Punkte herum eng (wie auf dem Blatt). */
+function sperrBreite(text: string, font: PDFFont, groesse: number, sperre: number): number {
+  let b = 0;
+  for (let i = 0; i < text.length; i++) {
+    b += font.widthOfTextAtSize(text[i], groesse);
+    if (i < text.length - 1) {
+      const eng = text[i] === "." || text[i + 1] === "." || text[i] === "·" || text[i + 1] === "·";
+      b += sperre * (eng ? 0.15 : 1);
+    }
+  }
+  return b;
+}
+
+function sperrZeichnen(seite: PDFPage, text: string, font: PDFFont, groesse: number, x: number, y: number, sperre: number, fill: ReturnType<typeof rgb>) {
+  let cx = x;
+  for (let i = 0; i < text.length; i++) {
+    seite.drawText(text[i], { x: cx, y, size: groesse, font, color: fill });
+    cx += font.widthOfTextAtSize(text[i], groesse);
+    const eng = text[i] === "." || text[i + 1] === "." || text[i] === "·" || text[i + 1] === "·";
+    cx += sperre * (eng ? 0.15 : 1);
+  }
+}
+
+/**
+ * Baut das Poster als PDF. Gibt die fertigen Bytes zurück — der Aufrufer hängt sie an eine Mail
+ * oder legt sie ab.
+ */
+export async function druckdateiBauen(a: DruckAngaben): Promise<Uint8Array> {
+  const P = POSTER;
+  const f = P.farben;
+  const fmt = POSTER_FORMATE[a.format ?? "A3"];
+  /* 1 mm = 2.8346 pt. Das PDF trägt echte Millimeter, egal mit wie viel dpi gedruckt wird. */
+  const MM = 2.83465;
+  const B = fmt.breite * MM;
+  const H = fmt.hoehe * MM;
+  const cqw = (v: number) => teil(B, v);
+
+  const pdf = await PDFDocument.create();
+  pdf.registerFontkit(fontkit);
+  const schriftOrt = path.join(process.cwd(), "public", "fonts");
+  const [roh, rohKursiv] = await Promise.all([
+    readFile(path.join(schriftOrt, "CrimsonText.ttf")),
+    readFile(path.join(schriftOrt, "CrimsonText-Italic.ttf")),
+  ]);
+  const serif = await pdf.embedFont(roh, { subset: true });
+  const kursiv = await pdf.embedFont(rohKursiv, { subset: true });
+
+  const seite = pdf.addPage([B, H]);
+  seite.drawRectangle({ x: 0, y: 0, width: B, height: H, color: farbe(f.papier) });
+
+  /* ── Der gedruckte Rahmen ─────────────────────────────────────────────────────────────── */
+  const leiste = a.rahmen ? cqw(P.rahmen.breit) : 0;
+  if (a.rahmen) {
+    /* Eine einzige Leiste in einem Ton — die Mitte der Linie liegt auf der halben Breite,
+       damit die Leiste genau am Blattrand endet und innen bei `leiste` aufhört. */
+    seite.drawRectangle({
+      x: leiste / 2, y: leiste / 2,
+      width: B - leiste, height: H - leiste,
+      borderColor: farbe(a.rahmen === "holz" ? P.rahmen.holz : P.rahmen.schwarz),
+      borderWidth: leiste,
+    });
+  }
+
+  const randX = leiste + cqw(P.rand);
+  const innen = B - 2 * randX;
+  const mitte = B / 2;
+  /* In PDF zählt y von UNTEN. Wir rechnen von oben und ziehen ab. */
+  let obenY = H - leiste - cqw(P.randOben);
+  const untenY = leiste + cqw(P.randUnten);
+
+  /* ── KEIN KOPF ÜBER DEM WERK (Owner 17.09.2026: „raus") ────────────────────────────────
+     Bis heute stand `POSTER_TITEL` hier oben auf dem Blatt. Auf dem Schirm ist die Zeile weg;
+     die Adresse steht unten unter dem Satz (`a.recht`). Stünde sie hier weiter, bekäme der
+     Käufer etwas anderes gedruckt, als er bestellt hat. */
+
+  /* ── Der Textblock wird zuerst gemessen, damit er unten kleben kann ───────────────────── */
+  type Zeile = { art: "text" | "sperr" | "qr"; inhalt: string; font?: PDFFont; groesse: number; fill?: ReturnType<typeof rgb>; sperre: number; danach: number; satz?: boolean };
+  const zeilen: Zeile[] = [];
+  const qrSeite = a.qrZiel ? cqw(P.qr.breit) : 0;
+  const nameGroesse = cqw(P.name.breit);
+  const nameText = a.leben ? `${a.name ?? ""}   ${a.leben}` : (a.name ?? "");
+  /* Der Künstlername steht nur noch in der Rechtezeile (Owner 17.09.2026: „Gerry Louisett
+     raus") — wird er nicht übergeben, fällt die Zeile hier genauso weg wie auf dem Schirm. */
+  if (a.name) zeilen.push({ art: "sperr", inhalt: nameText, font: serif, groesse: nameGroesse, fill: farbe(f.tinte), sperre: nameGroesse * P.name.sperre, danach: cqw(P.luft) });
+  if (a.titel) zeilen.push({ art: "text", inhalt: a.titel, font: kursiv, groesse: cqw(P.titel.breit), fill: farbe(f.tinte), sperre: 0, danach: cqw(P.luft) });
+  /* Seit der Code unten neben der Adresse steht (Owner 17.09.2026: „dieser qr code stört, muss
+     klein sein neben lakatosbandi.com"), hält der Satz keinen Platz mehr für ihn frei — er hat
+     die ganze Breite, genau wie auf dem Schirm. */
+  const textFeld = innen;
+  if (a.text) {
+    /**
+     * ── ZWEI ZEILEN, DIE SCHRIFT RICHTET SICH DANACH (Owner 17.09.2026: „text block ist
+     * begrenzt. egal was der user schreibt dann wird der text kleiner") ────────────────────
+     *
+     * Der Schirm SCHÄTZT die Grösse aus der Zeichenzahl — er kann die Schrift nicht messen,
+     * bevor sie gesetzt ist. Hier liegt die Schrift vor: `umbrechen` bricht mit echten
+     * Zeichenbreiten um, also wird so lange verkleinert, bis zwei Zeilen reichen. Ergebnis ist
+     * dieselbe Regel, nur genauer — nie mehr als zwei Zeilen, nie kleiner als lesbar.
+     */
+    const gross = cqw(P.text.breit);
+    const klein = cqw(1.45);
+    let g = gross;
+    let teile = umbrechen(a.text, serif, g, textFeld);
+    while (teile.length > 2 && g > klein) {
+      g = Math.max(klein, g - gross * 0.04);
+      teile = umbrechen(a.text, serif, g, textFeld);
+    }
+    teile.forEach((z, i) => zeilen.push({ art: "text", inhalt: z, font: serif, groesse: g, fill: farbe(f.tinte), sperre: 0, satz: true, danach: i === teile.length - 1 ? cqw(P.qr.luft) : g * (P.text.zeile - 1) }));
+  }
+  /* Die Zeile „scannen" steht nur auf einem Blatt, dessen Code mittig unter dem Satz sitzt.
+     Hier steht er neben dem Satz — wie auf dem Schirm (`qrEcke`) bleibt sie deshalb weg. */
+  /* Der Code gehört zu dieser Zeile: `qr` markiert sie, gezeichnet wird er beim Setzen links
+     neben der Schrift (Owner 17.09.2026). */
+  if (a.recht) zeilen.push({ art: a.qrZiel ? "qr" : "text", inhalt: a.recht, font: serif, groesse: cqw(P.recht.breit), fill: farbe(f.leise), sperre: 0, danach: cqw(P.luft) * 0.4 });
+  if (a.nummer) zeilen.push({ art: "text", inhalt: `Licență ${a.nummer} · uz personal`, font: serif, groesse: cqw(P.recht.breit), fill: farbe(f.leise), sperre: 0, danach: 0 });
+
+  const blockHoehe = zeilen.reduce((s, z) => s + z.groesse + z.danach, 0);
+
+  /* ── Das Werk: was zwischen Kopf und Textblock frei bleibt, höchstens das Rasterfeld ──── */
+  const bildEinbetten = a.bildTyp === "png" ? pdf.embedPng.bind(pdf) : pdf.embedJpg.bind(pdf);
+  const werk = await bildEinbetten(a.bild);
+  const feldHoehe = Math.min(cqw(P.bild.hoch * POSTER_VERHAELTNIS), Math.max(1, obenY - (untenY + blockHoehe + cqw(P.bild.luftUnten))));
+  const feldBreite = innen - 2 * cqw(P.bild.randSeite);
+  const skala = Math.min(feldBreite / werk.width, feldHoehe / werk.height);
+  const bw = werk.width * skala;
+  const bh = werk.height * skala;
+  seite.drawImage(werk, { x: mitte - bw / 2, y: obenY - feldHoehe + (feldHoehe - bh) / 2, width: bw, height: bh });
+
+  /* ── Der Textblock, von unten nach oben gesetzt ───────────────────────────────────────── */
+  const qrBild = a.qrZiel
+    ? await pdf.embedPng(await QRCode.toBuffer(a.qrZiel, {
+        type: "png", margin: 1, scale: 12, color: { dark: f.tinte, light: f.papier },
+      }))
+    : null;
+  let y = untenY + blockHoehe;
+  /* Ober- und Unterkante des Satzes merken — daran hängt der Code (s.u.). */
+  let satzOben: number | null = null;
+  let satzUnten: number | null = null;
+  for (const z of zeilen) {
+    y -= z.groesse;
+    if (z.satz) {
+      if (satzOben === null) satzOben = y + z.groesse;
+      satzUnten = y;
+    }
+    if (z.art === "qr" && z.font && qrBild) {
+      /* Adresse und Code zusammen mittig: erst beide messen, dann setzen. */
+      const seiteQr = z.groesse * 2.2;
+      const luft = z.groesse * 0.6;
+      const bText = z.font.widthOfTextAtSize(z.inhalt, z.groesse);
+      const gesamt = seiteQr + luft + bText;
+      const x0 = mitte - gesamt / 2;
+      seite.drawImage(qrBild, { x: x0, y: y - (seiteQr - z.groesse) / 2, width: seiteQr, height: seiteQr });
+      seite.drawText(z.inhalt, { x: x0 + seiteQr + luft, y, size: z.groesse, font: z.font, color: z.fill ?? farbe(f.tinte) });
+    } else if (z.art === "sperr" && z.font) {
+      const b = sperrBreite(z.inhalt, z.font, z.groesse, z.sperre);
+      sperrZeichnen(seite, z.inhalt, z.font, z.groesse, mitte - b / 2, y, z.sperre, z.fill ?? farbe(f.tinte));
+    } else if (z.font) {
+      const b = z.font.widthOfTextAtSize(z.inhalt, z.groesse);
+      seite.drawText(z.inhalt, { x: mitte - b / 2, y, size: z.groesse, font: z.font, color: z.fill ?? farbe(f.tinte) });
+    }
+    y -= z.danach;
+  }
+
+  /* ── DER CODE LIEGT LINKS NEBEN DEM SATZ (Owner 17.09.2026: „qr code links unten" · „muss mit
+     der ersten zeile zentriert sein") ─────────────────────────────────────────────────────────
+     Vorher klebte er in der Blattecke, unabhängig davon, wo der Satz steht. Jetzt hängt er an
+     der Schrift: in der Lücke, die der Satz links ohnehin freihält, auf halber Höhe des Satzes —
+     wie auf dem Schirm. Ohne Satz bleibt es bei der Ecke. */
+  /* Ohne Rechtezeile hätte der Code keinen Platz — dann steht er wie früher unten links. */
+  if (qrBild && !a.recht) {
+    seite.drawImage(qrBild, { x: randX, y: leiste + cqw(P.randUnten), width: qrSeite, height: qrSeite });
+  }
+
+  /* Das Gesicht des Künstlers neben dem Namen: pdf-lib kann nicht runden, also kommt es als
+     Kreis auf das Papier — ein Quadrat wäre ein anderes Zeichen als auf dem Schirm. Ohne
+     Profilbild bleibt es beim blossen Namen. */
+  if (a.profil) {
+    const kreis = cqw(P.name.kreis);
+    const bild = a.profilTyp === "png" ? await pdf.embedPng(a.profil) : await pdf.embedJpg(a.profil);
+    const nameBreite = sperrBreite(nameText, serif, nameGroesse, nameGroesse * P.name.sperre);
+    const ganz = kreis + cqw(P.name.luft) + nameBreite;
+    const x0 = mitte - ganz / 2;
+    const nameY = untenY + blockHoehe - nameGroesse;
+    /* Erst den Namen an seinen Platz rücken … */
+    seite.drawRectangle({ x: x0, y: nameY - kreis * 0.2, width: ganz, height: kreis * 1.2, color: farbe(f.papier) });
+    sperrZeichnen(seite, nameText, serif, nameGroesse, x0 + kreis + cqw(P.name.luft), nameY, nameGroesse * P.name.sperre, farbe(f.tinte));
+    /* … dann das Bild davor, kreisförmig beschnitten. */
+    const kx = x0;
+    const ky = nameY - (kreis - nameGroesse) / 2;
+    seite.drawImage(bild, { x: kx, y: ky, width: kreis, height: kreis });
+    seite.drawCircle({ x: kx + kreis / 2, y: ky + kreis / 2, size: kreis / 2 + cqw(0.35), borderColor: farbe(f.papier), borderWidth: cqw(0.7) });
+  }
+
+  return pdf.save();
+}

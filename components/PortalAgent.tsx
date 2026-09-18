@@ -36,11 +36,12 @@ export default function PortalAgent({ S, lang, blase }: {
   const [gebaut, setGebaut] = useState(false);
 
   useEffect(() => {
-    let zugeklappt = false;
-    try { zugeklappt = sessionStorage.getItem("lb_portal_agent") === "zu"; } catch { /* egal */ }
-    if (zugeklappt) { setZustand("zu"); return; }
-    if (window.matchMedia("(min-width: 768px)").matches) { setZustand("offen"); setGebaut(true); }
-    else setZustand("blase");
+    /* ── NICHTS KLAPPT VON SELBST AUF (Owner 17.09.2026: „überall ausschalten, das
+       automatische Ausklappen") ──────────────────────────────────────────────────────────
+       Am Rechner ging das Fenster beim Laden auf, am Handy sprang eine Sprechblase hoch —
+       beide legten sich über das, was der Besucher gerade ansieht. Der Kreis unten rechts
+       genügt: Wer reden will, tippt ihn an. */
+    setZustand("zu");
   }, []);
 
   const oeffnen = () => { setZustand("offen"); setGebaut(true); };

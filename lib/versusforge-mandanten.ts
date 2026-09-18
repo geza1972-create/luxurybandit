@@ -35,6 +35,66 @@ export type WerkInfo = {
    * entscheidet nichts mehr.
    */
   preisZeigen?: boolean;
+  /**
+   * WAS DIESE KACHEL IST (15.09.2026, Reproduktionen): Ohne diese Angabe böte der Agent an
+   * jeder Kachel alle vier Materialien an — jemand hätte das FOTO DES SHIRTS auf Leinwand
+   * bestellen können. Leer heisst wie bisher: ein Druck in allen Formaten.
+   */
+  produkt?: "tricou" | "hanorac";
+  /**
+   * ZU DIESEM WERK GIBT ES EINEN FILM (15.09.2026, Video Poster). Die Kachel zeigt dann das
+   * bewegte Bild statt des stillen — Rahmen und Text bleiben HTML (Owner: „kannst du nicht nur
+   * das video animieren nicht das ganze poster? drum herum ist html?").
+   *
+   * Ein Merker und keine Abfrage in der Ablage: Sonst fragte die Übersicht bei zehn Werken
+   * zehnmal nach, ob eine Datei existiert, bevor sie eine Zeile zeichnen darf.
+   */
+  film?: boolean;
+  /**
+   * WANN DER FILM ZULETZT ERSETZT WURDE (15.09.2026). Die Film-Adresse trägt diesen Wert mit,
+   * damit ein neuer Schnitt auch wirklich beim Betrachter ankommt: Ausgeliefert wird mit einem
+   * Jahr Zwischenspeicher, und ohne diesen Zusatz hörte man die alte, stumme Fassung weiter —
+   * genau das ist passiert (Owner: „ich höre nichts").
+   */
+  filmAm?: string;
+  /**
+   * ZU DIESEM WERK SPRICHT DER KÜNSTLER (Owner 17.09.2026). Derselbe Merker wie `film`, für den
+   * zweiten Film: Ohne ihn müsste die Seite bei jedem Werk in der Ablage nachsehen, ob eine
+   * Datei existiert — zehn Abfragen, bevor eine Zeile gezeichnet werden darf.
+   */
+  sprecher?: boolean;
+  sprecherAm?: string;
+  /** Zu diesem Werk hat der Künstler seinen Brief selbst vorgelesen (`sprecherTonPfad`). */
+  stimme?: boolean;
+  stimmeAm?: string;
+  /**
+   * ── ER WILL NUR GEHÖRT WERDEN, NICHT GESEHEN (Owner 17.09.2026: „dann haben wir ein Häkchen
+   * für Video nicht zeigen, nur die Stimme") ─────────────────────────────────────────────────
+   *
+   * Aufgenommen wird immer ein Film — aber nicht jeder will sein Gesicht auf fremden Wänden.
+   * Steht dieses Häkchen, spielt das Fenster nur die Tonspur seines Films, und der Käufer sieht
+   * das Werk. Die Aufnahme bleibt unverändert liegen; das Häkchen ist jederzeit umkehrbar.
+   */
+  nurStimme?: boolean;
+  /**
+   * ── OB DIESES WERK ALS VORLAGE DIENEN DARF (Owner 17.09.2026, am „Schrei" von Munch:
+   * „glaubst du der prompt würde hier gehen?") ───────────────────────────────────────────────
+   *
+   * Nicht jedes Werk taugt dafür. Der Schrei hat kein gemaltes Gesicht, sondern eine Maske —
+   * ein Kundengesicht darin ist entweder hässlich oder unkenntlich. Eine Sternennacht hat
+   * überhaupt niemanden. Bei einem gemalten Porträt dagegen ist genau das das Geschäft.
+   *
+   * Und es ist zugleich das Häkchen für den lebenden Künstler, der das NICHT will (Owner
+   * 17.09.2026: „ich weiss gar nicht, ob er das gerne hätte"). Fehlt das Feld, ist der Knopf da
+   * — abschalten ist eine Entscheidung, die jemand trifft, kein Zustand, in den ein Werk fällt.
+   */
+  kunst?: boolean;
+  /**
+   * Die Kennung seines Films auf YouTube (Owner 17.09.2026). Steht sie da, spielt das Fenster
+   * von dort; fehlt sie, spielt es unsere eigene Datei — ein gedruckter QR-Code darf nicht davon
+   * abhängen, dass ein fremder Dienst den Film noch hat.
+   */
+  youtube?: string;
   /** Weitere Details, z. B. „Print semnat, ediție limitată 3/50" (Owner 11.09.2026: „hier wäre nicht Technica, sondern Alte detalii"). */
   detalii?: string; titel?: string; technik?: string; groesse?: string; jahr?: string;
   /**
@@ -46,7 +106,28 @@ export type WerkInfo = {
    * gar keines, ein geteilter Link war eine graue Textzeile. Fehlt die Angabe, nimmt die Seite
    * seine erste Kachel — wie bisher.
    */
-  vertritt?: boolean };
+  vertritt?: boolean;
+  /**
+   * DIESES WERK BIETET ER ALS POSTER VIU AN (Owner 16.09.2026: „auch bei jedem bild wenn er das
+   * macht in seinem admin dann erscheint das in der kategorie").
+   *
+   * Sein Ja für die ganze Seite (`posterViu` am Mandanten) sagt nur, DASS er mitmacht. Welche
+   * Werke gedruckt werden dürfen, entscheidet er hier Bild für Bild — manche Arbeiten will man
+   * als Druck sehen, andere nie. Ohne Häkchen bleibt ein Werk ein Original und sonst nichts.
+   */
+  poster?: boolean;
+  /**
+   * OB DAS WERK IM QUERFORMAT IST (Owner 16.09.2026: „wir müssen die DIN formate einhalten" ·
+   * „in diesem fall ist das format ein querformat").
+   *
+   * Ein Poster wird auf A3, A2 oder A1 gedruckt — und ein A-Bogen hat ein festes Verhältnis
+   * (1:1,414). Die Kachel muss deshalb genau so aussehen, wie das Blatt später ist: hochkant
+   * oder quer. Welche der beiden, hängt am WERK, und das weiss nur, wer das Bild gemessen hat.
+   *
+   * Ein Merker und keine Messung beim Rendern: Der Server müsste sonst bei jeder Kachel das
+   * Bild laden, um eine Zahl zu erfahren, die sich nie ändert.
+   */
+  quer?: boolean };
 
 export type MandantAngaben = {
   /** Der Name, der oben auf der Seite steht. Seiner, nicht unserer. */
@@ -254,6 +335,34 @@ export type MandantAngaben = {
    * Ja/Nein, damit man sieht, ob es hängt.
    */
   aufbauSeit?: string;
+  /**
+   * REPRODUKTION EINES GEMEINFREIEN WERKS (Owner 15.09.2026) — kein lebender Künstler, sondern
+   * Van Gogh, Vermeer, Hokusai. Der Agent fragt dann nach Material und Größe, weil es nichts
+   * Einmaliges zu kaufen gibt, sondern einen Druck.
+   */
+  reproduktion?: boolean;
+  /**
+   * SEINE WERKE WERDEN ALS POSTER VIU ANGEBOTEN (Owner 15.09.2026: „jetzt machst du die werke
+   * von szidonia und gerry louisett auch unter der kategorie").
+   *
+   * NICHT DASSELBE WIE `reproduktion`: Dort geht es um gemeinfreie Meister, deren Originale in
+   * Museen hängen — deshalb steht dort „Imagine: domeniu public" und der Hinweis aufs Museum.
+   * Hier gehört das Werk dem Künstler selbst; diese Zeilen wären schlicht falsch.
+   *
+   * NUR MIT SEINER ZUSTIMMUNG (Memory `reproduktionen-und-prints-lebende-kuenstler`): Für Fremde
+   * wird dieses Feld erst gesetzt, wenn der Owner sie gefragt hat.
+   */
+  posterViu?: boolean;
+  /**
+   * Sein Stil als Rezept (siehe `StilRezept`) — die Vorlage für erzeugte Porträts „im Stil von".
+   * Fehlt sie, bietet seine Seite keine Porträts an; erfunden wird nichts.
+   */
+  stil?: { werk: string; text: string };
+  /**
+   * LEBENSDATEN (15.09.2026, Video Poster) — „1853 – 1890". Nur bei den gemeinfreien Meistern
+   * gesetzt; bei einem lebenden Künstler wäre die Zeile makaber.
+   */
+  leben?: string;
   /** Über mich — sein Text auf seiner Seite (Owner 11.09.2026: „Text über sich"). */
   ueberMich?: string;
   /**
@@ -332,6 +441,22 @@ export type MandantOeffentlich = Omit<MandantAngaben, "schluessel" | "loeschSchl
 const pfad = (mandant: string) => `versusforge-mandant/${mandantSauber(mandant)}.json`;
 
 /** Das ruhige Blau, wenn der Mandant keine eigene Farbe angegeben hat. */
+/**
+ * ── SEIN STIL ALS REZEPT (Owner 17.09.2026: „ich habe meine Freundin in meinem Kunststil
+ * generiert … hätte ich ein Tool, sieh dich als Poster in Louisett-Stil") ────────────────────
+ *
+ * Zwei Angaben, mehr braucht es nicht — der Owner hat es selbst vorgemacht: EIN Bild als
+ * Vorlage und ein Satz dazu.
+ *
+ * `stilWerk` ist die Nummer des Werks, das als Vorlage dient („standard" oder „0" … „11").
+ * `stilText` beschreibt in Worten, was dieses Bild ausmacht: Farbauftrag, Palette, Kanten,
+ * Hintergrund. Ohne den Satz sieht jedes erzeugte Porträt anders aus; das Bild allein trägt zu
+ * wenig Anweisung, und ein blosser Stilname („expressiv") wäre ein Filter.
+ *
+ * DAS KUNDENFOTO LIEFERT NUR DAS GESICHT. Stil kommt immer von hier.
+ */
+export type StilRezept = { werk: string; text: string };
+
 export const AKZENT_STANDARD = "#1d6fd0";
 
 export async function mandantLesen(mandantRoh: string): Promise<MandantAngaben | null> {

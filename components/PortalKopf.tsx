@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { PortalTexte } from "@/lib/lakatosbandi-texte";
 import { PORTAL_SPRACHEN } from "@/lib/lakatosbandi-texte";
+import ArtistFair from "@/components/ArtistFair";
 
 /**
  * DER KOPF VON LAKATOSBANDI.COM — Name, Unterzeile, Journal, Sprachen, Login für Künstler.
@@ -35,11 +36,13 @@ export default function PortalKopf({ T, lang, login, start, preise, journal, spr
             Bild und Logo an die gegenüberliegenden Ränder — derselbe Fehler, der im Trichter
             schon einmal passiert ist (Owner 11.09.2026: „muss an dem Logo hängen"). */}
         <span className="flex min-w-0 shrink items-center gap-3">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          {/* AUCH AUF DEM HANDY (Owner 14.09.2026: „Hier auch") — vorher `hidden sm:block`, und
-              genau dort hat er es gesucht. Etwas kleiner, damit der Kopf nicht bricht. */}
-          <img src="/lakatosbandi/geza-szidonia.jpg" alt=""
-            className="h-9 w-9 shrink-0 rounded-full object-cover sm:h-10 sm:w-10" />
+          {/* ── DAS SIEGEL STATT DES FOTOS (Owner 18.09.2026: „auf unserer Seite machst du gross
+              im header den Stempel auch" · „statt unser Logo") ─────────────────────────────────
+              Hier stand unser Foto (Owner 14.09.2026: „Bild von uns im Kreis nebendran"). Seit es
+              „Artist Fair" gibt, ist das Zeichen wichtiger als unsere Gesichter: Wer die Seite
+              zum ersten Mal öffnet, soll in der ersten Sekunde sehen, wofür sie steht. Das Foto
+              bleibt im Trichter und auf der Über-uns-Seite. */}
+          <ArtistFair groesse={0} klasse="h-11 w-11 shrink-0 text-[#111] sm:h-14 sm:w-14" />
         <Link href={`${start}${lang === "en" ? "" : `?lang=${lang}`}`} className="min-w-0 shrink text-[#111] no-underline">
           {/* DAS ZEICHEN (Owner 11.09.2026: „lakatosbandi.com ist besser als lakatosbandi." · „Logo alles schwarz
               bitte") — fett, eng, ganz schwarz, mit „.com". Auf dem Handy kleiner (18px statt 21px), sonst sprengt

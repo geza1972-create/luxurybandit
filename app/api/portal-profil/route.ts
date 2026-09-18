@@ -10,7 +10,7 @@ import { neuesWerkAnFollower } from "@/lib/versusforge-folgen-neu-post";
 import { after } from "next/server";
 import { preisText } from "@/lib/lakatosbandi-preis";
 import { ereignisMerken } from "@/lib/versusforge-ereignis";
-import { darfKi, werkeGrenze } from "@/lib/versusforge-abo";
+import { aboAktiv, darfKi, werkeGrenze } from "@/lib/versusforge-abo";
 
 /**
  * SEINE SEITE SPEICHERN (Owner 11.09.2026: „Dann wird er den Link bekommen, dass er öffnen und es ergänzen
@@ -90,6 +90,17 @@ export async function POST(request: Request) {
            verschwindet das Häkchen beim Speichern: Diese Liste ist eine Whitelist, nicht ein
            Durchreichen. Dass nur EINES gesetzt ist, stellt das Formular sicher. */
         vertritt: x.vertritt === true,
+        /* Welche Werke er als Poster viu anbietet (Owner 16.09.2026: „auch bei jedem bild") —
+           dieselbe Whitelist-Regel wie bei `vertritt`: nicht mitgeführt hiesse gelöscht. */
+        poster: x.poster === true,
+        /* ── „YOU AS A PICTURE" SCHALTET NICHT DER KÜNSTLER (Owner 17.09.2026: „die künstler
+           können das gar nicht einschalten. das ist ein premium feature") ───────────────────
+           Deshalb kommt der Wert NICHT aus dem Formular, sondern aus dem Datensatz: Was hier
+           steht, hat das Haus gesetzt. Ein Browser, der `kunst: true` mitschickt, ändert nichts
+           — dieselbe Regel wie beim Betrag an der Kasse (Skill `bezahlung`, Regel 3). */
+        kunst: m.werkInfo?.[Math.round(Number(x.i)) < 0 ? "standard" : String(Math.round(Number(x.i)))]?.kunst,
+        /* „Nur die Stimme zeigen" (Owner 17.09.2026) — dieselbe Whitelist-Regel wie oben. */
+        nurStimme: x.nurStimme === true,
       } as WerkInfo,
     }))
     .filter(x => Number.isInteger(x.i) && x.i >= -1 && x.i <= 11);
@@ -123,6 +134,18 @@ export async function POST(request: Request) {
     profilBild: b.profilBild === true || !!m.profilBild,
     /* Aus „@name", „name" oder einer vollen Adresse wird eine gültige Adresse — auf dem SERVER,
        nicht im Browser: Was von dort kommt, ist eine Behauptung (Owner 13.09.2026). */
+    /**
+     * ── SEIN JA ZU POSTER VIU (Owner 16.09.2026: „er muss aber ankreuzen: ich will meine bilder
+     * als Poster viu verkaufen") ──────────────────────────────────────────────────────────────
+     *
+     * Ohne dieses Häkchen verkaufen wir nichts von ihm. Es steht deshalb in seinem eigenen
+     * Formular, nicht in unserem Admin: Wer seine Werke drucken lässt, muss es selbst gesagt
+     * haben. Nimmt er es zurück, verschwinden die Kaufknöpfe sofort wieder — ein Ja gilt so
+     * lange, wie er es stehen lässt.
+     */
+    /* PREMIUM (Owner 16.09.2026: „das ist aber eine premium funktion") — auf dem SERVER geprüft,
+       nicht nur im Formular: Sonst schaltet es sich frei, wer die Route direkt anspricht. */
+    posterViu: b.posterViu === true && aboAktiv(m),
     instagram: sozialeAdresse(str(b.instagram, 200), "instagram.com"),
     facebook: sozialeAdresse(str(b.facebook, 200), "facebook.com"),
     hook: standard?.spruch ?? "",

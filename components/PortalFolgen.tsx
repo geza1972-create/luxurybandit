@@ -44,14 +44,16 @@ export default function PortalFolgen({ mandant, T }: { mandant: string; T: Porta
   };
 
   if (stand === "fertig") {
-    return <p className="m-0 mt-7 max-w-[420px] text-[15px] font-semibold leading-[1.5] text-[#1d6fd0]">{T.folgenMailGeschickt}</p>;
+    return <p className="m-0 w-full max-w-[420px] text-[15px] font-semibold leading-[1.5] text-[#1d6fd0]">{T.folgenMailGeschickt}</p>;
   }
 
   return (
-    <div className="mt-7">
+    /* Steht in derselben Zeile wie Gespräch und Teilen (Owner 17.09.2026) — erst wenn er
+       „Folgen" antippt, klappt das Feld darunter auf und braucht die ganze Breite. */
+    <div className={offen ? "mt-3 w-full" : ""}>
       {!offen ? (
         <button type="button" onClick={() => setOffen(true)}
-          className="inline-block border border-[#111] px-6 py-3.5 text-[15px] font-semibold text-[#111] transition hover:bg-[#111] hover:text-white">
+          className="inline-block rounded-full border border-[#111] px-4 py-2 text-[14px] font-semibold text-[#111] transition hover:bg-[#111] hover:text-white">
           {T.folgen}
         </button>
       ) : (

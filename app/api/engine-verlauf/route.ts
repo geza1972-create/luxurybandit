@@ -68,6 +68,10 @@ export async function GET(request: Request) {
         schluessel: l.stufe.schluessel,
         anzahl: l.anzahl,
       })),
+      /* WOHER SIE KAMEN — hier vergessen, als die Messung gebaut wurde (15.09.2026): Die Zahlen
+         standen in der Ablage, das Dashboard zeigte eine leere Zeile. Wer eine Antwort nur bis
+         zur vorletzten Station bringt, hat sie nicht gebaut. */
+      quellen: trichter.quellen,
     },
     /* Die zweite Stufe: nicht „hat ein Bild gewählt", sondern „das Bild liegt bei uns". */
     angekommen,

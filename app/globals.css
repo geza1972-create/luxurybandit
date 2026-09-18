@@ -1068,6 +1068,12 @@ svg {
    [&::-webkit-scrollbar]:hidden` neu ab (und fuenf Reihen im Kuss-Trichter vergassen sie,
    die zeigten einen weissen Balken). Gilt in BEIDE Richtungen: waagerechte Reihen
    (Szenen, Chips, Karussells) wie senkrechte Wischflaechen (der Feed). */
+/* ── DIE MARKE LANDET NICHT UNTER DEM KOPF (Owner 18.09.2026: „muss genau zu der stelle
+   springen") ────────────────────────────────────────────────────────────────────────────────
+   Springt der Browser auf `#w-3`, setzt er die Kachel an den oberen Fensterrand — dort steht
+   aber die Künstlerreihe. Ein Rand von 96 px hält sie darunter frei. */
+.lb-poster-block[id] { scroll-margin-top: 96px; }
+
 .lb-wisch { scrollbar-width: none; -ms-overflow-style: none; }
 .lb-wisch::-webkit-scrollbar { display: none; }
 
@@ -1323,3 +1329,316 @@ body:has(.lb-mandant) .lb-cookieband { display: none !important; }
   30%           { opacity: 1;   transform: translateY(-3px); }
 }
 .lb-tippt { animation: lb-tippt 1.2s ease-in-out infinite; }
+
+/* ── DER HOLZRAHMEN ERSCHEINT MIT DER WAHL (Owner 15.09.2026: „wenn ich einen rahmen auswähle
+   soll auch der rahmen erscheinen beim kachel") ────────────────────────────────────────────────
+
+   Die Auswahl steht UNTER dem Poster, die Kachel darüber — zwei getrennte Bauteile. Statt die
+   halbe Seite in ein Client-Bauteil zu verwandeln, hört das CSS selbst zu: `:has()` prüft, ob im
+   selben Kasten „Cu ramă" gewählt ist, und legt dann den Rahmen an.
+
+   ── NUR IM EIGENEN KASTEN (16.09.2026, Owner: „das ist ohne rahmen und wird ein rahmen
+   angezeigt") ─────────────────────────────────────────────────────────────────────────────
+   Hier stand `*:has(…)`. Der Stern trifft JEDEN Vorfahren, also auch `html` — wählte eine
+   einzige Kachel auf der Seite einen schwarzen Rahmen, bekamen alle anderen ihn mit, auch die
+   mit „Fără ramă". Jetzt steht `.lb-poster-block` davor: der Kasten, in dem genau ein Poster
+   und genau seine Auswahl liegen.
+
+   DER RAHMEN GEHT UM DAS GANZE POSTER, nicht um das Werk darin (Owner 15.09.2026: „nein mein
+   lieber. nicht das bild sondern die ganze kachel") — so hängt es auch an der Wand: Holz aussen,
+   Papier innen, das Bild mittendrin. Die Farbe ist Eiche wie auf dem Foto. */
+.lb-poster-karte {
+  /* Die Haarlinie um ein Blatt OHNE Rahmen — derselbe Ton wie `POSTER.farben.kante`. */
+  border-color: #ddd4c0;
+  transition: border-width .18s ease, border-color .18s ease, box-shadow .18s ease;
+}
+
+/* `lb-rahmen-fest`: ein Rahmen ohne Auswahl — im Schaufenster der Startseite, wo nichts zu
+   wählen ist (Owner 16.09.2026: „mit rahmen"). Die Farbe gibt der schwarze Block weiter unten. */
+.lb-poster-karte.lb-rahmen-fest,
+li:has(.lb-rahmen-wahl input[value="1"]:checked) .lb-poster-karte,
+.lb-poster-block:has(.lb-rahmen-wahl input[value="1"]:checked) .lb-poster-karte,
+li:has(.lb-rahmen-wahl input[value="2"]:checked) .lb-poster-karte,
+.lb-poster-block:has(.lb-rahmen-wahl input[value="2"]:checked) .lb-poster-karte {
+  /* ── EIN RAHMEN HAT TIEFE (Owner 15.09.2026: „es muss 3d aussehen") ──────────────────────
+     Vier Leisten statt einer Fläche: Oben fällt Licht ein, unten liegt Schatten, links und
+     rechts dazwischen. `border-image` mit einem Verlauf über alle vier Kanten macht genau das,
+     ohne ein einziges Bild zu laden.
+
+     Dazu drei Schatten: eine helle Kante ganz aussen (die Kante der Leiste), ein dunkler Zug
+     nach innen (das Papier liegt vertieft im Rahmen) und der Wurf auf die Wand. */
+  /* ── DER RAHMEN WÄCHST MIT DEM BLATT (Owner 16.09.2026: „schwarzer rahmen aber nicht so
+     fett") ─────────────────────────────────────────────────────────────────────────────────
+     22 feste Pixel sind auf einem grossen Poster eine schmale Leiste und auf einer Kachel im
+     Schaufenster ein Balken. `cqw` misst die Blattbreite (das Poster ist ein Container), also
+     ist die Leiste überall derselbe Anteil — wie bei einem echten Rahmen. */
+  /* Erst 30 % schlanker (Owner 16.09.2026: „noch dünner 30 prozent"), dann noch einmal die
+     Hälfte (Owner 17.09.2026: „die Rahmen sind hier zu breit. 50 Prozent") — auf der Posterwand
+     eines Künstlers standen drei Blätter nebeneinander, und die Leisten nahmen mehr Fläche ein
+     als die Bilder. */
+  /* ── DIE ZAHLEN BEDEUTEN JETZT ETWAS ANDERES (17.09.2026) ──────────────────────────────
+     Bis zur Container-Korrektur oben rechneten die Browser `cqw` gegen irgendetwas — meist die
+     Bildschirmbreite —, und dieselbe Zahl ergab mal eine fette, mal eine dünne Leiste. Seit die
+     Kachel der Container ist, sind es echte Prozente IHRER Breite: 2 % oben und seitlich, unten
+     etwas mehr, wie bei einem echten Rahmen, in dem das Blatt ein wenig tiefer sitzt. */
+  /* Zwei Pixel mehr Leiste (Owner 17.09.2026: „und 2 pixel breiter") — auf einer Kachel von
+     rund 340 px sind das etwa 0,6 % ihrer Breite. */
+  border-width: 2.6cqw 2.6cqw 3cqw 2.6cqw;
+  /* AUF DEM BILDSCHIRM BLEIBT DER VERLAUF (Owner 16.09.2026: „das problem war nur in der pdf"
+     · „mit dem verlauf") — ein Bildschirm kann Tiefe zeigen, Papier nicht. Flach und einen Ton
+     heller ist deshalb nur die Druckdatei (`POSTER.rahmen`). */
+  border-style: solid;
+  /* ── ECHTES HOLZ STATT VERLAUF (Owner 17.09.2026: „ich will holzrahmen anbieten, kein billig
+     shitt" · „aber holzrahmen kannst du nicht simulieren oder?") ──────────────────────────────
+     Ein CSS-Verlauf sieht nach Plastik aus, weil ihm die Maserung fehlt. Hier liegt jetzt das
+     Foto einer leeren Leiste (`public/lakatosbandi/rahmen-holz.png`, 512 px, Leiste 37 px), in
+     neun Felder geschnitten: die vier Ecken bleiben, die Kanten werden gestreckt. Dieselbe Datei
+     trägt von der Kachel bis zum Vollbild.
+
+     MUSTER, NICHT PRODUKT: Das Bild ist erzeugt, solange es keinen Lieferanten gibt (Owner:
+     „ich habe noch keine Lieferanten, muss ich besorgen"). Sobald die echte Leiste da ist, wird
+     genau diese Datei ersetzt — im Code ändert sich nichts. */
+  border-color: #c9a87c;
+  border-image: url("/lakatosbandi/rahmen-holz.png") 37 stretch;
+  /* ── LICHT VON LINKS OBEN (Owner 15.09.2026: „muss von links oben kommen") ───────────────
+     Dann fällt der Wurf nach RECHTS UNTEN, und der Rahmen bekommt oben links eine helle Kante.
+     Vorher stand das Licht senkrecht darüber, und der Schatten lag unter dem Bild wie ein
+     Kissen — das sah weich aus statt gebaut.
+
+     HART STATT WEICH (Owner: „der schatten ist zu weich"): kleiner Weichzeichner, kräftige
+     Deckkraft, dicht am Rahmen. So sieht es nach Holz an einer Wand aus, nicht nach Nebel. */
+  /* ── DER HARTE VERSATZ IST RAUS (Owner 17.09.2026: „man sieht noch was" · „es ist nicht
+     perfekt") ──────────────────────────────────────────────────────────────────────────────
+     Hier stand zusätzlich `12px 14px 0 -6px` — ein Schatten OHNE Weichzeichner. Bei der fetten
+     Leiste von gestern las man ihn als Kante; seit die Leiste halbiert ist, steht er als
+     hellgrauer Streifen rechts und unten neben dem Rahmen, wie ein verrutschtes zweites Blatt.
+     Es bleibt der eine weiche Wurf nach rechts unten — Licht von links oben. */
+  box-shadow:
+    inset 1px 1px 0 rgba(255, 255, 255, .45),
+    inset -1px -1px 0 rgba(0, 0, 0, .35),
+    14px 18px 22px -10px rgba(20, 24, 28, .5);
+}
+
+/* ── DAS BLATT OHNE WERKZEUG (Owner 17.09.2026: „beim vergrössern blendest du die buttons
+   raus") ────────────────────────────────────────────────────────────────────────────────────
+   Im Grossen zeigt das Poster, was gedruckt an der Wand hängt: kein „You as a picture", kein
+   Stift. Gehört zu components/PosterGross.tsx. */
+.lb-poster-nur-blatt .lb-poster-knopf,
+.lb-poster-nur-blatt .lb-poster-stift,
+.lb-poster-nur-blatt .lb-poster-gross-knopf,
+.lb-poster-nur-blatt .lb-poster-regler {
+  display: none;
+}
+
+/* ── DER SCHATTENZUG LIEGT ÜBER DEM INHALT (Owner 17.09.2026: „schatten beim rahmen links geht
+   nicht bis nach unten weil fläche drüber ist") ──────────────────────────────────────────────
+   Einen `inset`-Schatten malt der Browser auf den HINTERGRUND des Blattes — jedes Kind liegt
+   darüber. Seit die Schrift auf einer weissen Fläche über die volle Blattbreite sitzt, deckte
+   sie ihn auf ihrer Höhe zu, und der Zug brach links auf halber Höhe ab. Diese Lage zeichnet
+   nur die drei inneren Schatten noch einmal, ganz oben, und fängt keine Klicks ab. */
+.lb-poster-karte.lb-rahmen-fest::after,
+li:has(.lb-rahmen-wahl input[value="1"]:checked) .lb-poster-karte::after,
+.lb-poster-block:has(.lb-rahmen-wahl input[value="1"]:checked) .lb-poster-karte::after,
+li:has(.lb-rahmen-wahl input[value="2"]:checked) .lb-poster-karte::after,
+.lb-poster-block:has(.lb-rahmen-wahl input[value="2"]:checked) .lb-poster-karte::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 3;
+  /* ── DER ZUG MUSS ÜBER DIE GANZE HÖHE TRAGEN (Owner 17.09.2026: „der linke schatten ist ein
+     problem. die helle fläche liegt drüber") ─────────────────────────────────────────────────
+     Die Lage deckte schon alles ab (mit einer roten Probe nachgemessen) — sichtbar war sie
+     trotzdem nur oben: Über dem Werk liegt zusätzlich der Schatten des Bildes, unten auf der
+     hellen Fläche stand der Rahmen mit sechs Pixeln allein da und verschwand. Deshalb jetzt
+     zwei lange, weiche Züge über die ganze Kante — links und oben —, die auf Creme genauso
+     tragen wie auf dem Werk.
+
+     UND GLEICHMÄSSIG, NICHT IN DER ECKE GEBALLT: Ein dritter Zug in der oberen linken Ecke liess
+     den Rand oben schwer und unten leer aussehen (Owner: „fast"). Über dem Werk liegt dort ohnehin
+     schon dessen eigener Schatten. Jetzt trägt links ein einziger Zug über die volle Höhe. */
+  /* ── UND JETZT GANZ OHNE ZUG (Owner 17.09.2026: „schatten stört mich immer noch") ────────
+     Erst fehlte er unten, dann war er ungleich, dann lag er als graue Bahn auf der cremefarbenen
+     Fläche — auf einem Blatt, das flach im Rahmen liegt, hat er dort nichts zu suchen. Es bleibt
+     die haarfeine helle Kante oben links und die dunkle unten rechts: die Kante der Leiste
+     selbst, mehr braucht es nicht. */
+  box-shadow:
+    inset 1px 1px 0 rgba(255, 255, 255, .45),
+    inset -1px -1px 0 rgba(0, 0, 0, .35);
+}
+
+/* Derselbe Rahmen in Schwarz (Owner 15.09.2026: „und farbe wählen schwarz oder braun"). */
+.lb-poster-karte.lb-rahmen-fest,
+li:has(.lb-rahmen-wahl input[value="2"]:checked) .lb-poster-karte,
+.lb-poster-block:has(.lb-rahmen-wahl input[value="2"]:checked) .lb-poster-karte {
+  /* Auch Schwarz ist Holz (Owner 17.09.2026: „auch schwarz ist holz") — schwarz gebeizte Eiche,
+     die Maserung bleibt sichtbar. Dieselbe Neun-Felder-Technik wie beim hellen Rahmen; auch
+     dieses Bild ist ein Muster, bis die Leiste des Lieferanten fotografiert ist. */
+  border-color: #1d1d1d;
+  border-image: url("/lakatosbandi/rahmen-schwarz.png") 44 stretch;
+}
+
+/* ── LANGER TEXT, VIER ZEILEN SICHTBAR (Owner 16.09.2026: „die texte sind zu lang. bitte zum
+   ausklappen machen nach 4 zeilen") ────────────────────────────────────────────────────────
+   Gehört zu components/MehrText.tsx. Der ganze Text steht im <summary>; geschlossen schneiden
+   ihn vier Zeilen ab, offen läuft er weiter. Kein JavaScript, also auch kein Springen beim
+   ersten Aufbau der Seite. */
+.lb-mehr > summary {
+  cursor: pointer;
+  list-style: none;
+}
+.lb-mehr > summary::-webkit-details-marker { display: none; }
+.lb-mehr > summary > span {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+  overflow: hidden;
+}
+.lb-mehr[open] > summary > span {
+  -webkit-line-clamp: unset;
+  display: block;
+  overflow: visible;
+}
+/* Das Wort darunter kommt aus der Sprache der Seite (data-Attribut), nicht aus dem Stylesheet. */
+.lb-mehr > summary::after {
+  content: attr(data-mehr);
+  display: block;
+  margin-top: .5rem;
+  font-size: 14px;
+  font-weight: 600;
+  color: #111;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.lb-mehr[open] > summary::after { content: attr(data-weniger); }
+
+/* ── DER LADEBALKEN IM QR-FENSTER (Owner 17.09.2026: „es hätte ein Poster erscheinen müssen mit
+   Ladebalken") ──────────────────────────────────────────────────────────────────────────────
+   Ein Strich, der hin und her läuft, solange der Film lädt. Kein Fortschritt in Prozent: Den
+   kennt der Browser bei einem Video nicht zuverlässig, und eine erfundene Zahl ist schlimmer
+   als keine. Gehört zu components/PosterFilm.tsx. */
+@keyframes lbLauf {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(300%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-\[lbLauf_1\.1s_ease-in-out_infinite\] { animation: none; opacity: .6; }
+}
+
+/* ── DER FILM IM VOLLBILD (Owner 17.09.2026: „so sieht es aus in Chrome") ────────────────────
+   Im Vollbild behält ein `inline-block` seine natürliche Größe: Der Film klebte oben links in
+   einer schwarzen Fläche, die Leiste lief über die ganze Breite. Also wird die Hülle im
+   Vollbild zu einer Spalte, die ihren Inhalt mittig stellt — und der Film nimmt die Höhe, die
+   da ist, abzüglich der Leiste. Gehört zu components/PosterFilm.tsx. */
+.lb-film-huelle:fullscreen,
+.lb-film-huelle:-webkit-full-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  background: #000;
+  padding: 12px;
+}
+.lb-film-huelle:fullscreen > video,
+.lb-film-huelle:-webkit-full-screen > video {
+  max-height: calc(100% - 64px);
+  max-width: 100%;
+  width: auto;
+  border-radius: 10px;
+}
+/* Die Leiste bleibt so breit wie der Film, nicht so breit wie der Bildschirm. */
+.lb-film-huelle:fullscreen > div,
+.lb-film-huelle:-webkit-full-screen > div {
+  width: min(560px, 92%);
+}
+
+/* ── WARUM DER RAHMEN IN JEDEM BROWSER ANDERS BREIT WAR (Owner 17.09.2026: „komisch, in
+   verschiedenen Browsern sind sie unterschiedlich breit") ───────────────────────────────────
+   Die Leiste ist in `cqw` bemessen — ein Anteil der Breite des nächsten Containers. Container
+   war bisher das Blatt SELBST (`containerType: inline-size` in Poster.tsx). Ein Element kann
+   sich aber nicht selbst abfragen: Seine eigenen `cqw` greifen auf den nächsten Container
+   DARÜBER zu — und den gab es nicht. Also fiel jeder Browser auf etwas anderes zurück.
+
+   Die Kachel drumherum wird deshalb selbst zum Container. Damit misst die Leiste überall
+   dasselbe: einen Anteil der Kachelbreite. */
+.lb-poster-block { container-type: inline-size; }
+
+/* ── DIE ZWEI WERKZEUGE AUF DEM BLATT (Owner 17.09.2026) ────────────────────────────────────
+   „direkt unter dem bild. you as a picture" und „ein icon beim text rechts für edit". Sie sind
+   Teil des Blattes, also messen sie in `cqw` wie alles darauf — und sie bleiben zurückhaltend,
+   damit das Poster ein Poster bleibt und nicht nach Werkzeugkasten aussieht. */
+/* WEISS MIT SCHWARZER SCHRIFT (Owner 17.09.2026: „button weiss mit schwarzer schrift") — er
+   liegt AUF dem Werk, und dort ist ein schwarzer Block ein Loch im Bild. Weiss legt sich wie
+   ein Etikett darüber; dieselbe Gestalt wie die `Scheibe` daneben, die auch auf Bildern liegt. */
+.lb-poster-knopf {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6em;
+  padding: 0.9cqw 2.4cqw;
+  border: 0.18cqw solid #fff;
+  border-radius: 999px;
+  color: #1a160f;
+  background: #fff;
+  text-transform: uppercase;
+  white-space: nowrap;
+  box-shadow: 0 0.25cqw 1cqw rgba(0, 0, 0, 0.35);
+}
+.lb-poster-stift {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  vertical-align: middle;
+  border: 0.15cqw solid #141414;
+  border-radius: 999px;
+  color: #f4f1ea;
+  background: #141414;
+}
+
+/* ── DAS FELD, IN DEM DER KUNDE SEINEN SATZ SCHREIBT (Owner 17.09.2026: „ok jetzt text
+   editieren") ────────────────────────────────────────────────────────────────────────────────
+   Es liegt IM Blatt, an der Stelle des Satzes: dieselbe Serifenschrift, dieselbe Mitte, kein
+   Kasten drumherum, KEINE Linie (Owner 17.09.2026: „die blöde linie raus") — auf einem Poster
+   hat Schrift keinen Unterstrich. Dass man hineinschreiben kann, sagt der Stift daneben.
+   Gehört zu components/PosterDeinText.tsx. */
+.lb-poster-feld {
+  font-family: Georgia, "Times New Roman", serif;
+}
+
+/* ── DER REGLER ZWISCHEN BILD UND NAME (Owner 17.09.2026: „ich brauche den schieberegler für
+   vorher und nachher wieder" · „viel zu klein für einen finger") ───────────────────────────────
+   Die TREFFFLÄCHE ist hoch (4,5 cqw), die SPUR bleibt dünn — gezeichnet als Verlauf in der Mitte.
+   Griff schwarz, damit er auf dem Papier steht. Gehört zu components/PosterDeinBild.tsx. */
+.lb-poster-regler {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4.5cqw;
+  background: linear-gradient(rgba(26, 22, 15, 0.35), rgba(26, 22, 15, 0.35)) center / 100% 0.7cqw no-repeat;
+  outline: none;
+  cursor: pointer;
+  touch-action: none;
+}
+.lb-poster-regler::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 3.8cqw;
+  height: 3.8cqw;
+  border-radius: 999px;
+  background: #1a160f;
+  border: 0.35cqw solid #f4efe2;
+  box-shadow: 0 0.2cqw 0.6cqw rgba(0, 0, 0, 0.35);
+}
+.lb-poster-regler::-moz-range-thumb {
+  width: 3.8cqw;
+  height: 3.8cqw;
+  border-radius: 999px;
+  background: #1a160f;
+  border: 0.35cqw solid #f4efe2;
+  box-shadow: 0 0.2cqw 0.6cqw rgba(0, 0, 0, 0.35);
+}
+.lb-poster-regler::-moz-range-track {
+  height: 0.7cqw;
+  background: rgba(26, 22, 15, 0.35);
+  border-radius: 999px;
+}

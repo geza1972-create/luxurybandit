@@ -61,20 +61,34 @@ export const ABSAGE_ROT = "#dc2626";
  * (Owner 04.08.: „jetzt 30% transparent alle Icons") — am GANZEN Knopf, nicht nur am
  * Grund, sonst sieht das Zeichen ausgeschnitten aus.
  */
-export function Scheibe({ onClick, label, rot = false, klein = false, durchsichtig = false, className = "", children }: {
-  onClick?: () => void;
+export function Scheibe({ onClick, label, rot = false, klein = false, durchsichtig = false, groesse, className = "", children }: {
+  onClick?: (e: React.MouseEvent) => void;
   /** Vorlesetext — Pflicht, die Scheibe zeigt nur ein Symbol. */
   label: string;
   rot?: boolean;
   /** h-9 statt h-10 — für Dialog-Ecken und enge Leisten. */
   klein?: boolean;
   durchsichtig?: boolean;
+  /**
+   * EIGENES MASS, wo Pixel nicht passen (Owner 17.09.2026: „löschen button im weissen kreis").
+   *
+   * Im Poster misst ALLES in `cqw` — Anteilen der Blattbreite —, damit dasselbe Blatt in einer
+   * schmalen Kachel und über dem halben Bildschirm gleich aussieht. Eine Scheibe mit `h-10`
+   * wäre dort in der Kachel ein Klotz und im Grossen ein Pünktchen. Als `style` gesetzt,
+   * damit es die Klassen sicher schlägt (Reihenfolge im Stylesheet entscheidet sonst).
+   */
+  groesse?: string;
   className?: string;
   children: ReactNode;
 }) {
   return (
     <button type="button" onClick={onClick} aria-label={label}
-      style={{ background: "#fff", color: rot ? ABSAGE_ROT : SCHEIBEN_TINTE, boxShadow: "0 2px 10px rgba(0,0,0,0.35)", ...(durchsichtig ? { opacity: 0.7 } : {}) }}
+      style={{
+        background: "#fff", color: rot ? ABSAGE_ROT : SCHEIBEN_TINTE,
+        boxShadow: "0 2px 10px rgba(0,0,0,0.35)",
+        ...(groesse ? { width: groesse, height: groesse } : {}),
+        ...(durchsichtig ? { opacity: 0.7 } : {}),
+      }}
       className={`grid ${klein ? "h-9 w-9" : "h-10 w-10"} place-items-center rounded-full transition active:scale-90 ${className}`}>
       {children}
     </button>

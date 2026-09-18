@@ -200,7 +200,14 @@ export const VERSUSFORGE_ANALYSE_CENTS = 999;
 
 /**
  * VERSUSFORGE ART — DAS ABO (Owner 10.09.2026: „Du zahlst, wenn unser Agent für dich arbeitet und
- * du ihn behalten willst" · Abo 10 € im Monat · „299 abschaffen" für Kunst, „3 behalten" im Code).
+ * du ihn behalten willst" · „299 abschaffen" für Kunst, „3 behalten" im Code).
+ *
+ * ── 19 € SEIT 17.09.2026 (Owner: „und dann kostet premium 20 euro im monat" · „oder 25" ·
+ * „sagen wir 19") ───────────────────────────────────────────────────────────────────────────
+ *
+ * Vorher 10 €. Dazwischen ist das Abo ein anderes Produkt geworden: „Als Poster verkaufen" und
+ * das lebende Blatt — Kundenfoto im Werk, „Generate art", überschreibbare Zeilen — hängen seit
+ * heute daran (Owner: „als poster anbieten ist ein premium" · „wir haben was anzubieten").
  *
  * DIE ZAHL STEHT HIER FÜR SCHILD UND MAIL; ABGEBUCHT WIRD ÜBER DIE STRIPE-KENNUNG. Bei einem Abo
  * verlangt Stripe einen angelegten Preis (Skill `bezahlung`, Regel 2) — der Owner hat ihn am
@@ -209,7 +216,7 @@ export const VERSUSFORGE_ANALYSE_CENTS = 999;
  *
  * DAS ZWEITE ABO IM HAUS — bewusst: Die Regel „ein Abo, sonst Einmalkauf" gilt für Geschenke.
  */
-export const VERSUSFORGE_ABO_CENTS = 1000;
+export const VERSUSFORGE_ABO_CENTS = 1900;
 
 /**
  * ── WIE VIELE KI-TEXTE IM ABO (Owner 14.09.2026: „von mir aus Abo, aber die Generierungen sind
@@ -220,12 +227,110 @@ export const VERSUSFORGE_ABO_CENTS = 1000;
  * versteht sie, und der Owner muss sie am Telefon erklären können.
  *
  * WARUM 50 UND NICHT 20 ODER 200: Bei rund 4 Cent je Lauf kosten 50 Generierungen etwa 2 € —
- * bei 10 € Abo bleibt genug. Und 50 reicht für ernsthafte Arbeit: zehn Werke mit Spruch, der
+ * bei 19 € Abo bleibt genug. Und 50 reicht für ernsthafte Arbeit: zehn Werke mit Spruch, der
  * Profiltext, Nachbesserungen, und immer noch Luft. Wer mehr braucht, arbeitet nicht mehr an
  * seiner Seite, sondern probiert das Modell aus.
  */
 export const VERSUSFORGE_ABO_GENERIERUNGEN = 50;
+/**
+ * ── ACHTUNG, ZWEITE ZEILE (17.09.2026) ──────────────────────────────────────────────────────
+ * Diese Kennung zeigt noch auf den Stripe-Preis von 10,00 €/Monat. Das Schild oben sagt 19 € —
+ * abgebucht würden 10 €, bis der Owner in Stripe einen Preis „19,00 € / Monat" anlegt und die
+ * Kennung hier ersetzt. So lange ist das Abo NICHT scharf zu verkaufen.
+ */
 export const VERSUSFORGE_ABO_PRICE_ID = "price_1UE81x1jPNCWoiztEc3jhmHJ";
+
+/**
+ * DIE VERKAUFSSEITE — EINRICHTUNG, BETRIEB, KARTENZAHLUNG (Owner 15.09.2026: „ich merke,
+ * niemand testet eine Idee die es nicht gibt. Also muss man etwas testen das es gibt").
+ *
+ * ── WARUM DIE IDEENPRÜFUNG AUFGEGEBEN WURDE ─────────────────────────────────────────────────
+ *
+ * Wer eine Idee hat, hat weder Geld noch Eile. Wer Lager hat, hat beides — und ein Problem,
+ * das er heute spürt. Das Geschäft sind die Händler mit Ware im Regal, die nicht verkauft.
+ *
+ * ── NACHNAHME IST NICHT DIE SPARVERSION, SIE IST DER GRUND FÜRS SOFORT-LAUFEN ───────────────
+ *
+ * Eine Seite, die per ramburs bestellen lässt, braucht auf Kundenseite KEIN Stripe-Konto,
+ * keine Firmenprüfung, keine Zahlungsdienstleister-Anmeldung. Er hat nachmittags eine Seite
+ * und morgens Bestellungen. In Rumänien bestellt die Mehrheit ohnehin so. Kartenzahlung ist
+ * deshalb ein Zusatz auf Anfrage, kein Teil des Grundprodukts.
+ *
+ * ── WARUM EINMAL PLUS MONAT, NICHT EINS VON BEIDEM ──────────────────────────────────────────
+ *
+ * Eine reine Einmalzahlung wäre falsch: Die Seite läuft weiter, speichert Bestellungen und
+ * kostet weiter Betreuung. Ein reiner Monatsbetrag wäre auch falsch: Die Arbeit steckt am
+ * Anfang, und wer nach vier Wochen kündigt, hat uns Geld gekostet.
+ *
+ * ── WAS WIR AM ENDE WIRKLICH VERKAUFEN (Owner 15.09.2026, nach drei verworfenen Wegen) ──────
+ *
+ * NICHT die Seite als Selbstbedienung. Das Werkzeug auf der Themenseite ist die VORFÜHRUNG:
+ * Der Händler tippt sein Produkt ein, sieht in einer Minute seine Verkaufsseite — und ruft
+ * dann an. Die Einrichtung macht ein Mensch. Warum kein automatischer Weg funktioniert, steht
+ * ausführlich im Kopf von `lib/pagina-erzeugen.ts`; die Kurzfassung: Hosten wir, steht ein
+ * fremder Betreiber auf seinem Laden; liefern wir eine ZIP-Datei, kann sie keine Bestellung
+ * annehmen und die meisten Händler laden sie ohnehin nie hoch.
+ *
+ * DIE ZAHLEN BLEIBEN, WAS SIE SIND — der Preis für die Einrichtung durch einen Menschen, und
+ * für das, was danach weiterläuft.
+ *
+ * WAS DER MONATSBETRAG WIRKLICH DECKT, ist nicht der Server — Hosting und Speicher kosten
+ * Cent. Es ist die Betreuung: „warum geht meine Domain nicht", „ändere den Titel", „wo sehe
+ * ich die Bestellungen". Wie viel das je Kunde ist, weiss niemand vor dem fünften Kunden.
+ * Deshalb die ersten fünf bewusst zu 49 € Einrichtung, gegen die Erlaubnis, ihre Seite und
+ * ihre Zahlen als Beispiel zu zeigen — das kauft echte Aufwandszahlen und Beweise für die
+ * nächsten fünfzig.
+ *
+ * DIE 19 € LIEGEN BEWUSST WEIT UNTER SHOPIFY. Wir sind nicht der Shop, wir sind die eine
+ * Seite davor. Und das Argument zum Kunden ist eine Zeile: Verkauft er für 150 lei, zahlt
+ * EINE Bestellung im Monat das Abo dreifach.
+ */
+export const PAGINA_SETUP_CENTS = 9900;
+/** Die ersten fünf Kunden — gegen die Erlaubnis, ihre Seite als Beispiel zu zeigen. */
+export const PAGINA_SETUP_START_CENTS = 4900;
+export const PAGINA_MONAT_CENTS = 1900;
+/** Stripe anbinden und testen — echte Handarbeit, deshalb auf Anfrage und einmalig. */
+export const PAGINA_STRIPE_CENTS = 9900;
+
+/**
+ * PRODUCT CHECK — MARKTFORSCHUNG FÜR 100 € (Owner 15.09.2026: „quasi wir bieten eine
+ * Marktforschung an für 100 Euro" · „wir schalten Werbung auf FB für 30 Euro und lassen ihn
+ * die Seite generieren").
+ *
+ * AUFGEGEBEN AM SELBEN TAG, siehe `PAGINA_SETUP_CENTS` — die Zahlen bleiben stehen, weil die
+ * Begründung erklärt, warum der Weg NICHT gegangen wurde. Wer sie wieder ausgräbt, soll
+ * zuerst den Absatz darüber lesen.
+ *
+ * WAS VERKAUFT WIRD, IST NICHT DIE SEITE. Es ist der Satz „bestell das Lager" oder „lass es".
+ * Ein Händler, der 200 Stück aus China holt und erst danach merkt, dass sie keiner will,
+ * verliert fünftausend. Hier erfährt er es für hundert, in drei Tagen. Die Seite, die Bilder
+ * und das Video sind das Werkzeug dafür, nicht die Ware — deshalb NIMMT SIE KEIN GELD ein:
+ * Sie sammelt Sterne, angenommene Preise und Sätze. Wer dort einen Kaufknopf einbaut, hat das
+ * Produkt nicht verstanden und macht aus einer Messung einen Laden ohne Lager.
+ *
+ * ── DAS WERBEBUDGET IST DIESMAL DRIN, ANDERS ALS BEI `VERSUSFORGE_START_CENTS` ──────────────
+ *
+ * Dort zahlt der Kunde Facebook selbst, weil es SEINE laufende Werbung ist. Hier ist die
+ * Anzeige unser Messinstrument: Sie läuft drei Tage, mit unserem Text, auf unserer Seite, und
+ * hört dann auf. Ein Kunde, der dafür erst ein Werbekonto einrichten müsste, käme nie bis zum
+ * Ergebnis — und das Ergebnis ist das, wofür er zahlt.
+ *
+ * DIE FOLGE, DIE JEMAND TRAGEN MUSS: Die 30 € laufen über UNSER Werbekonto, also auf unsere
+ * Rechnung und unter unseren Regeln bei Meta. Wird eine Anzeige abgelehnt, ist das unser
+ * Konto, das einen Vermerk bekommt. Deshalb läuft jeder Text durch `versusforge-moderation`,
+ * bevor er geschaltet wird.
+ *
+ * WAS BLEIBT: 70 € für Textmodell, drei Bilder, ein Pixverse-Lauf, Aufsetzen und Bericht. Die
+ * Erzeugung kostet gemessen unter 1 € — die Spanne trägt die Arbeit, nicht die Technik. Wer
+ * den Preis senken will, senkt zuerst die Handarbeit, nicht das Werbebudget: Unter 30 € misst
+ * die Anzeige zu wenige Menschen, und dann ist das Urteil geraten statt gemessen.
+ */
+export const PRODUCT_CHECK_CENTS = 10000;
+/** Der Teil der 100 €, der als Anzeige bei Meta landet — steht getrennt, damit die Spanne an
+    EINER Stelle sichtbar ist und niemand sie im Kopf ausrechnen muss. */
+export const PRODUCT_CHECK_WERBUNG_CENTS = 3000;
+/** Wie lange die Anzeige läuft. Steht hier, weil es auf dem Preisschild mitverkauft wird. */
+export const PRODUCT_CHECK_TAGE = 3;
 
 export const PREMIUM_BERATUNG_CENTS = 10000;         // 100 € — Beratung + PDF + Video
 
