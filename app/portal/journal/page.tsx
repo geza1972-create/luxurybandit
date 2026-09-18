@@ -8,7 +8,7 @@ import { portalPfade } from "@/lib/lakatosbandi-adressen";
 export const dynamic = "force-dynamic";
 
 export default async function JournalWeiche() {
-  const erkannt = await resolveLang("en");
+  const erkannt = await resolveLang("ro");
   const L: JournalSprache = (JOURNAL_SPRACHEN as string[]).includes(erkannt) ? (erkannt as JournalSprache) : "en";
   redirect(portalPfade((await headers()).get("host")).journal(L));
 }

@@ -221,9 +221,13 @@ export function druckPreisCents(material: string, groesse: string, kuenstlerAnte
  * Spanne mit. Textil zählt nicht mit — das sind eigene Kacheln mit festem Preis.
  */
 export function druckSpanneCents(kuenstlerAnteil = false): { von: number; bis: number } {
-  /* Die Spanne auf der Kachel: vom kleinsten Poster ohne Rahmen bis zum grössten mit. */
+  /* ── VON UNGERAHMT BIS GERAHMT (18.09.2026) ────────────────────────────────────────────
+     Seit die Rahmen aus echtem Holz sind, beginnt die Spanne beim blanken Blatt: „ab 42 €"
+     stand auf der Startseite, obwohl ein A3 ohne Rahmen 17 € kostet — das ist der Preis, mit
+     dem man wirbt. Oben endet sie beim grössten gerahmten Blatt. */
   const dazu = kuenstlerAnteil ? DRUCK_KUENSTLER_CENTS : 0;
   const werte = [
+    ...druckGroessenFuer("poster").map(g => PREISE.poster[g] + dazu),
     ...druckGroessenFuer("posterrama").map(g => PREISE.posterrama[g] + dazu),
     ...druckGroessenFuer("posterramaneagra").map(g => PREISE.posterramaneagra[g] + dazu),
   ];

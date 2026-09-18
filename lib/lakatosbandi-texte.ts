@@ -356,7 +356,7 @@ const TEXTE = {
        Er beschrieb den Code und verschwieg, dass es eine Ware ist. Wer davorsteht, will wissen:
        kann ich das haben, in welcher Grösse, was kostet es, kommt es zu mir. Der Preis kommt aus
        der Drucktabelle ({von}) — nie abgeschrieben (Skill `bezahlung`, Regel 2). */
-    tabTextRepro: "A printed poster — until you scan it. Then your phone plays the music and tells you the story of the work. A3, A2, A1, with a printed frame or without. From {von}.",
+    tabTextRepro: "A printed poster — until you scan it. Then your phone plays the music and tells you the story of the work. A3, A2, A1, in a real wooden frame or without. From {von}.",
     /* „Weiter" auf der Startseite (Owner 16.09.2026: „ein auszug aus jeder kategorie mit weiter"). */
     alleAnsehen: "See all",
     /* Der Knopf unter den Postern, wenn es mehr gibt als vier (Owner 16.09.2026: „4 werke zeigen
@@ -611,7 +611,7 @@ const TEXTE = {
     tabKuenstler: "Artiști",
     tabTextKuenstler: "Artiștii de pe lakatosbandi.com. Fiecare lucrare vine cu fraza care spune ce o face rară.",
     tabTextWerke: "Lucrări originale de la artiști contemporani — câte una singură, direct de la cel care a făcut-o.",
-    tabTextRepro: "Un poster tipărit — până îl scanezi. Atunci telefonul pornește muzica și îți spune povestea lucrării. A3, A2, A1, cu ramă printată sau fără. De la {von}.",
+    tabTextRepro: "Un poster tipărit — până îl scanezi. Atunci telefonul pornește muzica și îți spune povestea lucrării. A3, A2, A1, cu ramă adevărată de lemn sau fără. De la {von}.",
     alleAnsehen: "Vezi tot",
     mehrWerke: "Vezi toate cele {n} lucrări",
     mehrLesen: "Citește mai mult",
@@ -836,7 +836,7 @@ const TEXTE = {
     tabKuenstler: "Künstler",
     tabTextKuenstler: "Die Künstler auf lakatosbandi.com. Zu jedem Werk steht der Satz, der sagt, was es selten macht.",
     tabTextWerke: "Originale von zeitgenössischen Künstlern — jedes nur einmal, direkt von dem, der es gemacht hat.",
-    tabTextRepro: "Ein gedrucktes Poster — bis du es scannst. Dann spielt das Telefon die Musik und erzählt dir die Geschichte des Werks. A3, A2, A1, mit gedrucktem Rahmen oder ohne. Ab {von}.",
+    tabTextRepro: "Ein gedrucktes Poster — bis du es scannst. Dann spielt das Telefon die Musik und erzählt dir die Geschichte des Werks. A3, A2, A1, im echten Holzrahmen oder ohne. Ab {von}.",
     alleAnsehen: "Alle ansehen",
     mehrWerke: "Alle {n} Werke ansehen",
     mehrLesen: "Mehr lesen",

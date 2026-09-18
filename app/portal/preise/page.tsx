@@ -33,7 +33,7 @@ export const metadata: Metadata = {
 };
 
 export default async function PortalPreise({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
-  const L = portalSprache((await searchParams).lang, await resolveLang("en"));
+  const L = portalSprache((await searchParams).lang, await resolveLang("ro"));
   const T = portalTexte(L);
   const P = portalPfade((await headers()).get("host"));
   const S = preiseTexte(L);
