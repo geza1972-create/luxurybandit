@@ -43,7 +43,10 @@ export default function PortalKopf({ T, lang, login, start, preise, journal, spr
               „Artist Fair" gibt, ist das Zeichen wichtiger als unsere Gesichter: Wer die Seite
               zum ersten Mal öffnet, soll in der ersten Sekunde sehen, wofür sie steht. Das Foto
               bleibt im Trichter und auf der Über-uns-Seite. */}
-          <ArtistFair groesse={0} klasse="h-11 w-11 shrink-0 text-[#111] sm:h-14 sm:w-14" />
+          {/* Auf dem Handy bleibt er weg (Owner 18.09.2026: „mach den Stempel raus im mobile") —
+              dort drängen Name, Menü, drei Sprachen und Login auf 375 px, und der Name wurde zu
+              „lakatosba…". Ab `sm` steht das Zeichen wieder da. */}
+          <ArtistFair groesse={0} klasse="hidden h-14 w-14 shrink-0 text-[#111] sm:block" />
         <Link href={`${start}${lang === "en" ? "" : `?lang=${lang}`}`} className="min-w-0 shrink text-[#111] no-underline">
           {/* DAS ZEICHEN (Owner 11.09.2026: „lakatosbandi.com ist besser als lakatosbandi." · „Logo alles schwarz
               bitte") — fett, eng, ganz schwarz, mit „.com". Auf dem Handy kleiner (18px statt 21px), sonst sprengt
