@@ -310,8 +310,12 @@ export default function Poster({ bildHoch, nameBreit, qrEcke, qrLink, bildKnopf,
               Ein Prüfstempel steht am Rand, nicht in der Zeile: unten links im Passepartout, so
               gross wie der Code. In der Mitte der Fusszeile hätte er ausgesehen wie ein Wort. */}
           {siegel ? (
+            /* Gleicher Abstand nach links wie nach unten (Owner 18.09.2026: „Stempel weiter
+               links. Der Abstand zum Rand muss gleich sein von links und von unten. Überall") —
+               vorher stand links `rand` (6,5) und unten `randUnten` (5,5), also sass er schief
+               in der Ecke. */
             <span className="absolute block" style={{
-              left: `${P.rand}cqw`, bottom: `${P.randUnten}cqw`,
+              left: `${P.randUnten}cqw`, bottom: `${P.randUnten}cqw`,
               /* Grösser als der Code gegenüber (Owner 18.09.2026: „grösser") — der Stempel ist
                  das Zeichen, der Code nur ein Weg. */
               width: `${P.qr.breit * 1.35}cqw`, height: `${P.qr.breit * 1.35}cqw`,

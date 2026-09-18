@@ -91,13 +91,13 @@ export const ARTIKEL: Artikel[] = [
         merksatz: "You cannot stop the theft. You can refuse to buy it.",
       },
       ro: {
-        titel: "Furtul prin AI nu poate fi oprit. De aceea am făcut un magazin pentru oamenii cu conștiință.",
+        titel: "Furtul prin AI nu poate fi oprit. De aceea am făcut un shop pentru oamenii cu conștiință.",
         beschreibung: "Oricine poate da o pictură unei inteligențe artificiale și o poate tipări pe un tricou. Nu putem opri asta. Ce putem: artistul e numit, legat și plătit — pe fiecare lucrare.",
         lead: "Iei o pictură de pe Instagram, o dai unei inteligențe artificiale, tipărești rezultatul pe un tricou și îl vinzi. Durează patru minute și nu costă nimic. Temu o face la scară mare, Meta își antrenează propria inteligență artificială cu ce postezi acolo — iar artistul află de obicei din pozele altora.",
         teile: [
           { h: "Nimeni nu poate opri asta", p: [
             "Nici un filigran, nici un text de licență, nici un avocat din altă țară. Imaginile sunt deja acolo, mașinile au învățat deja din ele, iar cei care le tipăresc nu vor întreba.",
-            "Să pretindem altceva ar fi o minciună comodă. Așa că am încetat să întrebăm cum blocăm și am întrebat altceva: cum ar arăta un magazin în care artistul nu e materia primă, ci vânzătorul?",
+            "Să pretindem altceva ar fi o minciună comodă. Așa că am încetat să întrebăm cum blocăm și am întrebat altceva: cum ar arăta un shop în care artistul nu e materia primă, ci vânzătorul?",
           ] },
           { h: "Sigiliul", p: [
             "Tot ce se vinde aici poartă un semn: Artist Fair. Înseamnă trei lucruri, și toate trei se pot verifica.",

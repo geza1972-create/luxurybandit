@@ -488,24 +488,10 @@ export default async function PortalStart({ searchParams }: { searchParams: Prom
     </ul>
   );
 
-  /* DAS PRODUKT, NICHT DIE MALER: Wer „Living Poster" zum ersten Mal liest, braucht kein Porträt
-     von Monet, sondern das Foto von der Wand — Poster, Code, Telefon (Owner 15.09.2026: „ich habe
-     dir zwei bilder abgelegt. die müssen wir zeigen"). */
-  const posterBilder = (
-    <div className="mt-6 grid grid-cols-2 gap-2 sm:gap-3">
-      {/* Die Fotos sind hochkant (4:5) und werden ganz gezeigt (Owner 16.09.2026: „die will ich
-          ganz sehen") — beschnitten fehlte oben das Poster und unten der Code. */}
-      {["vangochposterwand1", "vangochposterwand2"].map(n => (
-        /* eslint-disable-next-line @next/next/no-img-element */
-        <img key={n} src={`/lakatosbandi/${n}.jpg`} alt="" loading="lazy"
-          className="aspect-[4/5] w-full bg-[#f5f5f5] object-cover" />
-      ))}
-    </div>
-  );
-  /* Auf der Startseite führen sie in die Kategorie; IN der Kategorie sind sie nur Bilder. */
-  const posterBand = (ziel: string) => (
-    <Link href={ziel} className="block no-underline">{posterBilder}</Link>
-  );
+  /* ── DIE WANDFOTOS SIND RAUS (Owner 18.09.2026: „diese Bilder raus") ────────────────────
+     Sie zeigten das Blatt von vor drei Tagen: Kopfzeile „POSTER VIU", Code in der Mitte, Name
+     mit Lebensdaten. Seit das Blatt anders aussieht, warben sie für ein Produkt, das es so nicht
+     mehr gibt — und die echten Kacheln darunter zeigen es ohnehin besser. */
 
   const start = (
     <>
@@ -516,10 +502,7 @@ export default async function PortalStart({ searchParams }: { searchParams: Prom
       <div>
       {/* Zuerst die Ware (Owner 16.09.2026: „sofort verkaufen") — dann, wer dahintersteht. */}
       {posterWerke.length ? abschnitt(T.tabReproduktionen, T.tabTextRepro,
-        <>
-          {ladenRaster(reihum(posterWerke).slice(0, 20))}
-          {posterBilder}
-        </>,
+        ladenRaster(reihum(posterWerke).slice(0, 20)),
         adr({ ansicht: "repro", s: 1 })) : null}
       {/* Alle drei Überschriften sagen, was die Kategorie IST (Owner 16.09.2026: „dann Artiști
           ist blöd, wenn schon dann alle") — nicht zwei ausgeschriebene und eine nackte. */}
@@ -537,10 +520,6 @@ export default async function PortalStart({ searchParams }: { searchParams: Prom
     <>
       {reiter}
       {einleitung(ansicht === "repro" ? T.tabTextRepro : ansicht === "werke" ? T.tabTextWerke : T.tabTextKuenstler)}
-      {/* Auch IN der Kategorie stehen die zwei Wandfotos (Owner 16.09.2026: „hier haben wir doch
-          die zwei bilder") — wer über den Reiter hereinkommt, hat den Teaser der Startseite nie
-          gesehen und liest sonst nur einen Satz über etwas, das er sich nicht vorstellen kann. */}
-      {ansicht === "repro" ? posterBilder : null}
       {ansicht === "werke"
         ? werkRaster(kacheln.slice(von, von + PRO_SEITE))
         : kreisRaster(kuenstlerSortiert.slice(von, von + PRO_SEITE), ansicht === "repro")}
