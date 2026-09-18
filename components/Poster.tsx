@@ -180,6 +180,26 @@ export default function Poster({ bildHoch, nameBreit, qrEcke, qrLink, bildKnopf,
 
         {/* DER TEXTBLOCK KLEBT UNTEN — auf einem gedruckten Poster steht die Schrift am Fuss des
             Blattes, nicht irgendwo in der Mitte. */}
+        {/* ── DAS SIEGEL HÄNGT AM BLATT, NICHT AM TEXT (Owner 18.09.2026: „warum haben die
+            Stempel verschiedene Positionen. Muss gleich sein. Muss weiter zum Rand in die Ecke" ·
+            „halbiere den Abstand zum Rand") ─────────────────────────────────────────────────
+            Es stand im Textstreifen — und der ist mal ein, mal zwei Zeilen hoch. Gemessen auf der
+            Startseite: derselbe Stempel einmal 8,2 %, einmal 4,7 % über der Unterkante. Jetzt
+            hängt er am Blatt selbst, mit demselben halben Rand nach links wie nach unten. */}
+        {siegel ? (
+          /* `z-[4]`: Der Textstreifen darunter ist `relative` und steht im Markup SPÄTER — ohne
+             diese Lage malte er sein Papier über den Stempel, und der war weg. */
+          <span className="absolute z-[4] block" style={{
+            /* Unten 0,4 cqw weniger: Die Leiste ist unten dicker als an der Seite (3 gegen 2,6),
+               also sässe derselbe Wert optisch tiefer. GEMESSEN: 5,13 % links gegen 5,58 % unten. */
+            left: `${P.randUnten / 2}cqw`, bottom: `${P.randUnten / 2 - 0.4}cqw`,
+            /* Grösser als der Code gegenüber (Owner 18.09.2026: „grösser"). */
+            width: `${P.qr.breit * 1.35}cqw`, height: `${P.qr.breit * 1.35}cqw`,
+          }}>
+            <ArtistFair groesse={0} klasse="block h-full w-full" />
+          </span>
+        ) : null}
+
         {/* ── AUF WEISSER FLÄCHE, ÜBER DEM WERK (Owner 17.09.2026: „jetzt der text mit weiss
             hinterlegen") ──────────────────────────────────────────────────────────────────────
             Das Werk läuft jetzt randlos über das ganze Blatt. Damit Name, Titel und Satz darauf
@@ -309,21 +329,6 @@ export default function Poster({ bildHoch, nameBreit, qrEcke, qrLink, bildKnopf,
               aufs Poster" · „in die ecke links") ────────────────────────────────────────────
               Ein Prüfstempel steht am Rand, nicht in der Zeile: unten links im Passepartout, so
               gross wie der Code. In der Mitte der Fusszeile hätte er ausgesehen wie ein Wort. */}
-          {siegel ? (
-            /* Gleicher Abstand nach links wie nach unten (Owner 18.09.2026: „Stempel weiter
-               links. Der Abstand zum Rand muss gleich sein von links und von unten. Überall") —
-               vorher stand links `rand` (6,5) und unten `randUnten` (5,5), also sass er schief
-               in der Ecke. */
-            <span className="absolute block" style={{
-              left: `${P.randUnten}cqw`, bottom: `${P.randUnten}cqw`,
-              /* Grösser als der Code gegenüber (Owner 18.09.2026: „grösser") — der Stempel ist
-                 das Zeichen, der Code nur ein Weg. */
-              width: `${P.qr.breit * 1.35}cqw`, height: `${P.qr.breit * 1.35}cqw`,
-            }}>
-              <ArtistFair groesse={0} klasse="block h-full w-full" />
-            </span>
-          ) : null}
-
           {recht ? (
             <p className="m-0 flex items-center justify-center font-serif" style={{
               marginTop: `${P.luft * 0.5}cqw`, fontSize: `${P.recht.breit}cqw`, color: f.leise,

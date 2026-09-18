@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 import { resolveLang } from "@/lib/lang-server";
 import { kuenstlerListe, imPortalSichtbar, portalPfade, werkKacheln, posterAnriss } from "@/lib/lakatosbandi";
 import { portalSprache, portalTexte } from "@/lib/lakatosbandi-texte";
+import { aboAktiv } from "@/lib/versusforge-abo";
 import PortalKopf from "@/components/PortalKopf";
 import PortalReiter from "@/components/PortalReiter";
 import Poster from "@/components/Poster";
@@ -146,7 +147,8 @@ export default async function PortalStart({ searchParams }: { searchParams: Prom
      Werke als Poster anbieten (Owner 15.09.2026: „die werke von szidonia und gerry louisett auch
      unter der kategorie" · „du lässt die originale dort"). Auf IHREN Seiten ändert sich nichts:
      Dort stehen ihre Werke weiter als Originale. */
-  const meister = kuenstler.filter(m => m.reproduktion || m.posterViu);
+  const meister = kuenstler.filter(m => m.reproduktion
+    || (m.posterViu && aboAktiv(m as Parameters<typeof aboAktiv>[0])));
   /**
    * ── DIE STARTSEITE IST EIN LADEN (Owner 16.09.2026: „die erste seite muss werke zeigen wie
    * jeder postershop. sofort verkaufen") ─────────────────────────────────────────────────────
@@ -162,7 +164,13 @@ export default async function PortalStart({ searchParams }: { searchParams: Prom
        zwanzigmal derselbe Maler hängt, sieht aus wie eine van-Gogh-Sammlung und nicht wie ein
        Laden — und die lebenden Künstler, die ihre Werke als Living Poster anbieten, kämen dort
        nie vor. Also beide, und unten reihum verteilt. */
-    .filter(m => m.reproduktion || m.posterViu)
+    /* ── NUR WER PREMIUM HAT (Owner 18.09.2026: „auf der Startseite zeigst du nur die Werke,
+       die Premium haben, also Poster haben") ───────────────────────────────────────────────
+       `posterViu` ist sein Häkchen, nicht seine Berechtigung: Es bleibt stehen, wenn ein Abo
+       ausläuft. Im Schaufenster stünde dann Ware, die niemand kaufen kann — auf seiner Seite
+       ist der Kaufweg längst zu. Gefragt wird deshalb live am Abo; die gemeinfreien Meister
+       gehören uns und sind immer dabei. */
+    .filter(m => m.reproduktion || (m.posterViu && aboAktiv(m as Parameters<typeof aboAktiv>[0])))
     .flatMap(m => {
       const auswahl = werkKacheln(m, L).some(k => m.werkInfo?.[k.i < 0 ? "standard" : String(k.i)]?.poster);
       return werkKacheln(m, L)
@@ -520,9 +528,16 @@ export default async function PortalStart({ searchParams }: { searchParams: Prom
     <>
       {reiter}
       {einleitung(ansicht === "repro" ? T.tabTextRepro : ansicht === "werke" ? T.tabTextWerke : T.tabTextKuenstler)}
-      {ansicht === "werke"
-        ? werkRaster(kacheln.slice(von, von + PRO_SEITE))
-        : kreisRaster(kuenstlerSortiert.slice(von, von + PRO_SEITE), ansicht === "repro")}
+      {/* ── „LIVING POSTER" ZEIGT SOFORT DEN LADEN (Owner 18.09.2026: „Living Poster muss
+          sofort den Shop zeigen") ────────────────────────────────────────────────────────────
+          Der Reiter zeigte Porträtkreise der Maler — wer „Living Poster" antippt, will aber
+          Poster sehen und kaufen, nicht erst einen Maler wählen. Die Künstler stehen weiter im
+          eigenen Reiter daneben. */}
+      {ansicht === "repro"
+        ? ladenRaster(reihum(posterWerke).slice(von, von + PRO_SEITE))
+        : ansicht === "werke"
+          ? werkRaster(kacheln.slice(von, von + PRO_SEITE))
+          : kreisRaster(kuenstlerSortiert.slice(von, von + PRO_SEITE), false)}
       {blaettern}
     </>
   );
