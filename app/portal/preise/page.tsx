@@ -6,6 +6,7 @@ import { portalPfade } from "@/lib/lakatosbandi-adressen";
 import { portalSprache, portalTexte } from "@/lib/lakatosbandi-texte";
 import { preiseTexte } from "@/lib/lakatosbandi-preise-texte";
 import { eur, VERSUSFORGE_ABO_CENTS, VERSUSFORGE_ABO_GENERIERUNGEN } from "@/lib/pricing";
+import { WERKE_ABO, WERKE_FREI } from "@/lib/versusforge-abo";
 import PortalKopf from "@/components/PortalKopf";
 import PortalFuss from "@/components/PortalFuss";
 
@@ -37,9 +38,24 @@ export default async function PortalPreise({ searchParams }: { searchParams: Pro
   const T = portalTexte(L);
   const P = portalPfade((await headers()).get("host"));
   const S = preiseTexte(L);
+  /**
+   * ── PREMIUM ZEIGT ALLES, NICHT „ALLES AUS DER ANDEREN SPALTE" (Owner 18.09.2026: „Tot ce e în
+   * «Pagina ta» was ist das? und warum stehen bei Premium weniger Punkte?") ──────────────────
+   *
+   * Der Verweis sparte vier Zeilen und kostete den Vergleich: Links standen sechs Häkchen,
+   * rechts vier — die teurere Spalte sah ärmer aus. Jetzt stehen die Punkte der Gratis-Spalte
+   * mit drin; nur „bis zu 10 Werke" fällt weg, weil Premium mehr erlaubt (dieselbe Stelle in
+   * jeder Sprache, deshalb über den Index und nicht über den Text).
+   */
+  const premiumListe = [...S.aboListe, ...S.freiListe.filter((_, i) => i !== 2)];
 
   const preis = eur(VERSUSFORGE_ABO_CENTS, L);
-  const fuellen = (s: string) => s.replace("{preis}", preis).replace("{n}", String(VERSUSFORGE_ABO_GENERIERUNGEN));
+  const fuellen = (s: string) => s
+    .replace("{preis}", preis)
+    .replace("{n}", String(VERSUSFORGE_ABO_GENERIERUNGEN))
+    /* Die Werkgrenzen kommen aus `lib/versusforge-abo.ts`, nie getippt (Skill `bezahlung`). */
+    .replace("{werke}", String(WERKE_ABO))
+    .replace("{werkeFrei}", String(WERKE_FREI));
 
   const punkt = (text: string, i: number) => (
     <li key={i} className="flex items-start gap-2.5 text-[16px] leading-[1.55] text-[#333]">
@@ -81,7 +97,7 @@ export default async function PortalPreise({ searchParams }: { searchParams: Pro
               <span className="ml-2 align-middle text-[15px] font-semibold text-[#777]">{S.aboZusatz}</span>
             </p>
             <ul className="m-0 mt-5 flex list-none flex-col gap-2.5 p-0">
-              {S.aboListe.map(punkt)}
+              {premiumListe.map(punkt)}
             </ul>
             {/* Zum Login, nicht zur Kasse — Begründung oben. */}
             <a

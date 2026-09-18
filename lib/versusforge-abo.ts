@@ -127,7 +127,9 @@ export const darfKi = (m: MitAbo) => !KI_SPERRE_AKTIV || aboAktiv(m);
  * 13 annahm — wer die Route direkt ansprach, umging die Grenze. Ab hier gilt sie für beide.
  */
 export const WERKE_FREI = 10;
-export const WERKE_ABO = 13;
+/* 25 statt 13 (Owner 18.09.2026: „er bekommt bis 50 Werke" · „oder 25") — die 13 stammten aus
+   der Zeit, als das Abo nur KI-Texte brachte. Wer für einen Shop zahlt, braucht Ware darin. */
+export const WERKE_ABO = 25;
 export const werkeGrenze = (m: MitAbo) => (aboAktiv(m) ? WERKE_ABO : WERKE_FREI);
 
 /** Ab wann Anfragen verborgen sind — `null`, solange keine Frist läuft oder abgelaufen ist. */
