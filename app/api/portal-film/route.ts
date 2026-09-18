@@ -19,7 +19,9 @@ export async function GET(request: Request) {
   const u = new URL(request.url);
   const mandant = str(u.searchParams.get("m"), 80);
   const roh = str(u.searchParams.get("i"), 10);
-  const nr = roh === "standard" || /^-?\d+$/.test(roh) ? roh : "standard";
+  /* „profil" ist die EINE Aufnahme des Künstlers (Owner 18.09.2026) — sie gehört keinem Werk
+     und läuft in jedem QR-Fenster. */
+  const nr = roh === "profil" || roh === "standard" || /^-?\d+$/.test(roh) ? roh : "standard";
   if (!mandant) return new NextResponse(null, { status: 404 });
 
   /* `art=sprecher` holt den Film, in dem der Künstler über sein Werk spricht — sonst den Zoom

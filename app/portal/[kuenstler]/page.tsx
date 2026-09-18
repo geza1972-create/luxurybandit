@@ -189,6 +189,12 @@ export default async function PortalKuenstler({ params, searchParams }: Props) {
               facebook: voll.facebook ?? "",
               posterViu: !!voll.posterViu,
               abo: aboAktiv(voll),
+              /* Die EINE Aufnahme des Künstlers (Owner 18.09.2026) — sie liegt unter „profil",
+                 nicht mehr an einem Werk. */
+              stimme: !!voll.werkInfo?.profil?.stimme,
+              sprecher: !!voll.werkInfo?.profil?.sprecher,
+              stimmeAm: voll.werkInfo?.profil?.stimmeAm ?? "",
+              youtube: voll.werkInfo?.profil?.youtube ?? "",
               frei: !voll.freigabe || voll.freigabe === "frei",
               kacheln,
             }}
@@ -629,9 +635,7 @@ export default async function PortalKuenstler({ params, searchParams }: Props) {
                            (Owner 17.09.2026: „so müsste jedes Poster präsentiert werden"). */
                         /* Liegt sein Film auf YouTube, spielt das Fenster von dort (Owner
                            17.09.2026) — ausser er will nur gehört werden. */
-                        youtube={!m.werkInfo?.[k.i < 0 ? "standard" : String(k.i)]?.nurStimme
-                          ? m.werkInfo?.[k.i < 0 ? "standard" : String(k.i)]?.youtube
-                          : undefined}
+                        youtube={!m.werkInfo?.profil?.nurStimme ? m.werkInfo?.profil?.youtube : undefined}
                         /* Häkchen „nur die Stimme": Der Film bleibt liegen, aber das Fenster
                            zeigt das Werk und spielt nur seine Tonspur (Owner 17.09.2026). */
                         sprecher={m.werkInfo?.[k.i < 0 ? "standard" : String(k.i)]?.sprecher
@@ -640,13 +644,14 @@ export default async function PortalKuenstler({ params, searchParams }: Props) {
                           : undefined}
                         /* Seine vorgelesene Stimme — wenn es keinen Sprecher-Film gibt, ist SIE
                            der Living Poster (Owner 17.09.2026). */
-                        ton={(m.werkInfo?.[k.i < 0 ? "standard" : String(k.i)]?.stimme
-                          || (m.werkInfo?.[k.i < 0 ? "standard" : String(k.i)]?.sprecher
-                            && m.werkInfo?.[k.i < 0 ? "standard" : String(k.i)]?.nurStimme))
-                          ? `/api/portal-film?m=${encodeURIComponent(kuenstler)}&i=${k.i < 0 ? "standard" : k.i}&art=${m.werkInfo?.[k.i < 0 ? "standard" : String(k.i)]?.stimme ? "stimme" : "sprecher"}&v=${encodeURIComponent(m.werkInfo?.[k.i < 0 ? "standard" : String(k.i)]?.stimmeAm ?? m.werkInfo?.[k.i < 0 ? "standard" : String(k.i)]?.sprecherAm ?? "1")}`
+                        /* ── SEINE EINE AUFNAHME, IN JEDEM FENSTER (Owner 18.09.2026: „dieses
+                           Video erscheint bei jedem QR-Fenster, neben seinem Werk") ──────────
+                           Vorher hing sie am Werk — also lief sie bei einem von zehn Codes. */
+                        ton={(m.werkInfo?.profil?.stimme || (m.werkInfo?.profil?.sprecher && m.werkInfo?.profil?.nurStimme))
+                          ? `/api/portal-film?m=${encodeURIComponent(kuenstler)}&i=profil&art=${m.werkInfo?.profil?.stimme ? "stimme" : "sprecher"}&v=${encodeURIComponent(m.werkInfo?.profil?.stimmeAm ?? m.werkInfo?.profil?.sprecherAm ?? "1")}`
                           : undefined}
-                        sprecherBild={m.werkInfo?.[k.i < 0 ? "standard" : String(k.i)]?.sprecher
-                          ? `/api/portal-film?m=${encodeURIComponent(kuenstler)}&i=${k.i < 0 ? "standard" : k.i}&art=sprecherbild&v=${encodeURIComponent(m.werkInfo?.[k.i < 0 ? "standard" : String(k.i)]?.sprecherAm ?? "1")}`
+                        sprecherBild={m.werkInfo?.profil?.sprecher
+                          ? `/api/portal-film?m=${encodeURIComponent(kuenstler)}&i=profil&art=sprecherbild&v=${encodeURIComponent(m.werkInfo?.profil?.sprecherAm ?? "1")}`
                           : undefined}
                         bild={mitAdmin(P.werkBild(kuenstler, k.i))} alt={m.name}
                         quer={!!m.werkInfo?.[k.i < 0 ? "standard" : String(k.i)]?.quer}

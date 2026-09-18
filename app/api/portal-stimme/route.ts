@@ -54,7 +54,11 @@ export async function POST(request: Request) {
 
   const i = Math.round(Number(u.searchParams.get("i")));
   if (!Number.isInteger(i) || i < -1 || i > 11) return NextResponse.json({ ok: false }, { status: 400 });
-  const nr = i < 0 ? "standard" : String(i);
+  /* ── „-2" IST DIE EINE AUFNAHME DES KÜNSTLERS (Owner 18.09.2026) ──────────────────────────
+     Bis heute gehörte jede Aufnahme zu einem Werk (`-1` = standard, sonst die Kachelnummer).
+     Jetzt gibt es EINE, die in jedem QR-Fenster läuft; sie liegt unter „profil" und ihre Merker
+     stehen am Mandanten statt in `werkInfo`. */
+  const nr = i === -2 ? "profil" : i < 0 ? "standard" : String(i);
 
   /**
    * ── DREI SORTEN, EIN WEG (Owner 17.09.2026: „Video neben der Stimme") ────────────────────

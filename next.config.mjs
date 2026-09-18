@@ -99,6 +99,12 @@ const nextConfig = {
         { source: "/despre", has: [{ type: "host", value: "(www\\.)?lakatosbandi\\.com" }], destination: "/portal/despre" },
         /* Löschen auf lakatosbandi.com statt auf der Firmen-Anzeigenseite (Owner 11.09.2026). */
         { source: "/:kuenstler/loeschen", has: [{ type: "host", value: "(www\\.)?lakatosbandi\\.com" }], destination: "/portal/:kuenstler/loeschen" },
+        /* ── SEIN DASHBOARD (Owner 18.09.2026: „Link zum Dashboard geht nicht") ──────────────
+           Der Knopf in „Seite bearbeiten" zeigt auf `/<name>/dashboard`. Auf lakatosbandi.com
+           gab es dafür keine Umschreibung, also fing die Hausregel `/[creator]/[[...project]]`
+           die Adresse ab und zeigte die VersusForge-Seite. Muss VOR `/:kuenstler/:werk` stehen,
+           sonst wäre „dashboard" ein Werk. */
+        { source: "/:kuenstler/dashboard", has: [{ type: "host", value: "(www\\.)?lakatosbandi\\.com" }], destination: "/versusforge/:kuenstler/dashboard" },
         /* Die Seite eines Werks (Owner 11.09.2026: „hier komme ich nicht auf die Kunstwerk-Seite drauf"). */
         /* Die Seite hinter dem QR-Code auf dem Poster (15.09.2026): nur der Film, formatfüllend. */
         { source: "/:kuenstler/:werk(standard|\\d+)", has: [{ type: "host", value: "(www\\.)?lakatosbandi\\.com" }], destination: "/portal/:kuenstler/:werk" },

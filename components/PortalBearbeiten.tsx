@@ -81,6 +81,8 @@ export default function PortalBearbeiten({ mandant, k, T, lang, aufbau = false, 
     name: string; ort: string; ueberMich: string; preisSpanne: string; profilBild: boolean; frei: boolean;
     /* Seine sozialen Adressen — freiwillig, deshalb optional (Owner 13.09.2026). */
     instagram?: string; facebook?: string; posterViu?: boolean; abo?: boolean;
+    /* Die EINE Aufnahme des Künstlers (Owner 18.09.2026) — nicht mehr je Werk. */
+    stimme?: boolean; sprecher?: boolean; stimmeAm?: string; youtube?: string;
     kacheln: Kachel[];
   };
 }) {
@@ -651,6 +653,41 @@ export default function PortalBearbeiten({ mandant, k, T, lang, aufbau = false, 
         </div>
       </div>
 
+      {/* ── EINE AUFNAHME, DIE ÜBERALL LÄUFT (Owner 18.09.2026: „er kann nur ein Mal sich
+          aufnehmen, um seine Kunst zu präsentieren, mit einem Bild im Hintergrund … und dieses
+          Video erscheint bei jedem QR-Fenster, neben seinem Werk" · „man muss die Funktion auch
+          beschreiben mit dem Video") ────────────────────────────────────────────────────────
+          Sie liegt im Profil, nicht am Werk: einmal aufgenommen, spielt sie hinter jedem Code,
+          den er drucken lässt. Der Satz darüber sagt genau das — sonst nimmt niemand etwas auf,
+          von dem er nicht weiss, wo es landet. Premium, wie der Postershop. */}
+      <div className="mt-8 max-w-[640px] border-t border-[#e5e5e5] pt-6">
+        <span className="text-[13px] font-semibold uppercase tracking-[0.18em] text-[#777]">{T.stimmeTitel}</span>
+        <p className="m-0 mt-2 text-[14.5px] leading-[1.55] text-[#555]">{T.stimmeProfilErklaerung}</p>
+        {start.abo ? (
+          <StimmeAufnehmen
+            mandant={mandant} schluessel={k} i={-2}
+            vorhanden={!!start.stimme} videoDa={!!start.sprecher} stand={start.stimmeAm}
+            /* Im Hintergrund steht ein Werk von ihm — das erste, das er hochgeladen hat. */
+            werkBild={ausstehend[nrVon(kacheln[0]?.i ?? -1)] ?? bildUrl(nrVon(kacheln[0]?.i ?? -1))}
+            youtubeId={start.youtube}
+            text={ueberMich}
+            texte={{
+              aufnehmen: T.stimmeAufnehmen, stoppen: T.stimmeStoppen, speichern: T.stimmeSpeichern,
+              loeschen: T.stimmeLoeschen, laeuft: T.stimmeLaeuft, erklaerung: T.stimmeErklaerung,
+              nurStimme: T.stimmeNurTon, mitVideo: T.stimmeMitVideo, nochmal: T.stimmeNochmal, weiter: T.stimmeWeiter,
+              hgAus: T.hgAus, hgBlur: T.hgBlur, hgWerk: T.hgWerk, spiegeln: T.spiegelnWort, musik: T.musikWort,
+              keinMikro: T.stimmeKeinMikro, keinBrowser: T.stimmeKeinBrowser,
+              fehler: T.stimmeFehler, gespeichert: T.stimmeGespeichert,
+            }} />
+        ) : (
+          <span className="mt-3 block">
+            <span className="block text-[13.5px] font-semibold text-[#14181c]">{T.stimmePremium}</span>
+            <MandantKaufen mandant={mandant} k={k} abo wort={T.aboUpgradeKnopf}
+              klasse="mt-2 inline-block rounded-xl bg-[#1d6fd0] px-5 py-2.5 text-[15px] font-extrabold text-white transition active:scale-[.99] disabled:opacity-60" />
+          </span>
+        )}
+      </div>
+
       {/* ── ÜBER MICH — mit eigenem Speichern und KI-Korrektur (Owner 13.09.2026) ──────────────
           Der Vorgabetext im leeren Feld nimmt die Hemmung: Wer „Erzähl Käufern etwas über dich"
           liest, muss einen fertigen Text können. „Schreib einfach frei" verlangt nur Stichworte. */}
@@ -862,42 +899,14 @@ export default function PortalBearbeiten({ mandant, k, T, lang, aufbau = false, 
                 </span>
               ) : null}
             </div>
-            {/* ── SEINE STIMME ZU DIESEM WERK (Owner 17.09.2026: „gib mir die Möglichkeit,
-                meine Stimme aufzunehmen") ────────────────────────────────────────────────────
-                Steht bei JEDEM Werk, nicht nur bei den Postern: Auch wer heute nur Originale
-                zeigt, hat morgen ein Poster — und die Aufnahme ist dann schon da. */}
-            <div className="mt-3 border-t border-[#f0f0f0] pt-2">
-              <span className="text-[13px] font-semibold text-[#555]">{T.stimmeTitel}</span>
-              {/* Aufgenommen wird ein Film; ob man ihn SIEHT, entscheidet er hier (Owner
-                  17.09.2026). Steht nur da, wenn es überhaupt eine Aufnahme gibt. */}
-              {kc.sprecher ? (
-                <label className="mt-1 flex items-center gap-1.5 text-[13.5px] text-[#555]">
-                  <input type="checkbox" checked={!!kc.nurStimme}
-                    onChange={e => nurStimmeSetzen(kc.i, e.target.checked)} />
-                  {T.stimmeNurHoeren}
-                </label>
-              ) : null}
-              <StimmeAufnehmen
-                mandant={mandant} schluessel={k} i={kc.i}
-                vorhanden={!!kc.stimme} videoDa={!!kc.sprecher} stand={kc.stimmeAm}
-                /* ── DASSELBE BILD WIE IN DER KACHEL (17.09.2026 gemessen: „ich habe ein neues
-                   Bild eingefügt, aber beim Aufnehmen macht er ein anderes Bild") ─────────────
-                   Ein frisch gewähltes Bild liegt bis zum Speichern nur im Browser
-                   (`ausstehend`). Wer hier nur die abgelegte Fassung nimmt, filmt vor dem alten
-                   Werk — und merkt es erst, wenn der Film oben ist. */
-                werkBild={ausstehend[nrVon(kc.i)] ?? bildUrl(nrVon(kc.i))}
-                youtubeId={kc.youtube}
-                /* Sein eigener Text aus dem Feld darüber — die Geschichte, sonst der Satz. */
-                text={kc.geschichte?.trim() || kc.spruch}
-                texte={{
-                  aufnehmen: T.stimmeAufnehmen, stoppen: T.stimmeStoppen, speichern: T.stimmeSpeichern,
-                  loeschen: T.stimmeLoeschen, laeuft: T.stimmeLaeuft, erklaerung: T.stimmeErklaerung,
-                  nurStimme: T.stimmeNurTon, mitVideo: T.stimmeMitVideo, nochmal: T.stimmeNochmal, weiter: T.stimmeWeiter,
-                  hgAus: T.hgAus, hgBlur: T.hgBlur, hgWerk: T.hgWerk, spiegeln: T.spiegelnWort, musik: T.musikWort,
-                  keinMikro: T.stimmeKeinMikro, keinBrowser: T.stimmeKeinBrowser,
-                  fehler: T.stimmeFehler, gespeichert: T.stimmeGespeichert,
-                }} />
-            </div>
+            {/* ── KEINE AUFNAHME MEHR JE WERK (Owner 18.09.2026: „das machen wir bei jedem Bild
+                raus. Dafür machen wir es im Profil rein. Er kann nur ein Mal sich aufnehmen, um
+                seine Kunst zu präsentieren, mit einem Bild im Hintergrund. Das ist auch ein
+                Premium-Feature" · „und dieses Video erscheint bei jedem QR-Fenster, neben seinem
+                Werk") ─────────────────────────────────────────────────────────────────────────
+                Zehn Werke hiessen zehn Aufnahmen — die macht niemand, und wer eine machte, hatte
+                sie bei neun Werken trotzdem nicht. EINE Aufnahme im Profil erscheint jetzt in
+                jedem Fenster. Sie steht weiter oben, bei seinen Angaben. */}
             <button type="button" onClick={() => void entfernen(kc.i)}
               className="mt-2 text-[13px] text-[#777] underline hover:text-[#b3261e]">{T.entfernen}</button>
           </li>
