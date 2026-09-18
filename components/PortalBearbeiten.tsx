@@ -28,10 +28,14 @@ import { Camera, ImagePlus, LayoutDashboard, Sparkles, Undo2 } from "lucide-reac
  * dass die Plätze belegt sind. Ein Hinweis auf ein Angebot, das noch nirgendwohin führt,
  * verbrennt genau den Augenblick, in dem jemand zahlungsbereit wäre.
  */
-const WERKE_MAX = 10;
+/* ── DIE GRENZE HÄNGT AM ABO (18.09.2026) ───────────────────────────────────────────────────
+   Hier stand eine feste 10 — also sah auch ein Künstler mit Premium „3/10" und stiess bei zehn
+   Werken an eine Wand, die es für ihn gar nicht gibt. Die Zahlen stehen in `versusforge-abo.ts`
+   (10 ohne, 25 mit Abo) und werden vom Server beim Speichern genauso gerechnet. */
 import type { PortalTexte } from "@/lib/lakatosbandi-texte";
 import MandantKaufen from "@/components/MandantKaufen";
 import { DRUCK_KUENSTLER_CENTS } from "@/lib/lakatosbandi-druck";
+import { WERKE_ABO, WERKE_FREI } from "@/lib/versusforge-abo";
 import { eur } from "@/lib/pricing";
 
 /**
@@ -106,6 +110,8 @@ export default function PortalBearbeiten({ mandant, k, T, lang, aufbau = false, 
    * Fehler, sondern eine Grenze.
    */
   const [premium, setPremium] = useState(false);
+  /* Zehn ohne Abo, 25 mit — dieselben Zahlen wie auf der Preisseite und im Server. */
+  const werkeMax = start.abo ? WERKE_ABO : WERKE_FREI;
   const [laedt, setLaedt] = useState(false);
   const [kachelZiel, setKachelZiel] = useState<number | null>(null);
   /**
@@ -516,7 +522,7 @@ export default function PortalBearbeiten({ mandant, k, T, lang, aufbau = false, 
              * Plätze frei sind, und der Rest wird GESAGT. Stillschweigend zu schlucken ist genau
              * der Fehler, an dem Szidonia heute gescheitert ist.
              */
-            const offenePlaetze = Math.max(0, WERKE_MAX - kacheln.length);
+            const offenePlaetze = Math.max(0, werkeMax - kacheln.length);
             const nehmen = Math.min(dateien.length, offenePlaetze);
             const belegt = new Set(kacheln.map(x => x.i));
             const frei: number[] = [];
@@ -527,7 +533,7 @@ export default function PortalBearbeiten({ mandant, k, T, lang, aufbau = false, 
             }
             if (dateien.length > nehmen) {
               setHinweis(nehmen === 0
-                ? T.werkeVoll.replace("{max}", String(WERKE_MAX))
+                ? T.werkeVoll.replace("{max}", String(werkeMax))
                 : T.zuVieleBilder.replace(/\{n\}/g, String(nehmen)));
             }
             const neue: (typeof kacheln)[number][] = [];
@@ -680,6 +686,12 @@ export default function PortalBearbeiten({ mandant, k, T, lang, aufbau = false, 
 
       {/* ── SEINE WERKE — alle sofort, jede Kachel antippbar ── */}
       <h2 className="mt-14 border-t border-[#e5e5e5] pt-8 text-[13px] font-semibold uppercase tracking-[0.18em] text-[#777]">{T.werke}</h2>
+      {/* ── ER DARF ÜBERSCHREIBEN (Owner 18.09.2026: „was mir ein Künstler als Feedback gegeben
+          hat: er hätte es gerne, dass er den Text im Trichter noch korrigieren kann") ────────
+          Die Sätze schreibt der Algorithmus einmal im Trichter; danach steht der Künstler hier
+          vor fertigem Text und weiss nicht, ob er ihn anfassen darf. Ein Satz beantwortet das —
+          und nimmt dem erzeugten Text die Endgültigkeit. */}
+      <p className="m-0 mt-3 max-w-[560px] text-[14.5px] leading-[1.5] text-[#555]">{T.texteUeberschreiben}</p>
       {/* ── DER HINWEIS — UND BEIM PREMIUM-FALL DER KNOPF DAZU ──────────────────────────────
           (Owner 14.09.2026) Ein Satz, der sagt „das kostet", ohne etwas zum Drücken, ist eine
           Tür ohne Klinke: Gemessen am 14.09.2026 sah KEINER der neun Künstler im Dashboard einen
@@ -735,17 +747,17 @@ export default function PortalBearbeiten({ mandant, k, T, lang, aufbau = false, 
       <button type="button" disabled={laedt}
         onClick={() => {
           /* Voll: anhalten und erklären — hier steht später der Weg zu Premium. */
-          if (kacheln.length >= WERKE_MAX) { setVollDialog(true); return; }
+          if (kacheln.length >= werkeMax) { setVollDialog(true); return; }
           setHinweis("");
           setKachelZiel(null);
           dateiKachel.current?.click();
         }}
         className={`mt-5 inline-flex items-center gap-2 rounded-full px-6 py-3.5 text-[15px] font-bold text-white transition disabled:opacity-50 ${
-          kacheln.length >= WERKE_MAX ? "bg-[#9aa3ab] hover:bg-[#8a939b]" : "bg-[#111] hover:bg-[#333]"}`}>
+          kacheln.length >= werkeMax ? "bg-[#9aa3ab] hover:bg-[#8a939b]" : "bg-[#111] hover:bg-[#333]"}`}>
         <ImagePlus className="h-[18px] w-[18px]" aria-hidden />
         {T.bildHinzufuegen}
         <span className="rounded-full bg-white/20 px-2 py-0.5 text-[13px] font-bold tabular-nums">
-          {kacheln.length}/{WERKE_MAX}
+          {kacheln.length}/{werkeMax}
         </span>
       </button>
       <ul className="mt-6 grid list-none grid-cols-1 gap-x-8 gap-y-12 p-0 sm:grid-cols-2 lg:grid-cols-3">
@@ -976,7 +988,7 @@ export default function PortalBearbeiten({ mandant, k, T, lang, aufbau = false, 
           role="dialog" aria-modal="true" onClick={() => setVollDialog(false)}>
           <div className="w-full max-w-[420px] rounded-2xl bg-white p-6 shadow-xl" onClick={e => e.stopPropagation()}>
             <h2 className="m-0 font-serif text-[24px] font-normal leading-[1.2]">
-              {T.werkeVollTitel.replace("{max}", String(WERKE_MAX))}
+              {T.werkeVollTitel.replace("{max}", String(werkeMax))}
             </h2>
             <p className="mt-3 text-[15.5px] leading-[1.55] text-[#444]">{T.werkeVollText}</p>
             <div className="mt-6 flex flex-wrap items-center justify-end gap-3">

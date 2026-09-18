@@ -108,8 +108,13 @@ const nextConfig = {
            „/portal/portal" — die Startseite von lakatosbandi.com war eine 404
            (`x-nextjs-rewritten-path: /portal/portal`). Der Name „portal" ist deshalb hier
            ausgenommen; dasselbe gilt für die anderen Hausnamen, die schon oben umgeschrieben
-           werden. */
-        { source: "/:kuenstler((?!portal$|api$|_next$|journal$)[^/]+)", has: [{ type: "host", value: "(www\\.)?lakatosbandi\\.com" }], destination: "/portal/:kuenstler" },
+           werden.
+
+           `engine` gehört dazu (18.09.2026, Owner: „der Trichter ist weg"): `/start` wird oben zu
+           `/engine`, und diese Zeile machte daraus `/portal/engine` — die Anmeldung für Künstler
+           war eine 404. Wer hier eine neue Umschreibung auf EINEN Pfadteil einträgt, muss ihn in
+           dieser Liste ausnehmen. */
+        { source: "/:kuenstler((?!portal$|engine$|api$|_next$|journal$)[^/]+)", has: [{ type: "host", value: "(www\\.)?lakatosbandi\\.com" }], destination: "/portal/:kuenstler" },
       ],
     };
   },

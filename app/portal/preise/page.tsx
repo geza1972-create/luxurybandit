@@ -47,7 +47,11 @@ export default async function PortalPreise({ searchParams }: { searchParams: Pro
    * mit drin; nur „bis zu 10 Werke" fällt weg, weil Premium mehr erlaubt (dieselbe Stelle in
    * jeder Sprache, deshalb über den Index und nicht über den Text).
    */
-  const premiumListe = [...S.aboListe, ...S.freiListe.filter((_, i) => i !== 2)];
+  /* Zwei Punkte der Gratis-Spalte gehören NICHT nach Premium: „bis zu 10 Werke" (dort sind es
+     mehr) und „du schreibst die Texte selbst" — in Premium schreibt der Algorithmus sie (Owner
+     18.09.2026: „Scrii textele singur — was das bei premium?"). Beide stehen in jeder Sprache an
+     derselben Stelle, deshalb über den Index. */
+  const premiumListe = [...S.aboListe, ...S.freiListe.filter((_, i) => i !== 2 && i !== 3)];
 
   const preis = eur(VERSUSFORGE_ABO_CENTS, L);
   const fuellen = (s: string) => s

@@ -111,7 +111,15 @@ export const aboGeschenkt = (m: MitAbo) => {
  *
  * Dasselbe Muster wie `ABO_SPERRE_AKTIV` oben, aus demselben Grund.
  */
-export const KI_SPERRE_AKTIV = false;
+/* ── SCHARF SEIT 18.09.2026 (Owner: „das kostet uns ziemlich viel, wenn wir die KI-Bildtexte
+   frei lassen für gratis. Der Tunnel darf trotzdem nicht gesperrt werden — er kann das im
+   Tunnel ein Mal generieren") ──────────────────────────────────────────────────────────────
+   Gesperrt ist das WIEDERHOLTE Erzeugen auf seiner Seite: jeder Klick auf „neu schreiben" ist
+   ein Modellaufruf, den jemand bezahlt. NICHT gesperrt ist der eine Lauf im Trichter
+   (`spruecheNachtragen`, angestossen nach seiner Bestätigung) — der läuft serverseitig einmal
+   für alle Werke und fragt diesen Schalter nicht. So kommt jeder mit fertigen Texten an, und
+   wer sie danach immer wieder neu haben will, zahlt dafür. */
+export const KI_SPERRE_AKTIV = true;
 
 /**
  * Darf für ihn KI schreiben?

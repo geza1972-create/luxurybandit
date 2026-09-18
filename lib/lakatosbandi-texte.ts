@@ -22,6 +22,7 @@ const TEXTE = {
     /* Das Wort im Kopf (Owner 14.09.2026: „hier braucht man eigentlich ein Menü für Preise") —
        kurz, damit neben Logo, Sprachen und Login noch Platz bleibt. */
     preiseWort: "Pricing",
+    texteUeberschreiben: "The lines under your works were written by our algorithm. Overwrite any of them — your own words always win.",
     ueberUnsWort: "About",
     kontaktWort: "Contact",
     /* Nur auf dem Handy, damit das Logo „lakatosbandi.com" nicht mehr Platz braucht, als der Kopf hat (Owner 11.09.2026). */
@@ -406,6 +407,7 @@ const TEXTE = {
     leer: "Primii artiști sunt verificați chiar acum. Revino în curând.",
     anmelden: "Login artist",
     preiseWort: "Prețuri",
+    texteUeberschreiben: "Frazele de sub lucrările tale au fost scrise de algoritmul nostru. Le poți rescrie oricând — ce scrii tu rămâne.",
     ueberUnsWort: "Despre",
     kontaktWort: "Contact",
     /* „Login" statt „Autentificare" (Owner 14.09.2026: „Autentificare nimmt zu viel Platz").
@@ -645,6 +647,7 @@ const TEXTE = {
     leer: "Die ersten Künstler werden gerade geprüft. Schau bald wieder vorbei.",
     anmelden: "Login für Künstler",
     preiseWort: "Preise",
+    texteUeberschreiben: "Die Sätze unter deinen Werken hat unser Algorithmus geschrieben. Überschreib jeden davon — dein eigener Text gilt immer.",
     ueberUnsWort: "Über uns",
     kontaktWort: "Kontakt",
     anmeldenKurz: "Login",
