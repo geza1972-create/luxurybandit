@@ -93,6 +93,18 @@ export default async function PortalPreise({ searchParams }: { searchParams: Pro
           </section>
         </div>
 
+        {/* ── DIE ORIGINALE GEHÖREN IHM GANZ (Owner 18.09.2026: „bei den Preisen muss auch
+            stehen unten, dass der Verkauf an den Originalen direkt mit den Künstlern ausgemacht
+            wird, unser AI-Agent hilft ihnen dabei, aber wir kassieren nichts. 100 % für den
+            Künstler muss gross stehen") ───────────────────────────────────────────────────────
+            Die Zahl steht gross, weil sie das Misstrauen beantwortet, mit dem jeder Künstler auf
+            eine Plattform kommt: „Was nehmt ihr davon?" — Nichts. */}
+        <section className="mt-12 rounded-2xl bg-[#f6f5f2] px-6 py-8 md:px-8">
+          <p className="m-0 font-serif text-[38px] leading-[1.05] md:text-[52px]">{S.originalGross}</p>
+          <h2 className="m-0 mt-3 text-[20px] font-semibold leading-[1.3]">{S.originalTitel}</h2>
+          <p className="mt-3 max-w-[65ch] text-[16px] leading-[1.7] text-[#333]">{S.originalText}</p>
+        </section>
+
         {/* ── WAS DER ARTIST-FAIR-SHOP IST (Owner 18.09.2026: „unten erklärst du es") ────────
             Der Stern in der Premium-Liste zeigt hierher. */}
         <section className="mt-12">
