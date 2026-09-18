@@ -337,7 +337,7 @@ export const AGENT_CHAT_TEXTE = {
    */
   publizierenFrage: "Willst du, dass deine Seite auf lakatosbandi.com erscheint?",
   /** Was dahinter steckt — steht als Absatz über der Frage, in seinen Worten. */
-  publizierenAngebot: "Du bekommst eine echte Internetseite und einen Verkaufsagenten. Den Link dazu bekommst du per E-Mail: Du verwaltest sie selbst und kannst sie teilen. Es kostet dich nichts — du bist sofort in unserem Gratis-Paket.\n\nWir bauen eine Galerie, die spricht: Jedes Werk erzählt seine Geschichte, und ein Agent redet mit den Interessenten. Wir planen, jeden Tag ein Video mit den neuesten Werken auf unserem Facebook-Kanal zu posten. Wir suchen Künstler und Projektgründer. Du bist von Anfang an dabei.",
+  publizierenAngebot: "Du bekommst eine echte Internetseite und einen Verkaufsagenten. Den Link dazu bekommst du per E-Mail: Du verwaltest sie selbst und kannst sie teilen. Es kostet dich nichts — du bist sofort in unserem Gratis-Paket.\n\nWir bauen eine Galerie, die spricht: Jedes Werk erzählt seine Geschichte, und ein Agent redet mit den Interessenten. Und wir haben ein Marketing-Konzept, das es sonst nirgends gibt: Artist Fair. Jeder Künstler kann seine Kunst in Produkte verwandeln — Poster, Druckdateien, Textil — und an den Lizenzen verdienen. Auf jedem Stück stehen sein Name und die Adresse seiner Seite.",
   publizierenJa: "Ja",
   publizierenNein: "Nein",
   /* ── SEIN NEIN WIRD BEIM WORT GENOMMEN (Owner 13.09.2026: „da ist jetzt falsch") ───────────
@@ -607,7 +607,7 @@ const FEST: Partial<Record<Lang, Partial<AgentChatTexte>>> = {
     /* Owner 14.09.2026: „und am ende wir posten dich jetzt gratis, du hast glück." — das
        Kostenlose steht JETZT da, wo er Ja oder Nein sagt, nicht irgendwo davor. */
     publizierenFrage: "Vrei ca pagina ta să apară pe lakatosbandi.com?",
-    publizierenAngebot: "Primești un site adevărat și un agent de vânzări. Linkul îți vine pe e-mail: îl administrezi singur și îl poți distribui. Nu te costă nimic — ești direct în pachetul nostru gratuit.\n\nConstruim o galerie care vorbește: fiecare lucrare își spune povestea, iar un agent stă de vorbă cu cei interesați. Plănuim să postăm zilnic un video cu cele mai noi lucrări pe canalul nostru de Facebook. Căutăm artiști și fondatori de proiect. Tu ești de la început.",
+    publizierenAngebot: "Primești un site adevărat și un agent de vânzări. Linkul îți vine pe e-mail: îl administrezi singur și îl poți distribui. Nu te costă nimic — ești direct în pachetul nostru gratuit.\n\nConstruim o galerie care vorbește: fiecare lucrare își spune povestea, iar un agent stă de vorbă cu cei interesați. Și avem un concept de marketing care nu există nicăieri altundeva: Artist Fair. Orice artist își poate transforma arta în produse — postere, fișiere pentru tipar, textile — și câștigă din licențe. Pe fiecare produs stau numele lui și adresa paginii lui.",
     publizierenJa: "Da",
     publizierenNein: "Nu",
     publizierenAbsage: "În regulă — nu publicăm nimic. Lucrarea ta rămâne la tine.",
@@ -738,7 +738,7 @@ const FEST: Partial<Record<Lang, Partial<AgentChatTexte>>> = {
     keinWerk: "That doesn't look like an artwork. Upload a photo of one of your works — a painting, a drawing, a sculpture.",
     analyseVerbraucht: "You've used your two free analyses for today. Write to us if you need more.",
     publizierenFrage: "Do you want your page to appear on lakatosbandi.com?",
-    publizierenAngebot: "You get a real website and a sales agent. The link comes to you by email: you manage the page yourself and you can share it. It costs you nothing — you're straight into our free package.\n\nWe are building a gallery that speaks: every work tells its story, and an agent talks to the people who are interested. We plan to post a video of the newest works on our Facebook channel every day. We are looking for artists and project founders. You are in from day one.",
+    publizierenAngebot: "You get a real website and a sales agent. The link comes to you by email: you manage the page yourself and you can share it. It costs you nothing — you're straight into our free package.\n\nWe are building a gallery that speaks: every work tells its story, and an agent talks to the people who are interested. And we have a marketing concept you will not find anywhere else: Artist Fair. Any artist can turn their art into products — posters, print files, textiles — and earn from the licences. Every piece carries their name and the address of their page.",
     publizierenJa: "Yes",
     publizierenNein: "No",
     publizierenAbsage: "All right — we publish nothing. Your work stays with you.",
