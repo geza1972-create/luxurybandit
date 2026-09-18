@@ -1701,7 +1701,7 @@ export default function AgentChat({ S: SQuelle, lang, gewaehlt, auftrag, lead = 
                          * unten Name, Beschreibung, Siegel und Adresse weg — also alles, was zeigt,
                          * was der Künstler bekommt. Übrig blieb ein Bildausschnitt wie jeder andere.
                          */
-                        className="mx-auto mt-4 block h-auto w-full max-w-[280px] object-contain shadow-[0_10px_28px_rgba(0,0,0,.2),0_3px_7px_rgba(0,0,0,.12)]" />
+                        className="mx-auto mt-4 block h-[260px] w-auto object-contain shadow-[0_10px_28px_rgba(0,0,0,.2),0_3px_7px_rgba(0,0,0,.12)]" />
                     )}
                     {/* ── WAS ER BEKOMMT, ÜBER DEM KNOPF (Owner 14.09.2026: „Urca pana la 10
                         lucrari. Primesti un Exemplu de Marketing." · „Button Upload") ─────────
