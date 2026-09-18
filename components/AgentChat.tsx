@@ -734,7 +734,9 @@ export default function AgentChat({ S: SQuelle, lang, gewaehlt, auftrag, lead = 
      * Server keine Wahl, rendert dieselbe Frage — und der Knopf tut sichtbar nichts.
      * Eine Adresse kann kein Browser wegwerfen.
      */
-    router.replace(`${start}?lang=${l}`);
+    /* `start` kann schon einen Parameter tragen (lokal `/engine?portal=1`) — dann wird
+       angehängt statt ein zweites Fragezeichen zu setzen (18.09.2026). */
+    router.replace(`${start}${start.includes("?") ? "&" : "?"}lang=${l}`);
   };
 
   /**
@@ -1685,10 +1687,21 @@ export default function AgentChat({ S: SQuelle, lang, gewaehlt, auftrag, lead = 
                          zeigt, was ER bekommt — mit seinem Namen, seiner Adresse und dem Siegel
                          darauf. */
                       <img src="/lakatosbandi/beispiel-louisett.jpg" alt=""
-                        /* AUSSCHNITT STATT GANZE HÖHE: Die Datei ist hochkant (1080×1350) und
-                           schöbe den Knopf sonst wieder unter den Rand — genau der Fehler, den
-                           der Slider gemacht hat. */
-                        className="mx-auto mt-4 block h-[180px] w-full max-w-[280px] object-cover shadow-[0_10px_28px_rgba(0,0,0,.2),0_3px_7px_rgba(0,0,0,.12)]" />
+                        /**
+                         * ── DAS BLATT GANZ, NICHT ANGESCHNITTEN (Owner 18.09.2026: „hier war
+                         * das Poster ganz zu sehen") ────────────────────────────────────────
+                         *
+                         * HIER STAND EIN AUSSCHNITT (`h-[180px] object-cover`) mit der Begründung,
+                         * die hochkante Datei schöbe den Hochladen-Knopf unter den Rand. GEMESSEN
+                         * auf 375×812 stimmt das nicht: In voller Höhe endet der Knopf bei 714 von
+                         * 812 Pixeln — 98 Pixel Luft, die Hausregel „CTA im Viewport" bleibt
+                         * gewahrt.
+                         *
+                         * UND DER AUSSCHNITT KOSTETE GENAU DAS, WOFÜR DAS BILD DA IST: Er schnitt
+                         * unten Name, Beschreibung, Siegel und Adresse weg — also alles, was zeigt,
+                         * was der Künstler bekommt. Übrig blieb ein Bildausschnitt wie jeder andere.
+                         */
+                        className="mx-auto mt-4 block h-auto w-full max-w-[280px] object-contain shadow-[0_10px_28px_rgba(0,0,0,.2),0_3px_7px_rgba(0,0,0,.12)]" />
                     )}
                     {/* ── WAS ER BEKOMMT, ÜBER DEM KNOPF (Owner 14.09.2026: „Urca pana la 10
                         lucrari. Primesti un Exemplu de Marketing." · „Button Upload") ─────────

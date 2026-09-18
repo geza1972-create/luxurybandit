@@ -113,7 +113,25 @@ export default async function VersusForgeEingang({
   const gewaehlt = isLang(ausAdresse ?? "");
   const S = await agentChatInSprache(lang);
   /* Auf lakatosbandi.com/start: eigene Adresse und eigener Name (Owner 11.09.2026: „nicht auf VersusForge"). */
-  const portal = imPortal((await headers()).get("host"));
+  /**
+   * ── AUF DEM ENTWICKLUNGSRECHNER GIBT ES KEINEN HOST „lakatosbandi.com" (18.09.2026) ────────
+   *
+   * Welche Fassung erscheint, entscheidet der Host — lokal ist der `localhost`. Wer hier prüfen
+   * will, was ein Künstler sieht, bekam deshalb immer die Haus-Fassung (Owner: „das ist nicht
+   * Lakatos Bandi"). `?portal=1` erzwingt die Portal-Fassung; auf der echten Adresse ändert
+   * dieses Zeichen nichts, denn dort ist `echtesPortal` ohnehin wahr.
+   */
+  const echtesPortal = imPortal((await headers()).get("host"));
+  const portal = echtesPortal || String(sp.portal ?? "") === "1";
+  /**
+   * WOHIN „ZURÜCK" FÜHRT, IST NICHT ÜBERALL DIESELBE ADRESSE.
+   *
+   * Auf lakatosbandi.com liegt dieser Chat unter `/start`. Lokal gibt es diese Adresse nicht —
+   * sie fällt in die Künstlerprofil-Route und endet bei „Profil nicht gefunden". Wer dort die
+   * Sprache wechselt oder alles löscht, landete im Nichts statt im Chat. Lokal ist dieselbe
+   * Seite `/engine?portal=1`, damit die Portal-Fassung auch nach dem Zurücksetzen bleibt.
+   */
+  const startAdresse = echtesPortal ? "/start" : "/engine?portal=1";
 
-  return <AgentChat S={S} lang={lang} gewaehlt={gewaehlt} lead={lead} {...(portal ? { start: "/start", marke: "lakatosbandi" as const } : {})} />;
+  return <AgentChat S={S} lang={lang} gewaehlt={gewaehlt} lead={lead} {...(portal ? { start: startAdresse, marke: "lakatosbandi" as const } : {})} />;
 }
