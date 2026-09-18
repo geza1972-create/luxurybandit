@@ -94,6 +94,9 @@ const nextConfig = {
         /* Die Rückkehr von der Kasse (Owner 16.09.2026). Ebenfalls VOR `/:kuenstler` — sonst
            wäre „comanda" ein Künstlername und die Bestätigung eine 404. */
         { source: "/comanda", has: [{ type: "host", value: "(www\\.)?lakatosbandi\\.com" }], destination: "/portal/comanda" },
+        /* „Über uns" (Owner 18.09.2026) — wie die anderen Hausnamen VOR `/:kuenstler`, sonst
+           wäre „despre" ein Künstlername. */
+        { source: "/despre", has: [{ type: "host", value: "(www\\.)?lakatosbandi\\.com" }], destination: "/portal/despre" },
         /* Löschen auf lakatosbandi.com statt auf der Firmen-Anzeigenseite (Owner 11.09.2026). */
         { source: "/:kuenstler/loeschen", has: [{ type: "host", value: "(www\\.)?lakatosbandi\\.com" }], destination: "/portal/:kuenstler/loeschen" },
         /* Die Seite eines Werks (Owner 11.09.2026: „hier komme ich nicht auf die Kunstwerk-Seite drauf"). */

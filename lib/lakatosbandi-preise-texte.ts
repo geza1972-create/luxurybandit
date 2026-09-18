@@ -18,6 +18,8 @@ import type { Lang } from "@/lib/lang";
  */
 
 export type PreiseTexte = {
+  /** „Für Künstler" — die Zeile über der Überschrift (Owner 18.09.2026). */
+  fuerWen: string;
   titel: string;
   intro: string;
   /** Die Gratis-Spalte. */
@@ -33,6 +35,9 @@ export type PreiseTexte = {
   /** Was eine Generierung ist — die Frage, die sonst jeder stellt. */
   zaehlerTitel: string;
   zaehlerText: string;
+  /** Was der Artist-Fair-Shop im Abo ist (Owner 18.09.2026) — der Stern aus der Liste. */
+  shopTitel: string;
+  shopText: string;
   /** Kündigung, Ehrlichkeit am Schluss. */
   kleingedrucktTitel: string;
   kleingedruckt: string[];
@@ -40,6 +45,7 @@ export type PreiseTexte = {
 
 const TEXTE: Record<Lang, PreiseTexte> = {
   de: {
+    fuerWen: "Für Künstler",
     titel: "Preise",
     intro: "Deine Seite kostet nichts. Bezahlt wird nur, wenn die KI für dich schreibt.",
     freiTitel: "Deine Seite",
@@ -51,10 +57,11 @@ const TEXTE: Record<Lang, PreiseTexte> = {
       "Anfragen von Käufern empfangen und lesen",
       "Dein Agent spricht mit Interessenten",
     ],
-    aboTitel: "Abo",
+    aboTitel: "Premium",
     aboPreis: "{preis}",
     aboZusatz: "im Monat",
     aboListe: [
+      "Artist Fair Shop*",
       "Alles aus „Deine Seite“",
       "{n} KI-Texte im Monat",
       "Beschreibungen für deine Werke, automatisch",
@@ -62,6 +69,8 @@ const TEXTE: Record<Lang, PreiseTexte> = {
       "Mehr als 10 Werke",
     ],
     aboKnopf: "Abo abschliessen",
+    shopTitel: "*Was ist der Artist Fair Shop?",
+    shopText: "Deine Werke werden zu Produkten, die man bei uns bestellen kann: Poster im echten Holzrahmen oder ohne, die Druckdatei, T-Shirt und Hoodie — auf Bestellung gefertigt. Weitere Produkte kommen dazu, etwa Tassen. Auf jedem Stück stehen dein Name und die Adresse deiner Seite, dazu das Siegel „Artist Fair“. Von jeder Bestellung geht eine Lizenz an dich, und du bekommst eine Mail, sobald etwas verkauft wurde. Deine Originale bleiben deine und bleiben unberührt.",
     zaehlerTitel: "Was ist eine KI-Generierung?",
     zaehlerText: "Jedes Mal, wenn die KI für dich schreibt: ein Satz unter einem Werk, dein geglätteter Profiltext, eine Bildanalyse. Selbst geschriebene Texte zählen nicht — die sind immer frei.",
     kleingedrucktTitel: "Gut zu wissen",
@@ -72,6 +81,7 @@ const TEXTE: Record<Lang, PreiseTexte> = {
     ],
   },
   ro: {
+    fuerWen: "Pentru artiști",
     titel: "Prețuri",
     intro: "Pagina ta nu costă nimic. Plătești doar când AI scrie pentru tine.",
     freiTitel: "Pagina ta",
@@ -83,10 +93,11 @@ const TEXTE: Record<Lang, PreiseTexte> = {
       "Primești și citești cererile cumpărătorilor",
       "Agentul tău vorbește cu cei interesați",
     ],
-    aboTitel: "Abonament",
+    aboTitel: "Premium",
     aboPreis: "{preis}",
     aboZusatz: "pe lună",
     aboListe: [
+      "Artist Fair Shop*",
       "Tot ce e în „Pagina ta“",
       "{n} texte scrise de AI pe lună",
       "Descrieri pentru lucrările tale, automat",
@@ -94,6 +105,8 @@ const TEXTE: Record<Lang, PreiseTexte> = {
       "Mai mult de 10 lucrări",
     ],
     aboKnopf: "Abonează-te",
+    shopTitel: "*Ce este Artist Fair Shop?",
+    shopText: "Lucrările tale devin produse pe care oricine le poate comanda de la noi: postere cu ramă adevărată de lemn sau fără, fișierul pentru tipar, tricou și hanorac — făcute la comandă. Vor urma și alte produse, de exemplu căni. Pe fiecare produs scrie numele tău și adresa paginii tale, plus sigiliul „Artist Fair“. Din fiecare comandă ți se plătește o licență, iar tu primești un e-mail imediat ce s-a vândut ceva. Originalele rămân ale tale și rămân neatinse.",
     zaehlerTitel: "Ce înseamnă o generare AI?",
     zaehlerText: "De fiecare dată când AI scrie pentru tine: o frază sub o lucrare, textul tău de prezentare corectat, o analiză de imagine. Textele scrise de tine nu se numără — acelea sunt mereu gratuite.",
     kleingedrucktTitel: "Bine de știut",
@@ -104,6 +117,7 @@ const TEXTE: Record<Lang, PreiseTexte> = {
     ],
   },
   en: {
+    fuerWen: "For artists",
     titel: "Pricing",
     intro: "Your page costs nothing. You pay only when the AI writes for you.",
     freiTitel: "Your page",
@@ -115,10 +129,11 @@ const TEXTE: Record<Lang, PreiseTexte> = {
       "Receive and read buyer enquiries",
       "Your agent talks to interested buyers",
     ],
-    aboTitel: "Subscription",
+    aboTitel: "Premium",
     aboPreis: "{preis}",
     aboZusatz: "per month",
     aboListe: [
+      "Artist Fair Shop*",
       "Everything in “Your page”",
       "{n} AI texts per month",
       "Descriptions for your works, automatically",
@@ -126,6 +141,8 @@ const TEXTE: Record<Lang, PreiseTexte> = {
       "More than 10 works",
     ],
     aboKnopf: "Subscribe",
+    shopTitel: "*What is the Artist Fair Shop?",
+    shopText: "Your works become products anyone can order from us: posters in a real wooden frame or without, the print file, T-shirts and hoodies — all made to order. More products will follow, mugs among them. Every piece carries your name and the address of your page, plus the Artist Fair seal. Every order pays you a licence, and you get an email the moment something sells. Your originals stay yours and stay untouched.",
     zaehlerTitel: "What counts as an AI generation?",
     zaehlerText: "Every time the AI writes for you: a line under a work, your polished profile text, an image analysis. Texts you write yourself don’t count — those are always free.",
     kleingedrucktTitel: "Good to know",

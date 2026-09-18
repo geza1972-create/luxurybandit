@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { PortalTexte } from "@/lib/lakatosbandi-texte";
 import { PORTAL_SPRACHEN } from "@/lib/lakatosbandi-texte";
+import PortalMenue from "@/components/PortalMenue";
 import ArtistFair from "@/components/ArtistFair";
 
 /**
@@ -55,12 +56,16 @@ export default function PortalKopf({ T, lang, login, start, preise, journal, spr
           {/* PREISE VOR JOURNAL (Owner 14.09.2026: „hier braucht man eigentlich ein Menü für
               Preise") — wer wissen will, was es kostet, soll nicht suchen. Wie Journal erst ab
               `sm`: Auf dem Handy ist der Kopf mit Logo, Sprachen und Login bereits voll. */}
-          {preise && (
-            <Link href={`${preise}?lang=${lang}`} className="hidden font-semibold text-[#111] no-underline hover:underline sm:inline">{T.preiseWort}</Link>
-          )}
-          {journal && (
-            <Link href={journal} className="hidden font-semibold text-[#111] no-underline hover:underline sm:inline">Journal</Link>
-          )}
+          {/* ── EIN ICON STATT DREI WÖRTER (Owner 18.09.2026: „mach doch ein Icon im Menü oben") ──
+              Preise und Journal standen als Text im Kopf und verschwanden auf dem Handy — genau
+              dort hat er die Preise gesucht. Jetzt liegen sie unter dem Strich-Symbol, zusammen
+              mit „Über uns" und „Kontakt". Sprachen und Login bleiben draussen. */}
+          <PortalMenue label={T.preiseWort} eintraege={[
+            ...(preise ? [{ href: `${preise}?lang=${lang}`, wort: T.preiseWort }] : []),
+            ...(journal ? [{ href: journal, wort: "Journal" }] : []),
+            { href: `${start === "/" ? "" : "/portal"}/despre?lang=${lang}`, wort: T.ueberUnsWort },
+            { href: `/contact?reason=general&lang=${lang}`, wort: T.kontaktWort },
+          ]} />
           {PORTAL_SPRACHEN.map(l => (
             <a key={l} href={sprachLink ? sprachLink(l) : `?lang=${l}`} aria-current={l === lang ? "true" : undefined}
               className={l === lang ? "font-bold text-[#111] no-underline" : "text-[#777] no-underline hover:text-[#111]"}>

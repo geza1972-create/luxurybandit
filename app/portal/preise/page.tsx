@@ -53,7 +53,13 @@ export default async function PortalPreise({ searchParams }: { searchParams: Pro
       <PortalKopf T={T} lang={L} login={P.login} start={P.start} preise={P.preise} journal={P.journal(L)} />
 
       <main className="mx-auto w-full max-w-[860px] px-5 pb-16 pt-12 md:pt-16">
-        <h1 className="m-0 font-serif text-[36px] font-normal leading-[1.15] md:text-[48px]">{S.titel}</h1>
+        {/* ── FÜR WEN DIESE SEITE IST (Owner 18.09.2026: „und diese Seite ist für Künstler.
+            Muss stehen oben") ─────────────────────────────────────────────────────────────────
+            Ein Käufer, der auf „Preise" tippt, sucht Posterpreise und liest hier von einem Abo —
+            nach zwei Zeilen ist er weg und hält uns für teuer. Die Zeile über der Überschrift
+            klärt das in vier Wörtern. */}
+        <p className="m-0 text-[12px] font-black uppercase tracking-[0.2em] text-[#777]">{S.fuerWen}</p>
+        <h1 className="m-0 mt-3 font-serif text-[36px] font-normal leading-[1.15] md:text-[48px]">{S.titel}</h1>
         <p className="mt-5 max-w-[60ch] text-[17px] leading-[1.65] text-[#444]">{S.intro}</p>
 
         {/* ── DIE ZWEI SPALTEN ── */}
@@ -86,6 +92,13 @@ export default async function PortalPreise({ searchParams }: { searchParams: Pro
             </a>
           </section>
         </div>
+
+        {/* ── WAS DER ARTIST-FAIR-SHOP IST (Owner 18.09.2026: „unten erklärst du es") ────────
+            Der Stern in der Premium-Liste zeigt hierher. */}
+        <section className="mt-12">
+          <h2 className="m-0 text-[20px] font-semibold leading-[1.3]">{S.shopTitel}</h2>
+          <p className="mt-3 max-w-[65ch] text-[16px] leading-[1.7] text-[#333]">{S.shopText}</p>
+        </section>
 
         {/* ── WAS EINE GENERIERUNG IST ── die Frage, die sonst jeder stellt */}
         <section className="mt-12">

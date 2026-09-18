@@ -14,16 +14,23 @@ import { imPortal } from "@/lib/lakatosbandi-adressen";
  *
  * OFFEN (Roadmap): Die Texte hat noch kein Anwalt geprüft.
  */
-const WORTE: Record<string, [string, string, string, string]> = {
-  en: ["Contact", "Imprint", "Privacy", "Terms"],
-  ro: ["Contact", "Date legale", "Confidențialitate", "Termeni"],
-  de: ["Kontakt", "Impressum", "Datenschutz", "AGB"],
+/* ── PREISE UND JOURNAL GEHÖREN IN DEN FUSS (Owner 18.09.2026: „wo finde ich im Menü die
+   Preise? Es ist nicht einmal im Footer") ───────────────────────────────────────────────────
+   Im Kopf steht „Preise" erst ab `sm` — auf dem Handy also nirgends. Wer wissen will, was es
+   kostet, suchte vergeblich. Der Fuss ist die zweite Stelle, an der jeder nachschaut. */
+const WORTE: Record<string, [string, string, string, string, string, string, string]> = {
+  en: ["Contact", "Imprint", "Privacy", "Terms", "Pricing", "Journal", "About"],
+  ro: ["Contact", "Date legale", "Confidențialitate", "Termeni", "Prețuri", "Jurnal", "Despre"],
+  de: ["Kontakt", "Impressum", "Datenschutz", "AGB", "Preise", "Journal", "Über uns"],
 };
 
 export default async function PortalFuss({ lang }: { lang: string }) {
-  const [kontakt, impressum, datenschutz, agb] = WORTE[lang] ?? WORTE.en;
+  const [kontakt, impressum, datenschutz, agb, preise, journal, ueber] = WORTE[lang] ?? WORTE.en;
   const basis = imPortal((await headers()).get("host")) ? "" : "/portal";
   const links: [string, string][] = [
+    [`${basis}/despre?lang=${lang}`, ueber],
+    [`${basis}/preise?lang=${lang}`, preise],
+    [`${basis}/journal/${lang}`, journal],
     [`/contact?reason=general&lang=${lang}`, kontakt],
     [`${basis}/imprint?lang=${lang}`, impressum],
     [`${basis}/privacy?lang=${lang}`, datenschutz],

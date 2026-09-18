@@ -22,6 +22,8 @@ const TEXTE = {
     /* Das Wort im Kopf (Owner 14.09.2026: „hier braucht man eigentlich ein Menü für Preise") —
        kurz, damit neben Logo, Sprachen und Login noch Platz bleibt. */
     preiseWort: "Pricing",
+    ueberUnsWort: "About",
+    kontaktWort: "Contact",
     /* Nur auf dem Handy, damit das Logo „lakatosbandi.com" nicht mehr Platz braucht, als der Kopf hat (Owner 11.09.2026). */
     anmeldenKurz: "Login",
     fuerKuenstler: "Are you an artist?",
@@ -404,6 +406,8 @@ const TEXTE = {
     leer: "Primii artiști sunt verificați chiar acum. Revino în curând.",
     anmelden: "Login artist",
     preiseWort: "Prețuri",
+    ueberUnsWort: "Despre",
+    kontaktWort: "Contact",
     /* „Login" statt „Autentificare" (Owner 14.09.2026: „Autentificare nimmt zu viel Platz").
        EN und DE nutzen das Wort längst; nur Rumänisch buchstabierte es aus und sprengte damit
        ausgerechnet in der Hauptsprache den Kopf. Das Logo bleibt dafür unangetastet. */
@@ -641,6 +645,8 @@ const TEXTE = {
     leer: "Die ersten Künstler werden gerade geprüft. Schau bald wieder vorbei.",
     anmelden: "Login für Künstler",
     preiseWort: "Preise",
+    ueberUnsWort: "Über uns",
+    kontaktWort: "Kontakt",
     anmeldenKurz: "Login",
     fuerKuenstler: "Bist du Künstler?",
     fuerKuenstlerText: "Zeig uns deine Werke — wir finden die Käufer, die sie schätzen.",
