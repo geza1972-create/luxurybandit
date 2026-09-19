@@ -127,18 +127,55 @@ function MassstabFluss({ breite, children }: { breite: number; children: React.R
   );
 }
 
-/** Die Breite eines Elements, laufend gemessen — daraus entsteht der Massstab oben. */
+/**
+ * Die Breite eines Elements, laufend gemessen — daraus entsteht der Massstab oben.
+ *
+ * ── EINE MESSUNG, DIE NIE KOMMT, MACHT DAS BLATT UNSICHTBAR (Owner 19.09.2026: „kein Poster an
+ * der Wand zu sehen", auf dem iPhone) ────────────────────────────────────────────────────────
+ *
+ * `Massstab` blendet aus, solange die Breite 0 ist — sonst läge das Blatt für einen Lidschlag
+ * in voller Grösse quer über dem Zimmer. Bleibt die Messung aber aus, bleibt es FÜR IMMER
+ * unsichtbar: leere Wand, und niemand sieht, dass etwas fehlt.
+ *
+ * WANN SIE AUSBLEIBT: Die Wandbreite hängt am Zimmerbild. Ist es beim Anhängen des Verweises
+ * noch nicht da, misst der erste Griff 0. Der `ResizeObserver` meldet sich danach nur, wenn sich
+ * die Box WIRKLICH ändert — steht die Breite in CSS fest, ändert sie sich nie, und es bleibt
+ * bei der Null. Am Schreibtisch fällt das nicht auf: Dort ist das Bild vor dem ersten Bild da.
+ * Am Telefon im Funknetz nicht.
+ *
+ * DESHALB WIRD NACHGEFASST: zweimal im nächsten Bildaufbau, beim `load` des Fensters und immer,
+ * wenn ein Bild darin fertig wird. Gemessen wird nur, was grösser als null ist — eine Null
+ * überschreibt nie einen gültigen Wert.
+ */
 function useBreite<T extends HTMLElement>() {
   const [breite, setBreite] = useState(0);
   const el = useRef<T | null>(null);
-  const setzen = useCallback((n: T | null) => { el.current = n; if (n) setBreite(n.getBoundingClientRect().width); }, []);
+  const messen = useCallback(() => {
+    const n = el.current;
+    if (!n) return;
+    const b = n.getBoundingClientRect().width;
+    if (b > 0) setBreite(alt => (alt === b ? alt : b));
+  }, []);
+  const setzen = useCallback((n: T | null) => { el.current = n; if (n) messen(); }, [messen]);
   useEffect(() => {
     const n = el.current;
-    if (!n || typeof ResizeObserver === "undefined") return;
-    const ro = new ResizeObserver(() => setBreite(n.getBoundingClientRect().width));
-    ro.observe(n);
-    return () => ro.disconnect();
-  }, []);
+    if (!n) return;
+    const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(messen) : null;
+    ro?.observe(n);
+    /* Zwei Bildaufbauten später steht das Raster; danach nur noch, wenn wirklich etwas nachlädt. */
+    const r1 = requestAnimationFrame(() => { messen(); requestAnimationFrame(messen); });
+    const spaet = window.setTimeout(messen, 600);
+    window.addEventListener("load", messen);
+    const bilder = Array.from(n.querySelectorAll("img"));
+    bilder.forEach(b => b.addEventListener("load", messen));
+    return () => {
+      ro?.disconnect();
+      cancelAnimationFrame(r1);
+      window.clearTimeout(spaet);
+      window.removeEventListener("load", messen);
+      bilder.forEach(b => b.removeEventListener("load", messen));
+    };
+  }, [messen]);
   return [setzen, breite] as const;
 }
 
