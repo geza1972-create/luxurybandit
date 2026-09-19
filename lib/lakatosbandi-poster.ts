@@ -92,7 +92,12 @@ export const POSTER = {
      ganze Schrift liegt: Name, Titel, Satz und der Code. Die Zahl gilt für den Schirm UND die
      Druckdatei (lib/lakatosbandi-druckdatei.ts), damit das gedruckte Blatt aussieht wie die
      Vorschau. */
-  randUnten: 7.5,
+  /* ── DIE SCHRIFT RÜCKT NÄHER AN DIE KANTE (Owner 19.09.2026: „die Texte müssen weiter runter,
+     um Platz zu schaffen") ─────────────────────────────────────────────────────────────────────
+     Der untere Rand war mit 7,5 breiter als der obere (6,5) — die Schrift stand also weiter von
+     der Kante weg als das Werk. Sie rückt auf 4,5 hinunter; die drei Prozent Blattbreite, die
+     dabei frei werden, bekommt das Bildfeld. Die Schriftgrade bleiben unangetastet. */
+  randUnten: 4.5,
   /** Zwischen den Zeilen des Textblocks, damit er als ein Stück wirkt. */
   luft: 1.2,
 

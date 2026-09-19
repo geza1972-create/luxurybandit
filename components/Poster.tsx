@@ -167,7 +167,12 @@ export default function Poster({ bildHoch, nameBreit, qrEcke, qrLink, bildKnopf,
           {/* `randSeite` negativ: Das Werk greift über den Schriftrand hinaus (Owner 19.09.2026
               „das Bild ist 5 Prozent zu klein oder 10"). Dieselbe Zahl benutzen die Druckdatei
               und das Blattbild für die Feldbreite. */}
-          <div className="relative flex min-h-0 flex-1 items-start justify-center overflow-hidden"
+          {/* ── ES GIBT KEINEN ÜBERHANG MEHR (Owner 19.09.2026: „ganz drauf, nicht
+              abgeschnitten") ───────────────────────────────────────────────────────────────────
+              Hier stand erst `items-center` (schnitt oben und unten weg), dann `items-start`
+              (schnitt unten). Seit das Werk ganz ins Feld passt, gibt es nichts abzuschneiden —
+              und mittig ist dann das Richtige: Das Papier verteilt sich gleichmässig darum. */}
+          <div className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden"
             style={{
               /**
                * ── DAS WERK WEICHT, DER SATZ WIRD NICHT ABGESCHNITTEN (Owner 18.09.2026, mit

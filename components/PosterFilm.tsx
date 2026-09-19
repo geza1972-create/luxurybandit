@@ -282,15 +282,25 @@ export default function PosterFilm({ quelle, sprecher, sprecherBild, youtube, to
        Ein liegendes Werk an der Höhe auszurichten lässt links und rechts Papier leer, obwohl
        genau dort der Platz ist; ein stehendes an der Breite auszurichten sprengt die Box. Also
        jedes an seiner langen Seite — begrenzt von der jeweils anderen. */
-    /* KEIN `object-contain` UND KEIN `max-h` HIER (Owner 16.09.2026: „bild hat einen weissen
-       rahmen unten und oben. abschneiden") — beides lässt Leerraum IM Bildelement, und der
-       Schatten der Hülle umschliesst dann diesen Leerraum statt das Werk. */
-    /* ── JEDES WERK NIMMT DIE BREITE, AUCH DAS STEHENDE (Owner 17.09.2026: „das bild bis zum
-       rand links und rechts und obere kante. du schneidest das bild ab wenn hochkant") ──────
-       Vorher richtete sich ein stehendes Werk an der HÖHE aus: links und rechts blieb Papier
-       stehen, und war es für das Feld zu hoch, schnitt das Feld es ab. Jetzt füllt jedes Werk
-       die Breite und behält seine eigene Höhe — nichts wird beschnitten. */
-    : "block h-auto w-full";
+    /**
+     * ── GANZ AUFS BLATT, SO GROSS WIE MÖGLICH (Owner 19.09.2026: „die Bilder müssen ganz drauf,
+     * nicht abgeschnitten, und so gross wie möglich, aber mit etwas Rand zum Rahmen" · „aber
+     * Künstler wollen ihre Bilder nicht abgeschnitten sehen") ─────────────────────────────────
+     *
+     * DREI FASSUNGEN HATTE DIESE ZEILE, jede als Antwort auf die vorige:
+     *  1. An der langen Seite ausgerichtet — ein liegendes Werk liess links und rechts Papier.
+     *  2. `w-full` (17.09.): Jedes Werk nahm die Breite. Ein stehendes wurde dafür zu hoch, und
+     *     das Feld schnitt ab — erst mittig (Köpfe weg), dann unten.
+     *  3. JETZT: Es passt GANZ hinein und wird so gross, wie beide Kanten es zulassen.
+     *
+     * Der Grund ist nicht Geschmack: Ein Künstler, dessen Werk beschnitten auf dem Blatt steht,
+     * zeigt nicht sein Bild her, sondern einen Ausschnitt davon.
+     *
+     * DASS ES DANN NICHT BEI ALLEN GLEICH AUSSIEHT, ist gewollt (Owner: „das ist mir schon
+     * klar"): Ein hochformatiges Werk stösst oben und unten an und lässt seitlich Papier, ein
+     * liegendes umgekehrt. Das ist der Preis dafür, dass nichts mehr wegfällt.
+     */
+    : "block h-auto max-h-full w-auto max-w-full object-contain";
   /* Die Hülle nimmt die Breite mit, damit das Werk bis an beide Ränder läuft. */
   /* ── KEIN SCHATTEN AM WERK (Owner 17.09.2026: „schatten raus bei bild") ───────────────────
      Auf dem Blatt liegt das Werk flach auf dem Papier — ein Wurf darunter liess es schweben, und

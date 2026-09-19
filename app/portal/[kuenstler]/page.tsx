@@ -677,8 +677,24 @@ export default async function PortalKuenstler({ params, searchParams }: Props) {
                     bild={
                       /* Sein Foto bzw. das erzeugte Bild, sobald eines im Blatt steht
                          (Owner 18.09.2026) — sonst das Werk des Künstlers. */
+                      /**
+                       * ── DAS WAR DIE ECHTE URSACHE (Owner 19.09.2026: „sie ist nicht ganz
+                       * drauf") ─────────────────────────────────────────────────────────────────
+                       *
+                       * Diese Klasse hier war die tatsächlich gerenderte — `PosterFilm.tsx` (wo
+                       * vorher schon „ganz drauf" gebaut wurde) wird an dieser Stelle gar nicht
+                       * verwendet. Ein zweiter, fest verdrahteter Satz Klassen entschied über
+                       * quer/hoch und schnitt beim Hochformat weiterhin an der Höhe ab: `h-full
+                       * w-auto` ohne jede Obergrenze für die Breite liess das Bild bei einem sehr
+                       * hohen Werk wie Mona Lisa (0,67) über die Feldbreite hinauswachsen, und der
+                       * `overflow-hidden`-Rahmen schnitt den Rest weg — keine Hände mehr im Bild.
+                       *
+                       * `object-contain` mit `max-h-full max-w-full` braucht keine Fallunter-
+                       * scheidung mehr: Es zwingt das Werk in JEDEM Verhältnis vollständig ins
+                       * Feld, an der jeweils engeren Kante.
+                       */
                       <PosterWandFoto standard={mitAdmin(P.werkBild(kuenstler, k.i, 1100))}
-                        className={m.werkInfo?.[k.i < 0 ? "standard" : String(k.i)]?.quer ? "block h-auto w-full" : "block h-full w-auto"} />
+                        className="block h-auto max-h-full w-auto max-w-full object-contain" />
                     }
                   />
               }>
