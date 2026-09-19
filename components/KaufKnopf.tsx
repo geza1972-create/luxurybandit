@@ -446,7 +446,20 @@ export default function KaufKnopf({ mandant, werk, material, sprache, anteil = f
             (`lib/lakatosbandi-bestellung.ts`), und `api/kunst-datei` liefert es weiterhin ohne
             `typ=jpg`. Es steht nur nicht mehr auf der Seite. */}
 
-        {dateiBezahlt ? null : (
+        {/**
+          * ── MIT SEINEM BILD WIRD EINZELN BESTELLT (Owner 19.09.2026: „ich fürchte, der Weg
+          * Generierung dann Warenkorb wird es nicht gehen" · „dann raus der Warenkorb" · „es soll
+          * direkt bestellt werden, einzeln") ─────────────────────────────────────────────────────
+          *
+          * Ein Korb sammelt WAREN. Ein Blatt mit seinem Gesicht ist keine Ware aus dem Regal: Es
+          * hängt an genau diesem einen Bild, an diesen Zeilen, an dieser Grösse. Sammelt er drei
+          * davon und ändert dazwischen das Foto, steht im Korb dreimal derselbe Posten mit dem
+          * falschen Bild — und das merkt niemand, bis das Paket ankommt.
+          *
+          * Deshalb: Sobald etwas von IHM im Blatt liegt (hochgeladen oder erzeugt), gibt es nur
+          * noch „Kaufen". Auf dem blanken Werk eines Künstlers bleibt der Korb, wo er hingehört.
+          */}
+        {dateiBezahlt || bildArt !== "keins" ? null : (
         <button type="button" onClick={dazu}
           className="inline-flex items-center gap-2 rounded-xl border border-[#111] px-4 py-2 text-[14px] font-semibold text-[#111] transition hover:bg-[#111] hover:text-white">
           {drin ? <Check className="h-4 w-4" aria-hidden /> : <ShoppingBag className="h-4 w-4" aria-hidden />}
