@@ -60,6 +60,22 @@ export const POSTER_FORMATE = {
  */
 export const POSTER_TITEL = "LAKATOSBANDI.COM";
 
+/**
+ * ── WIE OFT DER TITEL SCHON HOCHGERÜCKT IST (Owner 19.09.2026: dreimal „30 % höher") ─────────
+ *
+ * Jedes „noch 30 %" ist EIN Schritt. Die Lücke zwischen Werk und Titel schrumpft um 30 %, und
+ * der Titel bekommt genau diesen Betrag als Abstand nach unten dazu — so wandert er allein, und
+ * Satz, Adresse und Code bleiben stehen.
+ *
+ * ALS ZAHL STATT ALS KETTE: Vorher standen die Schritte ausgeschrieben nebeneinander, und beim
+ * vierten hätte man raten müssen, welcher Summand zu welchem gehört. Hier ist es eine Zahl —
+ * erhöhen, fertig. Zurück geht genauso.
+ */
+const TITEL_HOCH = 3;
+/** Der ursprüngliche Abstand zwischen Werk und Schrift, bevor der Titel zu wandern anfing. */
+const LUFT_SCHRIFT_ANFANG = 2.2;
+const LUFT_SCHRIFT = LUFT_SCHRIFT_ANFANG * 0.7 ** TITEL_HOCH;
+
 export const POSTER = {
   /** Weißer Rand ringsum — das Passepartout. Anteil der Breite. */
   /* Der Rand des Blattes. Unten schmaler — die Schrift soll näher an die Kante (Owner
@@ -71,7 +87,12 @@ export const POSTER = {
   randOben: 6.5,
   /* Unten mehr Luft als oben (Owner 17.09.2026: „schrift höher") — die Rechtezeile klebte
      sonst auf der Rahmenkante. */
-  randUnten: 5.5,
+  /* AUF 7,5 (Owner 18.09.2026, mit Bild der Monet-Karte auf der Startseite: „die Schrift klebt
+     zu sehr am unteren Rand"). Vorher 5,5 — also WENIGER Luft als oben (6,5), obwohl unten die
+     ganze Schrift liegt: Name, Titel, Satz und der Code. Die Zahl gilt für den Schirm UND die
+     Druckdatei (lib/lakatosbandi-druckdatei.ts), damit das gedruckte Blatt aussieht wie die
+     Vorschau. */
+  randUnten: 7.5,
   /** Zwischen den Zeilen des Textblocks, damit er als ein Stück wirkt. */
   luft: 1.2,
 
@@ -94,7 +115,21 @@ export const POSTER = {
      16.09.2026: „bild kann breiter werden") — der Rand des Blattes ist das Passepartout. */
   /* So gross wie möglich, aber ausgewogen mit Abstand zum Rand (Owner 17.09.2026: „bild muss so
      gross wie möglich ausgewogen mit abstand zum rand"). */
-  bild: { hoch: 76, randSeite: 0, luftUnten: 4 },
+  /**
+   * ── DAS WERK DARF ÜBER DEN SCHRIFTRAND HINAUS (Owner 19.09.2026: „das Bild ist 5 Prozent zu
+   * klein oder 10") ───────────────────────────────────────────────────────────────────────────
+   *
+   * `randSeite` ist der Abstand des BILDFELDS zum Schriftrand. Er war 0, das Werk endete also
+   * genau dort, wo auch der Satz endet — und das Blatt wirkte am Rand zu leer.
+   *
+   * NEGATIV heisst: Das Werk geht über diese Kante hinaus, zum Blattrand hin. −3 auf jeder Seite
+   * sind rund 7 % mehr Werk (die Mitte seiner „5 oder 10"). Die Schrift bleibt, wo sie ist — nur
+   * das Bild wird breiter.
+   *
+   * SCHIRM UND DRUCK LESEN DIESELBE ZAHL (`components/Poster.tsx` als negativer Aussenabstand,
+   * `lakatosbandi-druckdatei.ts` und `-blattbild.ts` als Feldbreite). Eine Zahl, drei Orte.
+   */
+  bild: { hoch: 76, randSeite: -3, luftUnten: 4, luftSchrift: LUFT_SCHRIFT },
 
   /** Der Künstler: Gesicht, Name, Lebensdaten — eine Zeile, wie auf einem Museumsschild. */
   /* Der Name ist ein Schild, keine Überschrift (Owner 16.09.2026: „name ist zu gross") — er
@@ -105,10 +140,26 @@ export const POSTER = {
   /** Titel des Werks und Jahr, kursiv. */
   /* GROSS (Owner 17.09.2026: „Gina 2015 ganz gross") — seit der Künstlername vom Blatt ist,
      trägt der Titel die Zeile: er ist die Überschrift des Werks, nicht eine Fussnote. */
-  titel: { breit: 6.5 },
+  /**
+   * ── GRÖSSER UND NÄHER AM WERK (Owner 19.09.2026: „die Schrift ist zu klein und zu weit
+   * unten") ───────────────────────────────────────────────────────────────────────────────────
+   *
+   * Seit das Werk breiter läuft, wirkte die Schrift darunter wie eine Fussnote: Auf einem A3
+   * sass der Name in gut zwei Zentimetern, mit einer Handbreit leerem Papier darüber. Titel,
+   * Satz und Adresse wachsen deshalb um rund ein Drittel, und die Lücke zwischen Werk und
+   * Schrift fällt von einem ganzen Blattrand auf ein Drittel davon.
+   *
+   * Eine Zahl je Zeile, gelesen von Schirm UND Druck — wer sie ändert, ändert beide.
+   */
+  titel: {
+    breit: 8.6,
+    /* Der Titel rückt ans Werk, der Rest bleibt stehen — siehe `TITEL_HOCH` oben. Was die Lücke
+       oben verliert, bekommt er hier dazu. */
+    luftUnten: 1.2 + (LUFT_SCHRIFT_ANFANG - LUFT_SCHRIFT),
+  },
 
   /** Die zwei Sätze. Der Rest steht hinter dem Code. */
-  text: { breit: 2.6, zeile: 1.38 },
+  text: { breit: 3.45, zeile: 1.38 },
 
   /** Der Code und der Satz, der sagt, was er tut. */
   /* Klein genug, um nicht das Blatt zu beherrschen, gross genug zum Scannen aus Armlänge
@@ -120,7 +171,7 @@ export const POSTER = {
 
   /** Absender und Rechtezeile. */
   marke: { breit: 1.9, sperre: 0.24, luft: 2 },
-  recht: { breit: 1.6 },
+  recht: { breit: 2.1 },
 
   /**
    * ── DER GEDRUCKTE RAHMEN (Owner 16.09.2026: „3 versionen zum download mit rahmen") ────────
@@ -135,7 +186,24 @@ export const POSTER = {
      der Verlauf sollte Tiefe vortäuschen, aber auf Papier gibt es keine Tiefe: gedruckt ist er
      ein Farbverlauf, der wie ein Druckfehler aussieht. Eine Leiste, ein Ton. */
   rahmen: {
-    breit: 4.5,
+    /**
+     * ── DIE LEISTE IST SO BREIT WIE AUF DEM SCHIRM (Owner 19.09.2026: „Rahmen zuerst") ────────
+     *
+     * HIER STANDEN 4,5 %, und das war ein Rest. Der Owner hat die Leiste auf dem Bildschirm
+     * viermal schlanker machen lassen — 16.09. („noch dünner, 30 Prozent"), 17.09. („die Rahmen
+     * sind hier zu breit, 50 Prozent"), 18.09. zweimal („zu fett" · „noch 30 Prozent schmäler")
+     * —, aber jedes Mal nur im Stylesheet. Die Druckdatei rechnete weiter mit der ersten Zahl.
+     *
+     * GEMESSEN am 19.09.2026 an einem A3: Datei 4,50 % der Blattbreite, Schirm 1,27 %. Das ist
+     * mehr als das Dreifache — in der Datei eine Holzleiste, auf dem Schirm ein Strich. Wer die
+     * Vorschau glaubt, bekommt etwas anderes geliefert.
+     *
+     * DIE ZAHLEN SIND JETZT DIESELBEN wie in `globals.css` (`border-width: 1.26cqw 1.26cqw
+     * 1.47cqw 1.26cqw`). Unten ein wenig breiter, wie bei einem echten Rahmen, in dem das Blatt
+     * etwas tiefer sitzt.
+     */
+    breit: 1.26,
+    breitUnten: 1.47,
     holz: "#cba57a",
     schwarz: "#141414",
   },

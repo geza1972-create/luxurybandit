@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { kuenstlerListe } from "@/lib/lakatosbandi";
 import { randomUUID } from "node:crypto";
 import { str } from "@/lib/agent-modell";
 import { agentDeckel } from "@/lib/versusforge-deckel";
@@ -142,6 +143,51 @@ export async function POST(request: Request) {
   if (urteil?.urteil === "verboten") {
     console.warn("[portal-anlegen] Bild abgelehnt, nichts angelegt:", urteil.gruende.join("/"));
     return NextResponse.json({ ok: false, grund: "abgelehnt" }, { status: 422 });
+  }
+
+  /**
+   * ── EINE ADRESSE, EINE SEITE (Owner 18.09.2026: „ich habe geza1972@gmail.com eingegeben. Diese
+   * E-Mail existiert schon und du baust jetzt was?") ──────────────────────────────────────────
+   *
+   * HIER WURDE BEDINGUNGSLOS ANGELEGT. Wer den Trichter zweimal durchlief, bekam zwei Seiten —
+   * und genau das steht im Lager: `gerrylouisett` und `gerrylouisett-2`, `valentinboboc` und
+   * `artist`. Zwei Seiten heissen zwei Adressen, zwei Schlüssel, zwei Mails: Der Künstler weiss
+   * nicht mehr, welche seine ist, und wir wissen nicht, welche wir bewerben.
+   *
+   * DER AGENT MACHT ES SEIT DEM 11.09. RICHTIG (`api/versusforge-agent`, „das Bild ist zwei mal
+   * drin"). Nur der Trichter lief an dieser Prüfung vorbei — dieselbe Lücke, dieselbe Ursache,
+   * ein Weg zu spät gefunden.
+   *
+   * WAS JETZT PASSIERT: Gibt es zu dieser Adresse schon eine Seite, wird KEINE zweite gebaut.
+   * Die Route meldet `schon-da` samt Adresse und Schlüssel; der Trichter zeigt ihm seine Seite
+   * und den Weg hinein. Nichts wird überschrieben — seine vorhandenen Werke bleiben unberührt,
+   * und die neu hochgeladenen legt er im Dashboard nach.
+   */
+  /**
+   * ── ABGELEHNT, NICHT WEITERGELEITET (Owner 18.09.2026: „du lehnst es ab und sagst, diese
+   * E-Mail kann nicht verwendet werden. Benutze eine andere E-Mail. Und falls Name auch
+   * existiert, er muss auch einen anderen Namen benutzen") ────────────────────────────────────
+   *
+   * Zuerst hatte ich ihm seine vorhandene Seite gezeigt. Der Owner will es anders, und das ist
+   * die strengere und die ehrlichere Antwort: Wer hier steht, will etwas NEUES anlegen. Ihm
+   * stattdessen eine alte Seite zu zeigen, beantwortet seine Frage nicht — und wer wirklich ein
+   * zweites Konto braucht (zwei Künstler, ein Haushalt, eine Adresse), soll einfach eine zweite
+   * Adresse nehmen.
+   *
+   * DER NAME ZÄHLT MIT: Zwei „Maia" auf derselben Seite sind für einen Käufer nicht zu
+   * unterscheiden, und auf dem Poster steht der Name. Verglichen wird ohne Rücksicht auf
+   * Gross- und Kleinschreibung und auf doppelte Leerzeichen — „Maia" und „maia " sind derselbe.
+   *
+   * KEIN SCHLÜSSEL, KEINE ADRESSE IN DER ANTWORT: Sonst wäre diese Route eine Auskunftsstelle
+   * darüber, welche Mailadressen bei uns ein Konto haben.
+   */
+  const bekannte = await kuenstlerListe(() => true);
+  const flach = (t: string) => t.trim().toLowerCase().replace(/\s+/g, " ");
+  if (bekannte.some(k => String(k.mail ?? "").trim().toLowerCase() === mail)) {
+    return NextResponse.json({ ok: false, grund: "mail-belegt" }, { status: 409 });
+  }
+  if (bekannte.some(k => flach(String(k.name ?? "")) === flach(name))) {
+    return NextResponse.json({ ok: false, grund: "name-belegt" }, { status: 409 });
   }
 
   /* DER BEHELFSNAME. Er steht nur so lange, bis er bestätigt — dann zieht die Seite um

@@ -122,7 +122,31 @@ export async function POST(request: Request) {
       console.warn("[versusforge-bild] Motiv abgelehnt, nicht gespeichert:", kennung, urteil.gruende.join(", "));
       return NextResponse.json({ error: "abgelehnt", code: urteil.aktfoto ? "aktfoto" : "abgelehnt" }, { status: 422 });
     }
-    const zielPfad = urteil.urteil === "markiert" ? pruefPfad(kennung, nr) : pfad;
+    /**
+     * ── AB JETZT GEHT JEDES BILD IN DIE PRÜFUNG (Owner 18.09.2026) ────────────────────────────
+     *
+     * „Ab jetzt lassen wir nicht alle. Ich muss selektieren. Sie können nicht mehr direkt
+     * posten, ich muss die Bilder freigeben. Einzeln." · „Selbst wenn sie speichern und
+     * hochladen, sind die Bilder nicht automatisch drin."
+     *
+     * HIER STAND `urteil === "markiert" ? pruefPfad : pfad` — nur was die Moderation auffällig
+     * fand, wartete; alles andere war sofort öffentlich. Das war eine Frage des ANSTANDS
+     * (nichts Verbotenes), nicht der QUALITÄT. Und die Qualität ist der Grund, warum die Seite
+     * heute aussieht, wie sie aussieht: Werke, die im Wohnzimmer, schräg und aus drei Metern
+     * fotografiert sind.
+     *
+     * Der Weg dahinter ändert sich NICHT: dieselbe Prüfablage, dieselbe Mail, dieselben zwei
+     * Knöpfe (`api/versusforge-freigabe`). Was sich ändert, ist nur, wer hineinkommt — jetzt
+     * alle.
+     *
+     * WAS DER KÜNSTLER SIEHT: Sein Bild liegt, wo es lag, und die Kachel im Dashboard zeigt
+     * „in Prüfung" (`T.bildPruefung`) statt des Bildes. Er hat also nicht das Gefühl, der
+     * Upload sei fehlgeschlagen — er sieht, dass jemand draufschaut.
+     *
+     * VERBOTEN bleibt verboten: Was die Moderation ablehnt, wird weiterhin gar nicht erst
+     * gespeichert, auch nicht zur Ansicht.
+     */
+    const zielPfad = pruefPfad(kennung, nr);
 
     const put = await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(zielPfad)}`, {
       method: "POST",
@@ -133,13 +157,26 @@ export async function POST(request: Request) {
       console.error("[versusforge-bild] Motiv nicht gespeichert:", put.status);
       return NextResponse.json({ error: "Das Bild liess sich nicht ablegen." }, { status: 502 });
     }
-    if (urteil.urteil === "markiert") {
-      void motivPruefungAlarm({ betrieb: m.name, kennung, nr, gruende: urteil.gruende })
-        .catch(e => console.error("[versusforge-bild] Prüf-Mail gescheitert", e));
-      return NextResponse.json({ ok: true, motiv: false, pruefung: true });
-    }
+    /**
+     * ── EIN NEUES BILD HEBT DIE ALTE ABLEHNUNG AUF (Owner 18.09.2026) ─────────────────────────
+     *
+     * Der Zettel `<nr>.abgelehnt.json` macht aus einem wartenden Bild ein abgelehntes: Er hält
+     * es aus der Freigabeliste heraus und färbt die Kachel im Dashboard rot. Bliebe er liegen,
+     * wäre auch das NEUE Bild von Anfang an abgelehnt — und der Owner bekäme es nie zu sehen.
+     * Der Künstler hätte getauscht und nichts hätte sich bewegt.
+     */
+    await supabaseFetch(`/storage/v1/object/${BUCKET}`, {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prefixes: [`${pruefPfad(kennung, nr).replace(/\.jpg$/, "")}.abgelehnt.json`] }),
+    }).catch(() => null);
+    /* Die Mail geht jetzt bei JEDEM Bild raus. Ohne Grund-Liste heisst das: nichts ist
+       aufgefallen, es wartet nur auf ein Ja — mit Gründen heisst es, die Moderation hat etwas
+       gesehen. Der Owner soll das unterscheiden können, ohne das Bild zu öffnen. */
+    void motivPruefungAlarm({ betrieb: m.name, kennung, nr, gruende: urteil.gruende })
+      .catch(e => console.error("[versusforge-bild] Prüf-Mail gescheitert", e));
     /* KEIN SCHREIBEN IN DIE MANDANTENDATEI: Die Ablage ist die Wahrheit. Begründung oben. */
-    return NextResponse.json({ ok: true, motiv: true });
+    return NextResponse.json({ ok: true, motiv: false, pruefung: true });
   }
 
   const hook = str(body.hook, 300).trim();

@@ -133,7 +133,9 @@ export const AGENT_CHAT_TEXTE = {
    * jemandem, der seine Arbeit ernst nimmt — und das Hochladen brach ein. Die Zeile sagt jetzt
    * dasselbe in seiner Sprache: gezeigt werden.
    */
-  startTitel: "Kunst, die die Welt sieht",
+  /* Das kleine Etikett über dem Hook ist die Marke (Owner 18.09.2026) — nicht mehr „Kunst,
+     die die Welt sieht", sondern das, wofür wir bekannt werden wollen. */
+  startTitel: "lakatosbandi Art Fair",
   /**
    * ── DER HOOK DER ANZEIGE, AUCH IM TRICHTER (Owner 13.09.2026: „das schreibst du auch ins
    * Tunnel rein") ─────────────────────────────────────────────────────────────────────────────
@@ -395,6 +397,34 @@ export const AGENT_CHAT_TEXTE = {
    */
   behaltenHinweis: "Ohne Namen und Adresse bleibt die Seite ohne Besitzer und erscheint nicht in der Übersicht.",
   /**
+   * ── OHNE WERK KEINE SEITE, UND ER SOLL ES LESEN (Owner 18.09.2026: „ich brauche eine FM, dass
+   * Bild fehlt") ──────────────────────────────────────────────────────────────────────────────
+   *
+   * Der Knopf ist gesperrt, seit alle Bilder löschbar sind. Ein grauer Knopf ohne Satz ist aber
+   * keine Auskunft — der Künstler sucht dann bei Name, Adresse oder Häkchen, wo nichts fehlt.
+   * Hausregel [[sichtbare-fehler-keine-formularfelder]]: die Absage rot an der Stelle, an der
+   * sie entsteht.
+   */
+  bildFehlt: "Es fehlt ein Werk — lade mindestens ein Bild hoch.",
+  /**
+   * ── EINE ADRESSE, EINE SEITE (Owner 18.09.2026) ─────────────────────────────────────────────
+   *
+   * Kein Fehlerton: Er hat nichts falsch gemacht, er ist nur schon da. Der Satz sagt, wo seine
+   * Seite liegt, und dass der Weg hinein über seine Mail führt — ein zweiter Schlüssel im Chat
+   * wäre eine Einladung für jeden, der über die Schulter schaut.
+   */
+  /**
+   * ── BELEGT HEISST ABGELEHNT (Owner 18.09.2026) ──────────────────────────────────────────────
+   *
+   * Zwei getrennte Sätze, weil es zwei verschiedene Dinge zu tun gibt: die Adresse wechseln oder
+   * den Namen wechseln. Ein gemeinsamer Satz („Adresse oder Name belegt") liesse ihn raten.
+   *
+   * KEIN HINWEIS DARAUF, WESSEN Konto das ist — weder Name noch Adresse. Die Antwort sagt nur,
+   * dass es belegt ist.
+   */
+  mailBelegt: "Diese E-Mail kann nicht verwendet werden — sie gehört bereits zu einem Konto. Nimm bitte eine andere.",
+  nameBelegt: "Diesen Künstlernamen gibt es bei uns schon. Nimm bitte einen anderen.",
+  /**
    * ── DIE ADRESSE NOCH EINMAL ZEIGEN, BEVOR ETWAS RAUSGEHT (Owner 13.09.2026: „wenn jemand
    * seine email angibt, bevor du es versendest, frag noch mal nach, ist die adresse richtig?") ─
    *
@@ -591,7 +621,7 @@ const FEST: Partial<Record<Lang, Partial<AgentChatTexte>>> = {
     grussKostenlos: "Aici totul e gratuit — în această fază de început ne finanțăm din sponsori și crowdfunding, iar pentru tine, ca unul dintre primii artiști, rămâne așa. Primești:\n· o frază pentru imaginea ta, care îi face pe cumpărători să se oprească\n· propria ta pagină pe lakatosbandi.com, platforma noastră pentru artiști, cu un agent AI care vorbește cu cei interesați\n· fiecare cerere cu nume și număr de telefon, ca să poți suna",
     /* Wortlaut vom Owner, 13.09.2026 — vollständig übernommen, nichts umformuliert. */
     startMockup: "Așa poate arăta pagina ta.",
-    startTitel: "Artă arătată lumii",
+    startTitel: "lakatosbandi Art Fair",
     /* Wortlaut des Owners, 15.09.2026, ins Rumänische gesetzt. */
     startHook: "Începe să-ți promovezi arta inteligent — cu lakatosbandi Art Fair.",
     startHookKlein: "Lucrările tale devin produse. Din fiecare comandă câștigi și tu.",
@@ -628,6 +658,9 @@ const FEST: Partial<Record<Lang, Partial<AgentChatTexte>>> = {
     behaltenFertig: "Pagina ta e creată și linkurile sunt pe drum. O mai verificăm — apoi apare în listă.",
     behaltenFehler: "Nu a mers. Mai încearcă o dată, te rog.",
     behaltenHinweis: "Fără nume și adresă, pagina rămâne fără proprietar și nu apare în listă.",
+    bildFehlt: "Lipsește o lucrare — încarcă cel puțin o poză.",
+    mailBelegt: "Acest e-mail nu poate fi folosit — aparține deja unui cont. Te rugăm să folosești altul.",
+    nameBelegt: "Acest nume de artist există deja la noi. Te rugăm să alegi altul.",
     mailRichtigWarnung: "Fără adresa corectă nu vei putea intra niciodată în profilul tău.",
     mailRichtigFrage: "Adresa este corectă?",
     mailRichtigJa: "Da, e corectă",
@@ -732,7 +765,7 @@ const FEST: Partial<Record<Lang, Partial<AgentChatTexte>>> = {
   en: {
     beispielVor: "e.g.",
     startMockup: "This is how your page can look.",
-    startTitel: "Art shown to the world",
+    startTitel: "lakatosbandi Art Fair",
     startHook: "Start marketing your art cleverly — with lakatosbandi Art Fair.",
     startHookKlein: "Your works become products. Every order pays you a licence.",
     startKnopf: "Upload up to 10 works",
@@ -759,6 +792,9 @@ const FEST: Partial<Record<Lang, Partial<AgentChatTexte>>> = {
     behaltenFertig: "Your page is created and the links are on their way. We'll take a look — then it appears in the list.",
     behaltenFehler: "That didn't work. Please try again.",
     behaltenHinweis: "Without a name and address the page stays ownerless and does not appear in the list.",
+    bildFehlt: "A work is missing — upload at least one picture.",
+    mailBelegt: "This e-mail cannot be used — it already belongs to an account. Please use a different one.",
+    nameBelegt: "This artist name already exists here. Please choose a different one.",
     mailRichtigWarnung: "Without the right address you will never get into your profile.",
     mailRichtigFrage: "Is this address correct?",
     mailRichtigJa: "Yes, correct",

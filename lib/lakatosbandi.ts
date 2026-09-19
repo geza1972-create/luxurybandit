@@ -28,6 +28,41 @@ import { mandantLesen, type MandantAngaben } from "@/lib/versusforge-mandanten";
 import { istKuenstler } from "@/lib/lakatosbandi-adressen";
 export { PORTAL_URL, imPortal, aufVersusforge, istKuenstler, kuenstlerUrl, kuenstlerDashboardUrl, portalPfade } from "@/lib/lakatosbandi-adressen";
 
+/**
+ * ── DIE ZWEI ZEILEN AUF DEM BLATT (Owner 19.09.2026: „ich will extra in jedem Poster den Titel
+ * ändern und die Texte") ────────────────────────────────────────────────────────────────────
+ *
+ * BISHER STAND IMMER DER KÜNSTLERNAME GROSS und der Werktitel klein darunter (Owner 17.09.2026:
+ * „mach bei allen Künstlern den Künstlernamen rein"). Damit konnte ein Künstler die grosse Zeile
+ * gar nicht beeinflussen — er tippte in die Zeile AUF dem Blatt, die dem KUNDEN gehört und nie
+ * gespeichert wird, und wunderte sich, dass nichts bleibt.
+ *
+ * DIE REGEL JETZT: Hat das Werk einen Titel, steht er gross und der Name rückt nach unten. Hat
+ * es keinen, bleibt alles wie vorher.
+ *
+ * WARUM MIT RÜCKFALL UND NICHT FEST (GEMESSEN am 19.09.2026): Von 42 freigegebenen Werken der
+ * lebenden Künstler tragen nur 20 einen Titel. Stünde dort fest der Titel, wäre auf mehr als der
+ * Hälfte der Blätter die grosse Zeile leer — ein Blatt, das mal so und mal so aussieht, liest
+ * sich als Fehler. Mit dem Rückfall ändert sich für diese Werke nichts, und wer einen Titel
+ * einträgt, sieht ihn sofort gross.
+ *
+ * DIE SCHRIFT SCHRUMPFT MIT (`posterTitelBreit`): Der längste Titel im Bestand hat 22 Zeichen,
+ * bei den Meistern 34 — beides passt, ohne umzubrechen.
+ *
+ * EINE STELLE FÜR VIER BLÄTTER: Startseite (Schaufenster und Rubrik), Künstlerseite (Originale
+ * und Laden). Vier Kopien wären vier Blätter, die irgendwann verschieden aussehen.
+ */
+export function blattZeilen(
+  name: string,
+  wi?: { titel?: string; jahr?: string } | null,
+): { gross: string; klein: string } {
+  const t = String(wi?.titel ?? "").trim();
+  const j = String(wi?.jahr ?? "").trim();
+  return t
+    ? { gross: t, klein: [name, j].filter(Boolean).join(", ") }
+    : { gross: name, klein: j };
+}
+
 /** Die Werke eines Künstlers als Kacheln: sein Haupt-Hook mit dem Standard-Motiv, dann jeder weitere. */
 export function werkKacheln(
   m: Pick<MandantAngaben, "hook" | "hooks"> & Partial<Pick<MandantAngaben, "hookSprachen" | "sprache">>,

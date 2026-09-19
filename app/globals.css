@@ -1347,6 +1347,18 @@ body:has(.lb-mandant) .lb-cookieband { display: none !important; }
    DER RAHMEN GEHT UM DAS GANZE POSTER, nicht um das Werk darin (Owner 15.09.2026: „nein mein
    lieber. nicht das bild sondern die ganze kachel") — so hängt es auch an der Wand: Holz aussen,
    Papier innen, das Bild mittendrin. Die Farbe ist Eiche wie auf dem Foto. */
+/* ── DER BROWSER DARF DIE SCHRIFT NICHT AUFBLASEN (Owner 18.09.2026: „die Schrift in den Postern
+   live sehen nicht gut aus, sie sind verschoben" · „einer hat sogar Scroll") ──────────────────
+   Auf dem Handy vergrössert der Browser von sich aus kleine Schrift („text autosizing"). Auf dem
+   Blatt ist aber JEDE Grösse ein Anteil der Blattbreite — wird eine davon angehoben und die
+   anderen nicht, verrutscht das ganze Raster: Der Satz passte nicht mehr in sein Feld und bekam
+   einen Scrollbalken. Auf einem Blatt, das wie ein Druck aussehen soll, ist das der Tod. */
+.lb-poster-karte,
+.lb-poster-karte * {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
 .lb-poster-karte {
   /* Die Haarlinie um ein Blatt OHNE Rahmen — derselbe Ton wie `POSTER.farben.kante`. */
   border-color: #ddd4c0;
@@ -1356,10 +1368,18 @@ body:has(.lb-mandant) .lb-cookieband { display: none !important; }
 /* `lb-rahmen-fest`: ein Rahmen ohne Auswahl — im Schaufenster der Startseite, wo nichts zu
    wählen ist (Owner 16.09.2026: „mit rahmen"). Die Farbe gibt der schwarze Block weiter unten. */
 .lb-poster-karte.lb-rahmen-fest,
+/* ── DER RAHMEN GILT AUCH IM VOLLBILD (Owner 19.09.2026: „ich will auch den Rahmen sehen, wenn
+   ich den einblende · im Full und im Download auch") ─────────────────────────────────────────
+   Die drei Regeln unten hängen an einem VORFAHREN, der die Rahmenwahl enthält (`li`, `.lb-poster-
+   block`). Im Vollbild liegt das Blatt in einem Portal an `document.body` — die Wahl ist dort
+   nicht mehr über sich. Deshalb trägt die Vollbild-Hülle die Wahl als `data-rahmen`, gesetzt von
+   `PosterGross`, und dieselben Striche greifen daran. */
 li:has(.lb-rahmen-wahl input[value="1"]:checked) .lb-poster-karte,
 .lb-poster-block:has(.lb-rahmen-wahl input[value="1"]:checked) .lb-poster-karte,
+.lb-poster-nur-blatt[data-rahmen="1"] .lb-poster-karte,
 li:has(.lb-rahmen-wahl input[value="2"]:checked) .lb-poster-karte,
-.lb-poster-block:has(.lb-rahmen-wahl input[value="2"]:checked) .lb-poster-karte {
+.lb-poster-block:has(.lb-rahmen-wahl input[value="2"]:checked) .lb-poster-karte,
+.lb-poster-nur-blatt[data-rahmen="2"] .lb-poster-karte {
   /* ── EIN RAHMEN HAT TIEFE (Owner 15.09.2026: „es muss 3d aussehen") ──────────────────────
      Vier Leisten statt einer Fläche: Oben fällt Licht ein, unten liegt Schatten, links und
      rechts dazwischen. `border-image` mit einem Verlauf über alle vier Kanten macht genau das,
@@ -1383,7 +1403,11 @@ li:has(.lb-rahmen-wahl input[value="2"]:checked) .lb-poster-karte,
      etwas mehr, wie bei einem echten Rahmen, in dem das Blatt ein wenig tiefer sitzt. */
   /* Zwei Pixel mehr Leiste (Owner 17.09.2026: „und 2 pixel breiter") — auf einer Kachel von
      rund 340 px sind das etwa 0,6 % ihrer Breite. */
-  border-width: 2.6cqw 2.6cqw 3cqw 2.6cqw;
+  /* Noch einmal schlanker (Owner 18.09.2026: „die Rahmen sind zu fett") — im Zimmerbild hing
+     das Blatt in einem Balken statt in einer Leiste. */
+  /* Und noch einmal 30 % schmaler (Owner 18.09.2026: „der Rahmen ist immer noch zu fett, 30
+     Prozent schmäler"). */
+  border-width: 1.26cqw 1.26cqw 1.47cqw 1.26cqw;
   /* AUF DEM BILDSCHIRM BLEIBT DER VERLAUF (Owner 16.09.2026: „das problem war nur in der pdf"
      · „mit dem verlauf") — ein Bildschirm kann Tiefe zeigen, Papier nicht. Flach und einen Ton
      heller ist deshalb nur die Druckdatei (`POSTER.rahmen`). */
@@ -1415,8 +1439,10 @@ li:has(.lb-rahmen-wahl input[value="2"]:checked) .lb-poster-karte,
      Es bleibt der eine weiche Wurf nach rechts unten — Licht von links oben. */
   box-shadow:
     inset 1px 1px 0 rgba(255, 255, 255, .45),
-    inset -1px -1px 0 rgba(0, 0, 0, .35),
-    14px 18px 22px -10px rgba(20, 24, 28, .5);
+    /* DER WURF AUF DIE WAND IST RAUS (Owner 18.09.2026: erst „der Schlagschatten ist zu gross",
+       dann „Schatten raus") — es bleibt die haarfeine helle Kante oben links und die dunkle
+       unten rechts: die Kante der Leiste selbst. */
+    inset -1px -1px 0 rgba(0, 0, 0, .35);
 }
 
 /* ── DAS BLATT OHNE WERKZEUG (Owner 17.09.2026: „beim vergrössern blendest du die buttons
@@ -1426,7 +1452,11 @@ li:has(.lb-rahmen-wahl input[value="2"]:checked) .lb-poster-karte,
 .lb-poster-nur-blatt .lb-poster-knopf,
 .lb-poster-nur-blatt .lb-poster-stift,
 .lb-poster-nur-blatt .lb-poster-gross-knopf,
-.lb-poster-nur-blatt .lb-poster-regler {
+.lb-poster-nur-blatt .lb-poster-regler,
+/* Der Schritt-Hinweis („1 · Wähl ein Foto von dir") gehört zum Werkzeug, nicht aufs Blatt
+   (Owner 19.09.2026: „alege o poză darf hier nicht zu sehen sein"). Im Grossbild soll das Blatt
+   so aussehen, wie es gedruckt an der Wand hängt — dort steht keine Anleitung. */
+.lb-poster-nur-blatt .lb-poster-schritt {
   display: none;
 }
 
@@ -1439,8 +1469,10 @@ li:has(.lb-rahmen-wahl input[value="2"]:checked) .lb-poster-karte,
 .lb-poster-karte.lb-rahmen-fest::after,
 li:has(.lb-rahmen-wahl input[value="1"]:checked) .lb-poster-karte::after,
 .lb-poster-block:has(.lb-rahmen-wahl input[value="1"]:checked) .lb-poster-karte::after,
+.lb-poster-nur-blatt[data-rahmen="1"] .lb-poster-karte::after,
 li:has(.lb-rahmen-wahl input[value="2"]:checked) .lb-poster-karte::after,
-.lb-poster-block:has(.lb-rahmen-wahl input[value="2"]:checked) .lb-poster-karte::after {
+.lb-poster-block:has(.lb-rahmen-wahl input[value="2"]:checked) .lb-poster-karte::after,
+.lb-poster-nur-blatt[data-rahmen="2"] .lb-poster-karte::after {
   content: "";
   position: absolute;
   inset: 0;
@@ -1470,7 +1502,8 @@ li:has(.lb-rahmen-wahl input[value="2"]:checked) .lb-poster-karte::after,
 /* Derselbe Rahmen in Schwarz (Owner 15.09.2026: „und farbe wählen schwarz oder braun"). */
 .lb-poster-karte.lb-rahmen-fest,
 li:has(.lb-rahmen-wahl input[value="2"]:checked) .lb-poster-karte,
-.lb-poster-block:has(.lb-rahmen-wahl input[value="2"]:checked) .lb-poster-karte {
+.lb-poster-block:has(.lb-rahmen-wahl input[value="2"]:checked) .lb-poster-karte,
+.lb-poster-nur-blatt[data-rahmen="2"] .lb-poster-karte {
   /* Auch Schwarz ist Holz (Owner 17.09.2026: „auch schwarz ist holz") — schwarz gebeizte Eiche,
      die Maserung bleibt sichtbar. Dieselbe Neun-Felder-Technik wie beim hellen Rahmen; auch
      dieses Bild ist ein Muster, bis die Leiste des Lieferanten fotografiert ist. */
@@ -1572,10 +1605,53 @@ li:has(.lb-rahmen-wahl input[value="2"]:checked) .lb-poster-karte,
 /* WEISS MIT SCHWARZER SCHRIFT (Owner 17.09.2026: „button weiss mit schwarzer schrift") — er
    liegt AUF dem Werk, und dort ist ein schwarzer Block ein Loch im Bild. Weiss legt sich wie
    ein Etikett darüber; dieselbe Gestalt wie die `Scheibe` daneben, die auch auf Bildern liegt. */
+/**
+ * ── DER KNOPF MELDET SICH (Owner 19.09.2026: „der Button dort müsste animiert werden") ──────
+ *
+ * Ein weisser Knopf auf einem hellen Blatt ist leicht zu übersehen — und er ist das Einzige,
+ * was auf dieser Seite etwas kostet und etwas erzeugt. Der Puls ist kein Schmuck: Er zeigt, wo
+ * es weitergeht, bei jemandem, der zum ersten Mal hier ist.
+ *
+ * RUHIG UND LANGSAM (2,4 s, zwei Prozent Grösse): Ein schnelles Blinken liest sich als Warnung.
+ * Der Schatten atmet mit, damit es auch auf einem hellen Motiv sichtbar ist.
+ *
+ * `prefers-reduced-motion` schaltet ihn ganz ab — für manche Menschen ist dauernde Bewegung
+ * kein Hinweis, sondern ein Problem (dieselbe Regel wie bei der laufenden Reihe).
+ */
+@keyframes lb-poster-puls {
+  0%, 100% { transform: translateX(-50%) scale(1); box-shadow: 0 0.25cqw 1cqw rgba(0, 0, 0, .35); }
+  50%      { transform: translateX(-50%) scale(1.02); box-shadow: 0 0.35cqw 2.2cqw rgba(0, 0, 0, .45); }
+}
+.lb-poster-knopf-puls {
+  animation: lb-poster-puls 2.4s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .lb-poster-knopf-puls { animation: none; }
+}
+
+/**
+ * ── DIE ZEILEN, DIE ER NOCH NICHT ANGEFASST HAT (Owner 19.09.2026) ──────────────────────────
+ *
+ * Gestrichelt und rot, sobald eine Zeichnung im Blatt steht und die Zeile noch die Worte des
+ * Künstlers trägt. Sie sperrt nichts — sie fällt nur auf, bevor er die Datei lädt.
+ *
+ * `outline` statt `border`: Ein Rand würde die Zeile verschieben und damit das Blatt, ein
+ * Umriss liegt daneben (Hausregel `ci-design`: „Auswahl verschiebt NIE"). `0.4cqw` Abstand,
+ * damit er die Schrift nicht berührt.
+ */
+.lb-poster-feld-offen {
+  outline: 0.25cqw dashed #c2352b;
+  outline-offset: 0.4cqw;
+  border-radius: 0.6cqw;
+}
+
 .lb-poster-knopf {
   display: inline-flex;
   align-items: center;
   gap: 0.6em;
+  /* FETT (Owner 19.09.2026: „hier muss fett stehen") — der Knopf lag in normaler Schriftstärke
+     auf dem Werk und las sich wie eine Bildunterschrift, nicht wie das Angebot der Seite. */
+  font-weight: 800;
   padding: 0.9cqw 2.4cqw;
   border: 0.18cqw solid #fff;
   border-radius: 999px;

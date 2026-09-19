@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { SPUR } from "@/components/PortalSpur";
 import type { PortalTexte } from "@/lib/lakatosbandi-texte";
 import { PORTAL_SPRACHEN } from "@/lib/lakatosbandi-texte";
 import PortalMenue from "@/components/PortalMenue";
@@ -28,7 +29,7 @@ export default function PortalKopf({ T, lang, login, start, preise, journal, spr
 }) {
   return (
     <header className="border-b border-[#e5e5e5] px-5 py-4">
-      <div className="mx-auto flex w-full max-w-[1120px] items-center justify-between gap-2 sm:gap-4">
+      <div className={`${SPUR} flex items-center justify-between gap-2 sm:gap-4`}>
         {/* ── EUER BILD NEBEN DEM LOGO (Owner 14.09.2026: „bild von uns im kreis neben dran" ·
             „auf der webseite ebenso") — dasselbe Foto wie im Trichter, damit beide Seiten
             denselben ersten Eindruck machen: zwei Menschen, keine Firma.

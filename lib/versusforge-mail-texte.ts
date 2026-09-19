@@ -166,6 +166,60 @@ export const VERSUSFORGE_MAIL_TEXTE = {
   freigabeTitel: "Deine Seite ist online.",
   freigabeText: "Wir haben uns deine Bilder angesehen. Ab jetzt sehen Käufer deine Seite, und dein Agent spricht jeden an, der sich für deine Kunst interessiert.",
   freigabeSeiteFein: "So sehen Käufer deine Seite.",
+  /**
+   * ── EIN EINZELNES WERK WURDE ABGELEHNT (Owner 18.09.2026: „wenn ich ablehnen klicke, bekommen
+   * sie eine E-Mail. Bild wurde abgelehnt. Entweder nicht richtig dargestellt oder passt nicht
+   * für unser Portal") ────────────────────────────────────────────────────────────────────────
+   *
+   * Nicht zu verwechseln mit `ablehnung…` darunter — das ist die Absage an die ganze Anmeldung.
+   * Hier bleibt sein Konto und seine Seite; es geht um EIN Bild.
+   *
+   * DER GRUND STEHT DRIN, UND ZWAR BEIDE: Bei „nicht richtig dargestellt" kann er etwas tun —
+   * neu fotografieren. Bei „passt nicht" nicht. Ohne den ersten Teil schickt er dasselbe Foto
+   * noch einmal; ohne den zweiten glaubt er, es liege immer nur an der Aufnahme.
+   */
+  werkAbgelehntBetreff: "Deine Bilder auf lakatosbandi.com",
+  /**
+   * ── DIE GRÜNDE SIND EINZELN ANKLICKBAR (Owner 18.09.2026: „du machst mir ein Freigabesystem
+   * mit Feedback" · „muss aber profi sein") ───────────────────────────────────────────────────
+   *
+   * Eine Absage ohne Grund macht wütend und ändert nichts. Eine Absage mit dem SATZ, der auf
+   * dieses eine Foto zutrifft, ist eine Arbeitsanweisung — und der Künstler kann sie in zehn
+   * Minuten erledigen.
+   *
+   * Die Gründe sind kurz und beschreiben das FOTO, nie das Werk. „Schlechte Kunst" steht hier
+   * nicht und wird hier nie stehen; darüber urteilt niemand in einer automatischen Mail.
+   */
+  grundSchief: "Das Werk ist schräg fotografiert",
+  grundUmgebung: "Man sieht mehr vom Raum als vom Werk",
+  grundUnscharf: "Das Foto ist unscharf oder zu dunkel",
+  grundSpiegelung: "Spiegelungen oder Blitz auf dem Werk",
+  grundRahmen: "Rahmen, Hände oder Möbel im Bild",
+  grundPasst: "Passt nicht zu unserem Portal",
+  werkAbgelehntTitel: "Ein paar deiner Bilder haben wir nicht übernommen.",
+  /**
+   * ── ZWEI EINLEITUNGEN, WEIL ES ZWEI GRÜNDE GIBT (Owner 18.09.2026: „es stimmt in diesem Fall
+   * nicht, was er sagt, dass nur Fotos von den Bildern") ─────────────────────────────────────
+   *
+   * „Deine Kunst steht nicht zur Debatte" ist wahr, solange es um die AUFNAHME geht — schräg,
+   * dunkel, zu viel Raum. Steht als einziger Grund „passt nicht zu unserem Portal", ist der Satz
+   * eine Lüge: Dann geht es sehr wohl um das Werk, und ihm das Gegenteil zu schreiben ist
+   * schlimmer als die Absage selbst.
+   *
+   * Welcher Satz genommen wird, entscheidet der Inhalt der Absage, nicht der Zufall.
+   */
+  werkAbgelehntText: "Deine Kunst steht nicht zur Debatte — es geht um die Fotos. Hier steht bei jedem Bild, was daran nicht geht:",
+  werkAbgelehntTextPasst: "Wir nehmen nicht jedes Werk auf — unsere Auswahl ist eng, und das sagt nichts über deine Arbeit. Hier steht, um welche Bilder es geht:",
+  /**
+   * ── DIE FRIST STEHT IM SATZ, NICHT ALS ZAHL (Owner 18.09.2026: „wenn sie mir in 48 die Bilder
+   * nicht verbessern") ────────────────────────────────────────────────────────────────────────
+   *
+   * „48" als Platzhalter würde beim Übersetzen verlorengehen oder verfälscht ([[uebersetzer-fallen]]).
+   * Deshalb steht die Zahl ausgeschrieben im deutschen Quelltext und reist als Teil des Satzes mit.
+   */
+  werkAbgelehntFrist: "Bitte lade die Bilder innerhalb von 48 Stunden neu hoch. Danach nehmen wir die betroffenen Werke von der Seite — nicht gern, aber deine Seite ist deine Vitrine, und eine Vitrine mit schlechten Fotos verkauft nichts.",
+  werkAbgelehntWie: "So wird es gut: Handy parallel zur Leinwand, frontal — nicht von der Seite. Das Werk füllt das Bild, kein Boden, keine Wand, keine Möbel. Tageslicht, kein Blitz, keine Spiegelung.",
+  werkAbgelehntSeite: "Bilder neu hochladen",
   ablehnungBetreff: "Deine Anmeldung bei lakatosbandi.com",
   ablehnungTitel: "Danke für deine Bilder.",
   ablehnungText: "Wir können deine Seite gerade nicht auf lakatosbandi.com aufnehmen. Das ist kein Urteil über deine Kunst — unsere Auswahl ist im Moment sehr eng.",

@@ -1,8 +1,12 @@
 import type { Metadata } from "next";
+import PortalRubrik from "@/components/PortalRubrik";
+import PortalReihe from "@/components/PortalReihe";
+import PortalMehr from "@/components/PortalMehr";
+import { SPUR, KACHEL } from "@/components/PortalSpur";
 import Link from "next/link";
 import { headers } from "next/headers";
 import { resolveLang } from "@/lib/lang-server";
-import { kuenstlerListe, imPortalSichtbar, portalPfade, werkKacheln, posterAnriss } from "@/lib/lakatosbandi";
+import { kuenstlerListe, imPortalSichtbar, portalPfade, werkKacheln, posterAnriss, blattZeilen } from "@/lib/lakatosbandi";
 import { portalSprache, portalTexte } from "@/lib/lakatosbandi-texte";
 import { aboAktiv } from "@/lib/versusforge-abo";
 import PortalKopf from "@/components/PortalKopf";
@@ -17,7 +21,7 @@ import { ARTIKEL, JOURNAL_UI, type JournalSprache } from "@/lib/lakatosbandi-jou
 import { baldTexte } from "@/lib/lakatosbandi-bald-texte";
 import { eur, VERSUSFORGE_ABO_CENTS } from "@/lib/pricing";
 import { preisSatz, preisText } from "@/lib/lakatosbandi-preis";
-import { druckSpanneCents } from "@/lib/lakatosbandi-druck";
+import { druckSpanneCents, KUNST_CENTS } from "@/lib/lakatosbandi-druck";
 import PreisLabel from "@/components/PreisLabel";
 import PortalBesuchMelden from "@/components/PortalBesuchMelden";
 
@@ -90,11 +94,51 @@ export default async function PortalStart({ searchParams }: { searchParams: Prom
    * (`angelegt`). Also der zuletzt angelegte Künstler zuerst und innerhalb von ihm das zuletzt
    * hinzugefügte Werk — das ist der höchste Index; das Standardmotiv (-1) ist sein ältestes.
    */
+  /* Der Augenblick, in dem ein Werk auf der Seite erschien — einmal gerechnet, dreimal benutzt
+     (Sortierung der Originale, Sortierung im Reiter, `nachNeu`). */
+  const neuZeit = (x: { m: (typeof kuenstler)[number]; k: { i: number } }) => Date.parse(
+    String((x.m.werkInfo?.[x.k.i < 0 ? "standard" : String(x.k.i)] as { freiAm?: string } | undefined)?.freiAm ?? x.m.angelegt ?? ""),
+  ) || 0;
+
   const kacheln = kuenstler
     /* IN DER SPRACHE DES BESUCHERS (Owner 14.09.2026: „hier wird nichts übersetzt") — liegt sie
        noch nicht vor, kommt das Original zurück. */
     .flatMap(m => werkKacheln(m, L).map(k => ({ m, k })))
-    .sort((a, b) => (Date.parse(b.m.angelegt ?? "") || 0) - (Date.parse(a.m.angelegt ?? "") || 0) || b.k.i - a.k.i);
+    /**
+     * ── KLEIDUNG IST KEIN ORIGINAL (Owner 19.09.2026: „die Hoodies und T-Shirts haben nichts in
+     * Werke zu suchen, dafür werden wir eine andere Kategorie einfügen") ──────────────────────
+     *
+     * Zwischen Hokusais Fuji stand ein schwarzes T-Shirt mit einem Zitat auf dem Rücken. „Originale
+     * von zeitgenössischen Künstlern — jedes nur einmal" verspricht der Reiter darüber, und ein
+     * bedrucktes Kleidungsstück ist das Gegenteil davon: beliebig oft herstellbar und nicht von
+     * der Hand des Künstlers.
+     *
+     * `produkt` steht am Werk („tricou"/„hanorac"); DIESELBE Zeile filtert seit dem 16.09. schon
+     * die Poster (`posterWerke`). Sie fehlte nur hier.
+     *
+     * DIE STÜCKE BLEIBEN, WO SIE SIND: auf der Seite ihres Künstlers. Sie verschwinden nur aus der
+     * falschen Kategorie — die richtige kommt noch.
+     */
+    .filter(({ m, k }) => {
+      const wi = m.werkInfo?.[k.i < 0 ? "standard" : String(k.i)];
+      /* Abgelehnt heisst: Das Bild ist nicht mehr in der Galerie. Der Satz dazu steht weiter im
+         Datensatz — ohne diese Zeile zeigt die Kachel einen leeren Rahmen (Owner 19.09.2026:
+         „Maia Bild fehlt"). Siehe `abgelehntAm` in lib/versusforge-mandanten.ts. */
+      return !wi?.produkt && !wi?.abgelehntAm;
+    })
+    /**
+     * ── „NEU" IST, WAS ZULETZT FREIGEGEBEN WURDE (Owner 18.09.2026) ──────────────────────────
+     *
+     * HIER STAND NUR `m.angelegt` — das ANMELDEDATUM DES KÜNSTLERS. Ein Werk, das der Owner
+     * heute freigegeben hat, stand damit hinter allem eines Künstlers, der sich zwei Tage früher
+     * angemeldet hat. Für den Besucher ist „neu" aber der Augenblick, in dem es auf der Seite
+     * erschien.
+     *
+     * `freiAm` steht am Werk und wird beim Freigeben geschrieben (`api/freigabe`). Werke aus der
+     * Zeit davor haben es nicht — die fallen auf das Anmeldedatum zurück und stehen damit hinter
+     * allem frisch Freigegebenen. Genau richtig: Sie SIND älter.
+     */
+    .sort((a, b) => neuZeit(b) - neuZeit(a) || b.k.i - a.k.i);
   /* `bald` zählt weiter KÜNSTLER, nicht Werke: Ein einziger Künstler mit zehn Werken darf die
      Seite nicht aus dem Startzustand kippen. */
   const bald = kuenstler.length < START_AB;
@@ -134,7 +178,10 @@ export default async function PortalStart({ searchParams }: { searchParams: Prom
    */
   const ansicht = sp.ansicht === "werke" ? "werke"
     : sp.ansicht === "repro" ? "repro"
-      : sp.ansicht === "kuenstler" ? "kuenstler" : "start";
+      /* ── DIGITAL ART (Owner 19.09.2026: „wir machen noch eine Rubrik für Digital Art und
+         Caricaturist gehört da rein") — eine eigene Kategorie neben Originalen und Postern. */
+      : sp.ansicht === "digital" ? "digital"
+        : sp.ansicht === "kuenstler" ? "kuenstler" : "start";
   /**
    * ── DRITTER REITER: REPRODUCERI (Owner 15.09.2026: „eine neue kategorie jetzt" → „A") ───────
    *
@@ -177,6 +224,7 @@ export default async function PortalStart({ searchParams }: { searchParams: Prom
         .filter(k => {
           const wi = m.werkInfo?.[k.i < 0 ? "standard" : String(k.i)];
           if (wi?.produkt) return false;                       // Kleidung ist kein Poster
+          if (wi?.abgelehntAm) return false;                   // abgelehnt = kein Bild in der Galerie
           if (m.reproduktion) return true;                     // Meister: alles
           return !auswahl || !!wi?.poster;                     // Künstler: seine Auswahl
         })
@@ -233,6 +281,8 @@ export default async function PortalStart({ searchParams }: { searchParams: Prom
    * Werken und zwei Kleidungsstücken ist damit der erste, ohne dass eine Reihenfolge von Hand
    * gepflegt werden muss.
    */
+  /* Generatoren gehören nicht in „Originale“ — siehe `originalWerke`. */
+  const originalKuenstler = (liste: typeof kuenstler) => liste.filter(x => !x.kunstAn);
   const kuenstlerSortiert = ansicht === "repro"
     /* Die Meister zuerst (Owner 15.09.2026: „van gogh als erstes oben in der kategorie") und
        innerhalb der beiden Gruppen, wer am meisten zu zeigen hat. Sonst schöbe sich ein
@@ -241,12 +291,11 @@ export default async function PortalStart({ searchParams }: { searchParams: Prom
     ? [...meister].sort((a, b) =>
       (b.reproduktion ? 1 : 0) - (a.reproduktion ? 1 : 0)
       || werkKacheln(b, L).length - werkKacheln(a, L).length)
-    : nachDatum(lebende);
-  const gesamt = ansicht === "werke" ? kacheln.length : kuenstlerSortiert.length;
-  const seiten = Math.max(1, Math.ceil(gesamt / PRO_SEITE));
-  /* Eine erfundene Seitenzahl (`?s=99`) führt auf die letzte Seite statt ins Leere. */
-  const seite = Math.min(Math.max(1, Math.round(Number(sp.s)) || 1), seiten);
-  const von = (seite - 1) * PRO_SEITE;
+    /* In „Originale" stehen nur die, die wirklich Einzelstücke haben — Generatoren nicht. */
+    : nachDatum(ansicht === "werke" ? originalKuenstler(lebende) : lebende);
+  /* Seitenzahl, Anfangsindex und Seitenanzahl standen hier — seit dem Nachladen (PortalMehr)
+     rechnet sie niemand mehr aus. `?s=` in alten Links schadet nicht: Es wird schlicht ignoriert,
+     und die Liste ist ohnehin vollständig. */
 
   /* Sprache und Ansicht müssen jeden Link überleben — sonst wirft die zweite Seite den Besucher
      zurück auf Englisch und in die Werke-Ansicht. */
@@ -254,11 +303,52 @@ export default async function PortalStart({ searchParams }: { searchParams: Prom
     const p = new URLSearchParams();
     if (sp.lang) p.set("lang", String(sp.lang));
     const a = o.ansicht ?? ansicht;
-    if (a === "werke" || a === "repro" || a === "kuenstler") p.set("ansicht", a);
-    if ((o.s ?? seite) > 1) p.set("s", String(o.s ?? seite));
+    if (a === "werke" || a === "repro" || a === "kuenstler" || a === "digital") p.set("ansicht", a);
+    /* `s` steht nur noch in Links, die es ausdrücklich setzen — seit dem Nachladen gibt es keine
+       laufende Seitenzahl mehr, die mitgeschleppt werden müsste. */
+    if ((o.s ?? 1) > 1) p.set("s", String(o.s));
     const q = p.toString();
     return q ? `${P.start}?${q}` : P.start;
   };
+
+  /**
+   * ── WER IN DIGITAL ART STEHT ──────────────────────────────────────────────────────────────
+   *
+   * Der Merker sitzt am KÜNSTLER (`digital`), nicht am Werk: Wer am Bildschirm arbeitet, tut das
+   * in aller Regel bei allem, was er zeigt. Gezeigt werden dieselben Werkkacheln wie bei den
+   * Originalen — dieselbe Ware, andere Tür.
+   */
+  /**
+   * ── WAS ÜBERHAUPT NOCH DA IST (Owner 19.09.2026: „Maia fehlt als Bild") ───────────────────
+   *
+   * Eine Werkkachel entsteht aus einem SATZ (`werkKacheln` liest `hook`/`hooks`), nicht aus einem
+   * Bild — und der Satz überlebt die Ablehnung des Fotos. Diese Zeile stand schon an drei Stellen
+   * ausgeschrieben; an der vierten (den Künstlerkreisen) fehlte sie, und dort stand Maias Name
+   * unter einem leeren Kreis, daneben „4 lucrări" für vier Werke, die es nicht mehr gibt.
+   *
+   * Jetzt einmal, und jede Fläche fragt dieselbe Funktion.
+   */
+  const echteWerke = (m: (typeof kuenstler)[number]) => werkKacheln(m, L).filter(k => {
+    const wi = m.werkInfo?.[k.i < 0 ? "standard" : String(k.i)];
+    return !wi?.produkt && !wi?.abgelehntAm;
+  });
+
+  const digitale = kuenstler.filter(x => x.digital === true);
+  const digitalWerke = kacheln.filter(({ m }) => m.digital === true);
+
+  /**
+   * ── EIN GENERATOR HAT KEINE ORIGINALE (Owner 19.09.2026: „der darf in dieser Kategorie gar
+   * nicht stehen") ────────────────────────────────────────────────────────────────────────────
+   *
+   * „Lucrări originale" verspricht: ein Werk, von Hand gemacht, EINMAL — „câte una singură,
+   * direct de la cel care a făcut-o". Ein Generator-Künstler des Hauses verkauft das Gegenteil:
+   * beliebig oft, aus dem Foto des Kunden. Sein Blatt gehört in „Digital Art" und in den Laden,
+   * nicht dorthin.
+   *
+   * Der Preis daneben war die zweite Folge desselben Fehlers: „20. Preț la cerere" — die
+   * Preisspanne eines Künstlers, der gar nichts Einzelnes zu verkaufen hat.
+   */
+  const originalWerke = kacheln.filter(({ m }) => !m.kunstAn);
 
   const reiter = (
     <PortalReiter reiter={[
@@ -270,55 +360,130 @@ export default async function PortalStart({ searchParams }: { searchParams: Prom
       { label: T.tabWerke, href: adr({ ansicht: "werke", s: 1 }), aktiv: ansicht === "werke" },
       /* Nur zeigen, wenn es überhaupt Meister gibt — ein leerer Reiter ist ein Versprechen ins Leere. */
       ...(meister.length ? [{ label: T.tabReproduktionen, href: adr({ ansicht: "repro", s: 1 }), aktiv: ansicht === "repro" }] : []),
+      /* Dieselbe Regel wie bei den Meistern: kein Reiter, solange niemand darin steht. */
+      ...(digitale.length ? [{ label: T.tabDigital, href: adr({ ansicht: "digital", s: 1 }), aktiv: ansicht === "digital" }] : []),
     ]} />
   );
 
   /* ENGER ALS VORHER (Owner: „die müssen kleiner werden und mehrere Spalten … auf mobile auch 2 3
      Spalten"): 2 Spalten am Handy, 3 ab sm, 4 ab lg. Die Abstände schrumpfen mit — mit den alten
      32 px blieben am Handy nur 151 px je Kachel. */
-  const RASTER = "mt-6 grid list-none grid-cols-2 gap-x-3 gap-y-8 p-0 sm:grid-cols-3 sm:gap-x-5 sm:gap-y-10 lg:grid-cols-4";
+  /**
+   * ── AM RECHNER DREI, UND SIE NUTZEN DIE BREITE (Owner 18.09.2026: „auf dem Desktop muss die
+   * Breite des Schirmes ausnutzen bei der Startseite. Mach nur 3 Poster in der Reihe") ─────────
+   *
+   * VIER SPALTEN IN EINER 1120-PX-SPUR ergaben Blätter von rund 250 px — auf einem 1440er Schirm
+   * lagen links und rechts zusammen 320 px brach, und das Poster war kleiner als auf dem Handy.
+   * Drei Spalten in einer BREITEREN Spur (siehe `SPUR_BREIT` unten) machen daraus rund 450 px.
+   *
+   * Handy und Tablet bleiben, wie sie sind: zwei nebeneinander am Handy war eine eigene
+   * Entscheidung vom 16.09. („auf dem handy 2 poster in einer linie").
+   */
+  const RASTER = "mt-6 grid list-none grid-cols-2 gap-x-3 gap-y-8 p-0 sm:grid-cols-3 sm:gap-x-5 sm:gap-y-10 lg:gap-x-8 lg:gap-y-12";
+
+  /**
+   * ── REIHE ODER WAND (Owner 19.09.2026: „beim Living Poster und Originale kein Slider,
+   * sondern Galerie-Darstellung. Die neusten sind oben") ──────────────────────────────────────
+   *
+   * AUF DER STARTSEITE ist eine Wischreihe richtig: Dort liegen drei Abschnitte übereinander,
+   * und jeder darf nur eine Zeile hoch sein, sonst sieht niemand den nächsten.
+   *
+   * IM REITER ist sie falsch. Wer „Living Poster" antippt, hat sich entschieden und will ALLES
+   * sehen — dort steht nur dieser eine Abschnitt, und eine Reihe versteckt neunzehn von zwanzig
+   * Blättern hinter einer Wischgeste. Dazu kommt: Der Reiter blättert ohnehin seitenweise, und
+   * waagerecht wischen, um danach senkrecht weiterzublättern, sind zwei Bewegungen für dieselbe
+   * Sache.
+   *
+   * Dasselbe Bauteil, zwei Hüllen. `wand` schaltet um — die Kachel gibt dabei ihre feste Breite
+   * ab, weil im Raster die Spalte sie setzt.
+   */
+  const huelle = (wand: boolean, kinder: React.ReactNode) =>
+    wand ? <ul className={RASTER}>{kinder}</ul> : <PortalReihe laufen>{kinder}</PortalReihe>;
+
+  /**
+   * ── DIE NEUSTEN OBEN (Owner 19.09.2026) ──────────────────────────────────────────────────
+   *
+   * „Neu" ist der Augenblick, in dem ein Werk freigegeben wurde (`freiAm`, geschrieben von
+   * `api/freigabe`), nicht der Tag, an dem sich sein Künstler angemeldet hat. Werke von vor der
+   * Freigabe-Einführung haben kein `freiAm` und fallen auf das Anmeldedatum zurück — sie sind
+   * wirklich älter, stehen also richtig hinten.
+   *
+   * SORTIERT WIRD STABIL: Bei gleichem Datum bleibt die Reihenfolge, die hereinkam. Bei den
+   * gemeinfreien Meistern, die alle dasselbe Datum tragen, bleibt damit die Reihum-Verteilung
+   * erhalten, statt dass zwanzigmal van Gogh untereinander steht.
+   */
+  const nachNeu = <T extends { m: (typeof kuenstler)[number]; k: { i: number } }>(liste: T[]) => [...liste]
+    .sort((a, b) => neuZeit(b) - neuZeit(a));
 
   /* Beide Raster nehmen ihre Liste als Argument: Die Kategorieseite gibt eine Seite hinein, die
      Startseite einen Auszug. Zwei Kopien desselben Rasters würden mit dem ersten Wunsch nach
      einer Änderung auseinanderlaufen. */
-  const werkRaster = (liste: typeof kacheln) => (
-    <ul className={RASTER}>
-      {liste.map(({ m, k }) => (
+  const werkRaster = (liste: typeof kacheln, wand = false) => huelle(wand,
+    /* Auf der Startseite läuft die Reihe von selbst (Owner 18.09.2026: „Pfeil und Animation war
+       gut"). Die Künstlerkreise bleiben ruhig: Gesichter, die von selbst wandern, liest niemand. */
+    liste.map(({ m, k }) => (
         /* EIN SCHLÜSSEL JE KACHEL, nicht je Künstler: `m.kennung` allein war bei jedem Künstler
            mit mehr als einem Werk doppelt vergeben — React verwechselt dabei Kacheln. */
-        <li key={`${m.kennung}-${k.i}`}>
+        <li key={`${m.kennung}-${k.i}`} className={wand ? "" : KACHEL}>
           <Link href={P.kuenstler(m.kennung)} className="group block text-inherit no-underline">
             <div className="flex aspect-[4/5] items-start justify-end bg-[#f5f5f5]">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={P.werkBild(m.kennung, k.i)} alt={m.name} loading="lazy"
                 className="max-h-full max-w-full object-contain" />
             </div>
-            {/* DER HOOK IST HIER EIN ANRISS, kein ganzer Satz: GEMESSEN sind die 35 Hooks im Mittel
-                187 Zeichen lang — in eine Kachel dieser Breite passen rund 60. Der vollständige Satz
-                steht auf der Seite des Werks, wohin diese Kachel führt. */}
-            <p className="mt-3 line-clamp-3 text-[13px] font-semibold leading-[1.35] group-hover:underline sm:text-[14px]">{k.hook}</p>
-            <p className="mt-1.5 text-[12px] text-[#777]">{m.name}{m.ort ? ` · ${m.ort}` : ""}</p>
+            {/**
+              * ── DER NAME FÜHRT, DER SATZ FOLGT (Owner 19.09.2026: „hier geht der Name unten, also
+              * fetter ganz gross" · „Texte sind nicht ok, Serifenschrift und nicht als Link") ─────
+              *
+              * VORHER: ein dreizeiliger, fetter, unterstrichener Beschreibungssatz — und darunter
+              * klein und grau der Name des Künstlers. Drei Fehler auf einmal.
+              *
+              *   · DER NAME GING UNTER. In einer Galerie liest man zuerst, VON WEM etwas ist. Bei
+              *     „Respect the Artist" ist das nicht Geschmack, sondern die Haltung des Hauses.
+              *   · DER SATZ SAH AUS WIE EIN LINK. Fett plus Unterstreichung beim Überfahren heisst
+              *     im Netz „hier geht es weiter" — es ist aber eine Bildbeschreibung.
+              *   · SERIFENLOS NEBEN EINEM GEMÄLDE liest sich wie eine Bildunterschrift in einem
+              *     Katalog von der Stange. Die Serifenschrift ist im Portal die Schrift der Kunst
+              *     (Überschriften, Posterblätter) — der Satz zum Werk gehört dazu.
+              *
+              * ZWEI ZEILEN STATT DREI: GEMESSEN sind die 35 Hooks im Mittel 187 Zeichen lang, in
+              * eine Kachel dieser Breite passen rund 60. Der ganze Satz steht auf der Werkseite.
+              */}
+            <p className="m-0 mt-3 font-serif text-[19px] font-bold leading-[1.15] text-[#111] sm:text-[22px]">{m.name}</p>
+            {m.ort ? <p className="m-0 mt-1 text-[13.5px] text-[#777]">{m.ort}</p> : null}
+            <p className="m-0 mt-2 line-clamp-2 font-serif text-[14.5px] leading-[1.4] text-[#555] sm:text-[15px]">{k.hook}</p>
             {/* Der Preis als Label, wenn der Künstler ihn zeigen will (Owner 11.09.2026: „der Preis braucht ein Label überall"). */}
             {(() => {
+              /* ── KEIN „PREIS AUF ANFRAGE" BEI EINEM GENERATOR (Owner 19.09.2026: „woher der
+                 Preis auch kommt") ──────────────────────────────────────────────────────────
+                 Das Etikett gehört zu einem Einzelstück, nach dem man fragt. Bei einem Blatt,
+                 das aus dem Foto des Kunden entsteht, gibt es nichts zu erfragen — es kostet,
+                 was auf dem Knopf steht. „20. Preț la cerere" kam aus der Preisspanne eines
+                 Künstlers, der gar keine Einzelstücke verkauft. */
+              /* Stattdessen, was es kostet: „de la 10 €" — der Betrag kommt aus `KUNST_CENTS`,
+                 derselben Konstante wie der Knopf auf seinem Blatt und die Buchung. */
+              if (m.kunstAn) return (
+                <p className="mt-1.5"><PreisLabel>{T.kunstAbPreis.replace("{preis}", eur(KUNST_CENTS, L))}</PreisLabel></p>
+              );
               const w = m.werkInfo?.[k.i < 0 ? "standard" : String(k.i)];
               const preis = preisText(w?.preis) || preisSatz(m.preisSpanne, T.preisAufAnfrage);
               return preis ? <p className="mt-1.5"><PreisLabel>{preis}</PreisLabel></p> : null;
             })()}
           </Link>
         </li>
-      ))}
-    </ul>
+      )),
   );
 
   /* DIE KÜNSTLER-ANSICHT zeigt den Menschen, nicht das einzelne Werk: sein erstes Bild als
      Vorschau, Name, Ort und wie viele Werke er hat. Mehr steht in den Daten nicht — und was
      nicht da ist, wird hier auch nicht behauptet. */
-  const kreisRaster = (liste: typeof kuenstler, zuPostern: boolean) => (
-    <ul className={RASTER}>
-      {liste.map(m => {
-        const w = werkKacheln(m, L);
+  const kreisRaster = (liste: typeof kuenstler, zuPostern: boolean, wand = false) => huelle(wand,
+    /* Kein Kreis ohne Bild und keine erfundene Zahl darunter — siehe `echteWerke`. Ein Künstler
+       ohne Werk bleibt über seine eigene Adresse erreichbar, steht aber in keiner Reihe, die zum
+       Entdecken einlädt. */
+    liste.map(m => ({ m, w: echteWerke(m) })).filter(x => x.w.length > 0).map(({ m, w }) => {
         return (
-          <li key={m.kennung}>
+          <li key={m.kennung} className={wand ? "" : KACHEL}>
             {/* ── AUS DER POSTER-KATEGORIE FÜHRT DER WEG ZU DEN POSTERN, NICHT ZU DEN ORIGINALEN
                 ──────────────────────────────────────────────────────────────────────────────
                 Owner 16.09.2026: „die originale bitte so lassen wie es war · das ist eine andere
@@ -348,23 +513,14 @@ export default async function PortalStart({ searchParams }: { searchParams: Prom
             </Link>
           </li>
         );
-      })}
-    </ul>
+      }),
   );
 
   /* Echte Adressen statt eines Knopfs, der nur im Browser weiterblättert: Google findet damit
      jede Seite, und der Zurück-Knopf führt zurück. */
-  const blaettern = seiten > 1 ? (
-    <nav className="mt-12 flex items-center justify-center gap-6 border-t border-[#e5e5e5] pt-8 text-[15px]">
-      {seite > 1
-        ? <Link href={adr({ s: seite - 1 })} className="font-semibold text-[#111] no-underline hover:underline">← {T.seiteZurueck}</Link>
-        : <span className="text-[#ccc]">← {T.seiteZurueck}</span>}
-      <span className="tabular-nums text-[#777]">{seite} / {seiten}</span>
-      {seite < seiten
-        ? <Link href={adr({ s: seite + 1 })} className="font-semibold text-[#111] no-underline hover:underline">{T.seiteWeiter} →</Link>
-        : <span className="text-[#ccc]">{T.seiteWeiter} →</span>}
-    </nav>
-  ) : null;
+  /* ── DAS BLÄTTERN IST RAUS (Owner 19.09.2026: „besser wäre nachladen") ───────────────────
+     Hier stand „← Zurück   1 / 5   Weiter →". Siehe components/PortalMehr.tsx. Die Texte
+     `seiteZurueck`/`seiteWeiter` bleiben in der Textdatei — sie werden anderswo noch gebraucht. */
 
   /* Ein Satz, der sagt, was hier steht (Owner 16.09.2026: „du musst direkt unter der kategorie
      Poster viu erklären was das ist · auch unter Artiști · Lucrări, hier sind originale"). */
@@ -405,7 +561,12 @@ export default async function PortalStart({ searchParams }: { searchParams: Prom
       </Link>
       {einleitung(text)}
       {inhalt}
-      <Link href={ziel} className="mt-6 inline-block text-[16px] font-semibold text-[#111] underline underline-offset-4">
+      {/* ── AUCH HIER EIN KNOPF (Owner 19.09.2026: „auch hier fette Buttons für Vezi tot") ──
+          Ein unterstrichenes Wort am Ende einer Reihe liest niemand — es sieht aus wie eine
+          Fussnote. Dieselbe Form wie die Reiter oben und der Nachladen-Knopf unten: schwarzer
+          Rahmen, Versalien, fett. Drei Stellen, eine Sprache. */}
+      <Link href={ziel}
+        className="mt-7 inline-flex items-center gap-2 border-2 border-[#111] bg-white px-6 py-3 text-[13.5px] font-black uppercase tracking-[0.12em] text-[#111] no-underline transition hover:bg-[#111] hover:text-white sm:text-[14px]">
         {T.alleAnsehen} →
       </Link>
     </section>
@@ -414,30 +575,51 @@ export default async function PortalStart({ searchParams }: { searchParams: Prom
   /* GESICHTER, DICHT AN DICHT: eine Reihe überlappender Kreise sagt in einem Blick „hier sind
      Menschen" — und zwar mehr, als in eine Reihe passen. Die einzelnen Namen stehen einen Klick
      weiter; hier zählt die Gruppe, nicht der einzelne. */
-  const gesichter = (liste: typeof kuenstler, ziel: string) => (
-    <Link href={ziel} className="mt-6 flex flex-wrap items-center pl-3 no-underline">
-      {liste.slice(0, 9).map(m => {
-        const w = werkKacheln(m, L);
+  /**
+   * ── KÜNSTLER MIT IHREM WERK, IN EINER REIHE (Owner 18.09.2026: „übereinander ohne Werke" ·
+   * „ich weiss nicht, was das bringt") ─────────────────────────────────────────────────────────
+   *
+   * HIER STANDEN NEUN RUNDE GESICHTER, überlappend, mit `flex-wrap` — ab dem achten fielen sie
+   * in eine zweite Reihe und standen dort übereinander. Und sie zeigten, WER hier ist, aber
+   * nicht, WAS er macht. Ein Besucher kauft kein Gesicht.
+   *
+   * Jetzt je Künstler eine Karte: sein jüngstes Werk gross, sein Bild als kleiner Kreis darauf,
+   * sein Name darunter. Dieselbe Wischreihe wie bei den Postern und Originalen — kein Umbruch,
+   * ein angeschnittenes Blatt am Rand, ein Pfeil.
+   *
+   * JEDE KARTE FÜHRT ZU IHM, nicht in die Übersicht: Wer ein Werk antippt, will diesen Künstler.
+   */
+  const gesichter = (liste: typeof kuenstler, _ziel: string) => (
+    <PortalReihe>
+      {liste
+        /* ── KEINE KACHEL OHNE BILD (Owner 19.09.2026: „Maia Bild fehlt") ────────────────────
+           Wessen Fotos alle abgelehnt sind, hat hier nichts zu zeigen. Vorher stand sein Name
+           unter einem leeren Rahmen — die Kachel kam aus `werkKacheln`, und das liest Sätze,
+           keine Bilder. Er bleibt im Reiter „Künstler" sichtbar; dort steht ehrlich „0 Werke".
+           DIESELBE PRÜFUNG WIE IM RASTER, damit beide Flächen dieselben Werke zeigen. */
+        .map(m => ({ m, w: echteWerke(m) }))
+        .filter(x => x.w.length > 0)
+        .slice(0, 20).map(({ m, w }) => {
+        const erstes = w[0];
         return (
-          /* eslint-disable-next-line @next/next/no-img-element */
-          <img key={m.kennung} alt={m.name} loading="lazy"
-            src={m.profilBild ? `/api/portal-werk?m=${encodeURIComponent(m.kennung)}&i=profil` : (w[0] ? P.werkBild(m.kennung, w[0].i) : "")}
-            className="-ml-3 h-[68px] w-[68px] rounded-full border-2 border-white bg-[#f5f5f5] object-cover shadow-[0_2px_10px_rgba(0,0,0,.12)] sm:h-[84px] sm:w-[84px]" />
+          <li key={m.kennung} className={KACHEL}>
+            <Link href={P.kuenstler(m.kennung)} className="group block text-inherit no-underline">
+              <span className="relative block overflow-hidden bg-[#f5f5f5]">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={erstes ? P.werkBild(m.kennung, erstes.i) : ""} alt="" loading="lazy"
+                  className="block aspect-[4/5] w-full object-cover transition duration-500 group-hover:scale-[1.03]" />
+                {m.profilBild ? (
+                  /* eslint-disable-next-line @next/next/no-img-element */
+                  <img src={`/api/portal-werk?m=${encodeURIComponent(m.kennung)}&i=profil`} alt="" loading="lazy"
+                    className="absolute bottom-2 left-2 h-11 w-11 rounded-full border-2 border-white object-cover shadow-[0_2px_10px_rgba(0,0,0,.25)]" />
+                ) : null}
+              </span>
+              <span className="mt-2 block font-serif text-[17px] leading-tight text-[#111]">{m.name}</span>
+            </Link>
+          </li>
         );
       })}
-    </Link>
-  );
-
-  /* EIN BAND AUS WERKEN, ohne Hook und ohne Preis: Auf der Startseite soll man SEHEN, dass hier
-     gemalte Bilder liegen. Gelesen wird in der Kategorie. */
-  const werkBand = (liste: typeof kacheln, ziel: string) => (
-    <Link href={ziel} className="mt-6 grid grid-cols-3 gap-2 no-underline sm:grid-cols-5 sm:gap-3">
-      {liste.slice(0, 5).map(({ m, k }, i) => (
-        /* eslint-disable-next-line @next/next/no-img-element */
-        <img key={`${m.kennung}-${k.i}`} src={P.werkBild(m.kennung, k.i)} alt={m.name} loading="lazy"
-          className={`aspect-square w-full bg-[#f5f5f5] object-cover ${i > 2 ? "hidden sm:block" : ""}`} />
-      ))}
-    </Link>
+    </PortalReihe>
   );
 
   /**
@@ -449,13 +631,14 @@ export default async function PortalStart({ searchParams }: { searchParams: Prom
    */
   /* Zwei nebeneinander schon am Handy (Owner 16.09.2026: „auf dem handy 2 poster in einer
      linie") — ein Laden zeigt Auswahl, nicht ein Stück nach dem anderen. */
-  const ladenRaster = (liste: typeof posterWerke) => (
-    <ul className="mt-6 grid list-none grid-cols-2 gap-x-3 gap-y-8 p-0 sm:gap-x-6 sm:gap-y-10 lg:grid-cols-4">
-      {liste.map(({ m, k }) => {
+  const ladenRaster = (liste: typeof posterWerke, wand = false) => huelle(wand,
+    /* Als Reihe läuft sie von selbst (Owner 18.09.2026: „Pfeil und Animation war gut") — 20 px/s,
+       hält an, sobald jemand sie anfasst, und läuft dann nicht wieder los. */
+    liste.map(({ m, k }) => {
         const nr = k.i < 0 ? "standard" : String(k.i);
         const wi = m.werkInfo?.[nr];
         return (
-          <li key={`${m.kennung}-${k.i}`} className="lb-poster-block">
+          <li key={`${m.kennung}-${k.i}`} className={`lb-poster-block ${wand ? "" : KACHEL}`}>
             {/* ── IN SEINEN POSTERLADEN, NICHT AUF SEINE SEITE (Owner 17.09.2026: „Klick auf
                 Poster soll zum Postershop des Künstlers gehen") ────────────────────────────────
                 Wer im Schaufenster ein Blatt antippt, will Poster sehen — nicht seine Originale
@@ -473,11 +656,11 @@ export default async function PortalStart({ searchParams }: { searchParams: Prom
                   viel — wer hier klickt, muss dasselbe wiederfinden. */}
               <Poster
                 klasse="lb-rahmen-fest"
-                titel={m.name}
-                stil={[wi?.titel, wi?.jahr].filter(Boolean).join(", ")}
+                titel={blattZeilen(m.name, wi).gross}
+                stil={blattZeilen(m.name, wi).klein}
                 text={posterAnriss(k.hook)}
                 qrEcke
-                qr={`/lakatosbandi/qr/${m.kennung}-${nr}.png`}
+                qr="/api/portal-qr"
                 siegel={!m.reproduktion}
                 recht={`lakatosbandi.com/${m.kennung}`}
                 bild={
@@ -492,8 +675,7 @@ export default async function PortalStart({ searchParams }: { searchParams: Prom
                 Gekauft wird eine Seite weiter, wo das Werk gross steht und die Angaben dabei. */}
           </li>
         );
-      })}
-    </ul>
+      }),
   );
 
   /* ── DIE WANDFOTOS SIND RAUS (Owner 18.09.2026: „diese Bilder raus") ────────────────────
@@ -501,8 +683,110 @@ export default async function PortalStart({ searchParams }: { searchParams: Prom
      mit Lebensdaten. Seit das Blatt anders aussieht, warben sie für ein Produkt, das es so nicht
      mehr gibt — und die echten Kacheln darunter zeigen es ohnehin besser. */
 
+  /**
+   * ── DIE RUBRIK STEHT VOR DEN REITERN (Owner 18.09.2026) ─────────────────────────────────────
+   *
+   * Erst sagen, was für ein Laden das ist — dann die Ware. Die Reiter sind Navigation für
+   * jemanden, der schon weiss, wonach er sucht; wer aus einer Anzeige kommt, weiss es nicht.
+   *
+   * DIE BILDER SIND UNSERE EIGENEN RAUMFOTOS und ein Beispielblatt — kein fremdes Material, und
+   * jedes zeigt wirklich das, was die Kachel verspricht.
+   */
+  /**
+   * ── DIE RUBRIK ZEIGT DAS NEUESTE (Owner 18.09.2026: „auf der Startseite sollen die neuesten
+   * erscheinen, am besten in dieser Rubrik") ───────────────────────────────────────────────────
+   *
+   * Dort standen drei feste Fotos — ein grauer Betonraum als Aufmacher, ein Schlafzimmer, die
+   * Sternennacht. Sie erzählten, was wir ANBIETEN, aber nicht, was gerade hereingekommen ist.
+   * Wer die Seite zum zweiten Mal öffnet, sah dasselbe Bild wie beim ersten Mal.
+   *
+   * `kacheln` ist bereits nach Datum sortiert (neuester Künstler zuerst). Der Aufmacher nimmt
+   * also das jüngste Werk eines LEBENDEN Künstlers — bei einem Meister wäre „neu" sinnlos, die
+   * hängen seit hundert Jahren.
+   *
+   * FÄLLT ES AUS, BLEIBT DAS RAUMFOTO: Solange noch kein lebender Künstler freigegeben ist, darf
+   * die Rubrik nicht leer sein.
+   */
+  const neuestesWerk = kacheln.find(({ m }) => !m.reproduktion);
+  const neuestesPoster = posterWerke[0];
+
+  /**
+   * ── DIE GROSSE FLÄCHE WIRBT FÜR DAS, WAS MAN HIER MACHEN KANN (Owner 19.09.2026: „wieso steht
+   * der Typ hier? Mach lieber Werbung für Caricaturist. Dein Bild als Karikatur") ─────────────
+   *
+   * HIER STAND DAS ZULETZT FREIGEGEBENE WERK mit der Überschrift „Kauf Kunst, die dem Künstler
+   * noch gehört". Zwei Fehler in einer Kachel: Das Bild war ein beliebiges Porträt eines
+   * beliebigen Menschen — es sagte niemandem etwas —, und die Überschrift erklärte unsere
+   * HALTUNG. Haltung überzeugt niemanden, der die Seite zum ersten Mal sieht; sie ist das, was
+   * man glaubt, NACHDEM man etwas wollte. Sie steht weiter unten im Artist-Fair-Abschnitt.
+   *
+   * JETZT STEHT DORT DAS EINZIGE, WAS MAN AUF DIESER SEITE SELBST TUN KANN: ein Foto hochladen
+   * und es gezeichnet zurückbekommen. Das ist konkret, es kostet keinen Entschluss, und es ist
+   * der Weg in den Laden.
+   *
+   * NICHT AUF „caricaturist-ai" FESTGENAGELT: Genommen wird der erste Künstler mit `kunstAn` —
+   * derselbe Schalter, der auf seiner Seite den Knopf zeigt. Schaltet der Owner morgen einen
+   * zweiten frei oder diesen ab, wandert die Werbung mit, ohne dass jemand daran denken muss.
+   * Gibt es keinen, steht wieder die alte Kachel da.
+   */
+  const kariKuenstler = kuenstler.find(x => x.kunstAn === true
+    && werkKacheln(x, L).some(k => !x.werkInfo?.[k.i < 0 ? "standard" : String(k.i)]?.abgelehntAm));
+  const kariWerk = kariKuenstler ? werkKacheln(kariKuenstler, L)[0] : undefined;
+
+  const rubrik = (
+    <PortalRubrik
+      gross={kariKuenstler && kariWerk ? {
+        kicker: T.rubrikKariKicker,
+        titel: T.rubrikKariTitel, text: T.rubrikKariText, link: T.rubrikKariLink,
+        href: P.kuenstler(kariKuenstler.kennung),
+        bild: P.werkBild(kariKuenstler.kennung, kariWerk.i),
+      } : {
+        titel: T.rubrikGrossTitel, text: T.rubrikGrossText, link: T.rubrikGrossLink,
+        href: neuestesWerk ? P.kuenstler(neuestesWerk.m.kennung) : adr({ ansicht: "werke", s: 1 }),
+        bild: neuestesWerk ? P.werkBild(neuestesWerk.m.kennung, neuestesWerk.k.i) : "/lakatosbandi/raum1.jpg",
+      }}
+      kacheln={[
+        {
+          kicker: T.rubrikEinsKicker, titel: T.rubrikEinsTitel, text: T.rubrikEinsText,
+          link: T.rubrikEinsLink, href: adr({ ansicht: "repro", s: 1 }),
+          /* ── EIN POSTER, KEIN WERK (Owner 18.09.2026: „hier muss ein Poster gezeigt werden") ──
+             Hier stand das nackte Gemälde. Verkauft wird aber das BLATT: Rahmen, Name, Satz,
+             Code. Dasselbe Bauteil wie in der Posterreihe darunter — eine zweite Zeichnung des
+             Blattes wäre die Stelle, an der in vier Wochen zwei verschiedene Poster stünden. */
+          bild: neuestesPoster ? (() => {
+            const nr = neuestesPoster.k.i < 0 ? "standard" : String(neuestesPoster.k.i);
+            const wi = neuestesPoster.m.werkInfo?.[nr];
+            return (
+              <Poster
+                klasse="lb-rahmen-fest"
+                titel={blattZeilen(neuestesPoster.m.name, wi).gross}
+                stil={blattZeilen(neuestesPoster.m.name, wi).klein}
+                text={posterAnriss(neuestesPoster.k.hook)}
+                qrEcke
+                qr="/api/portal-qr"
+                siegel={!neuestesPoster.m.reproduktion}
+                recht={`lakatosbandi.com/${neuestesPoster.m.kennung}`}
+                bild={
+                  /* eslint-disable-next-line @next/next/no-img-element */
+                  <img src={P.werkBild(neuestesPoster.m.kennung, neuestesPoster.k.i)} alt="" loading="lazy"
+                    className={wi?.quer ? "block h-auto w-full" : "block h-full w-auto"} />
+                }
+              />
+            );
+          })() : "/lakatosbandi/raum3.jpg",
+        },
+        {
+          kicker: T.rubrikZweiKicker, titel: T.rubrikZweiTitel, text: T.rubrikZweiText,
+          link: T.rubrikZweiLink, href: adr({ ansicht: "repro", s: 1 }),
+          bild: "/lakatosbandi/beispiel-sternennacht.jpg",
+        },
+      ]}
+    />
+  );
+
   const start = (
     <>
+      {rubrik}
       {reiter}
       {/* EINE HÜLLE UM DIE ABSCHNITTE, damit `first:` greift (Owner 16.09.2026: „hier habe ich
           zwei linien untereinander"): Lag der erste Abschnitt direkt neben der Reiterleiste, war
@@ -517,28 +801,78 @@ export default async function PortalStart({ searchParams }: { searchParams: Prom
       {abschnitt(T.teaserKuenstler, T.tabTextKuenstler,
         gesichter(nachDatum(lebende), adr({ ansicht: "kuenstler", s: 1 })),
         adr({ ansicht: "kuenstler", s: 1 }))}
+      {/**
+        * ── DIE ORIGINALE ZEIGEN SICH WIE IM REITER (Owner 18.09.2026: „die Slider Originale war
+        * langweilig, weil alle gleich aussehen … du sollst den Slider einbauen, den du auf dem
+        * Tab Originale hast") ──────────────────────────────────────────────────────────────────
+        *
+        * HIER STAND `werkBand`: fünf quadratische Ausschnitte in einer Reihe, alle gleich gross,
+        * ohne Titel, ohne Namen, ohne Preis — ein Band aus Farbflecken. Es sollte ein Vorgeschmack
+        * sein und wirkte wie eine Tapete.
+        *
+        * `werkRaster` ist dasselbe Bauteil, das der Reiter „Originale" benutzt: das Werk in seinem
+        * eigenen Format, darunter der Satz, der es beschreibt, der Name des Künstlers und „Preis
+        * auf Anfrage". Jede Kachel sieht anders aus, weil jedes Werk anders ist — und genau das
+        * fehlte.
+        *
+        * ZWANZIG STÜCK, wie bei den Postern: Eine Wischreihe lebt davon, dass rechts noch etwas
+        * liegt. Fünf wären nach einem Wisch zu Ende.
+        */}
       {abschnitt(T.teaserWerke, T.tabTextWerke,
-        werkBand(kacheln, adr({ ansicht: "werke", s: 1 })),
+        werkRaster(originalWerke.slice(0, 20)),
         adr({ ansicht: "werke", s: 1 }))}
       </div>
     </>
   );
 
+  /* Einmal gerechnet, zweimal gebraucht (Anzahl für den Knopf, Liste für die Wand). */
+  const posterAlle = nachNeu(reihum(posterWerke));
+
   const feed = ansicht === "start" ? start : (
     <>
       {reiter}
-      {einleitung(ansicht === "repro" ? T.tabTextRepro : ansicht === "werke" ? T.tabTextWerke : T.tabTextKuenstler)}
+      {einleitung(ansicht === "repro" ? T.tabTextRepro
+        : ansicht === "werke" ? T.tabTextWerke
+          : ansicht === "digital" ? T.tabTextDigital : T.tabTextKuenstler)}
       {/* ── „LIVING POSTER" ZEIGT SOFORT DEN LADEN (Owner 18.09.2026: „Living Poster muss
           sofort den Shop zeigen") ────────────────────────────────────────────────────────────
           Der Reiter zeigte Porträtkreise der Maler — wer „Living Poster" antippt, will aber
           Poster sehen und kaufen, nicht erst einen Maler wählen. Die Künstler stehen weiter im
           eigenen Reiter daneben. */}
+      {/* ── IM REITER EINE WAND, KEINE REIHE (Owner 19.09.2026: „beim Living Poster und Originale
+          kein Slider, sondern Galerie-Darstellung. Die neusten sind oben") ───────────────────
+          Und die Reihenfolge dreht sich mit: Im Schaufenster der Startseite stehen die
+          bekanntesten Meister vorn (Owner 16.09.2026: „nimm mehr berühmte") — dort soll jemand
+          ein Bild erkennen, das er kennt. Hier ist der Laden selbst offen, und wer ihn zum
+          zweiten Mal öffnet, sucht, was seit dem letzten Mal dazugekommen ist. */}
+      {/* ── ÜBER DER WAND DIE KÜNSTLER (Owner 19.09.2026: „hier fehlt auch der Künstler-Slider") ─
+          In der Wand steht Werk neben Werk — man sieht, WAS es gibt, aber nicht, WER dahinter
+          steht, und muss dafür in einen anderen Reiter. Die Kreisreihe darüber schliesst das: ein
+          Wisch, ein Gesicht, ein Klick auf seine Seite.
+          SIE BLEIBT EINE REIHE, auch wenn darunter ein Raster liegt: Eine zweite Wand aus
+          Gesichtern würde die Werke unter den Bildschirmrand schieben — und die sind hier die
+          Hauptsache. `kuenstlerSortiert` trägt schon die richtige Auswahl je Reiter: im Laden die
+          mit Postern, bei den Originalen die lebenden. */}
+      {ansicht === "repro" || ansicht === "werke"
+        ? (kuenstlerSortiert.length ? kreisRaster(kuenstlerSortiert, ansicht === "repro") : null)
+        : ansicht === "digital"
+          ? (digitale.length ? kreisRaster(digitale, false) : null)
+          : null}
+      {/**
+        * ── NACHLADEN STATT BLÄTTERN (Owner 19.09.2026: „das fetter, es geht unter — aber besser
+        * wäre nachladen") ─────────────────────────────────────────────────────────────────────
+        *
+        * Die ganze Liste geht hinein, `PortalMehr` zeigt erst einen Schub und blendet den Rest
+        * ein. Das Blättern („← Zurück 1/5 Weiter →") entfällt damit auf allen drei Reitern; es
+        * warf den Besucher bei jedem Klick nach oben und verlor die Stelle, an der er war.
+        */}
       {ansicht === "repro"
-        ? ladenRaster(reihum(posterWerke).slice(von, von + PRO_SEITE))
+        ? <PortalMehr gesamt={posterAlle.length} schritt={PRO_SEITE} wort={T.mehrAnzeigen} alleWort={T.alleAnzeigen}>{ladenRaster(posterAlle, true)}</PortalMehr>
         : ansicht === "werke"
-          ? werkRaster(kacheln.slice(von, von + PRO_SEITE))
-          : kreisRaster(kuenstlerSortiert.slice(von, von + PRO_SEITE), false)}
-      {blaettern}
+          ? <PortalMehr gesamt={originalWerke.length} schritt={PRO_SEITE} wort={T.mehrAnzeigen} alleWort={T.alleAnzeigen}>{werkRaster(originalWerke, true)}</PortalMehr>
+          : ansicht === "digital"
+            ? <PortalMehr gesamt={digitalWerke.length} schritt={PRO_SEITE} wort={T.mehrAnzeigen} alleWort={T.alleAnzeigen}>{werkRaster(digitalWerke, true)}</PortalMehr>
+          : <PortalMehr gesamt={kuenstlerSortiert.length} schritt={PRO_SEITE} wort={T.mehrAnzeigen} alleWort={T.alleAnzeigen}>{kreisRaster(kuenstlerSortiert, false, true)}</PortalMehr>}
     </>
   );
 
@@ -552,7 +886,7 @@ export default async function PortalStart({ searchParams }: { searchParams: Prom
       <PortalKopf T={T} lang={L} login={P.login} start={P.start} preise={P.preise} journal={P.journal(L)} />
 
       {bald ? (
-        <main className="mx-auto w-full max-w-[1120px] px-5 pb-20 pt-14 md:pt-24">
+        <main className={`${SPUR} px-5 pb-20 pt-14 md:pt-24`}>
           <p className="m-0 text-[12px] font-semibold uppercase tracking-[0.22em] text-[#777]">{T.baldKicker}</p>
           <h1 className="m-0 mt-4 max-w-[820px] font-serif text-[38px] font-normal leading-[1.1] tracking-[-0.01em] md:text-[60px]">{T.baldTitel}</h1>
           <p className="mt-6 max-w-[640px] text-[17px] leading-[1.6] text-[#555]">{T.baldLead}</p>
@@ -573,7 +907,19 @@ export default async function PortalStart({ searchParams }: { searchParams: Prom
           <PortalBald B={baldTexte(L)} preis={eur(VERSUSFORGE_ABO_CENTS, L)} bewerben={bewerben} knopf={T.baldKnopf} />
         </main>
       ) : (
-        <main className="mx-auto w-full max-w-[1120px] px-5 pb-20 pt-10 md:pt-16">
+        <main className={`${SPUR} px-5 pb-20 pt-10 md:pt-16`}>
+          {/**
+            * ── DIE SPUR DARF AM RECHNER BREITER WERDEN (Owner 18.09.2026: „muss die Breite des
+            * Schirmes ausnutzen bei der Startseite") ─────────────────────────────────────────────
+            *
+            * 1120 px ist eine LESEBREITE — richtig für Überschrift und Fliesstext, falsch für eine
+            * Wand voller Poster. Auf einem 1440er Schirm lagen links und rechts zusammen 320 px
+            * brach, während die Blätter auf 250 px gedrückt wurden.
+            *
+            * Ab `xl` (1280 px) geht die Spur auf 1560 px. Die Texte darin behalten ihre eigenen
+            * Grenzen (`max-w-[720px]`, `max-w-[620px]`), werden also NICHT mitgezogen — eine Zeile
+            * über 1500 px liest niemand. Unter 1280 px ändert sich nichts.
+            */}
           <h1 className="m-0 max-w-[720px] font-serif text-[34px] font-normal leading-[1.15] tracking-[-0.01em] md:text-[48px]">{T.titel}</h1>
           <p className="mt-4 max-w-[620px] text-[16px] leading-[1.55] text-[#555]">{T.lead}</p>
 
@@ -596,6 +942,21 @@ export default async function PortalStart({ searchParams }: { searchParams: Prom
         </main>
       )}
 
+      {/**
+        * ── EINE KATEGORIE ZEIGT NUR IHRE WARE (Owner 19.09.2026: „und auf dieser Seite das raus"
+        * · „also nichts anderes als die Werke") ─────────────────────────────────────────────────
+        *
+        * Unter den Werken standen bisher auf JEDER Ansicht drei weitere Abschnitte: die Haltung
+        * „Artist Fair", das Journal und der lange Erklärblock mit dem Stein vom Strand. Auf der
+        * Startseite gehören sie dorthin — dort fragt jemand, wer wir sind.
+        *
+        * IM REITER SIND SIE EIN BRUCH. Wer „Originale" antippt, hat eine Frage: was gibt es.
+        * Dahinter zehntausend Pixel Hauserklärung zu hängen, beantwortet sie nicht, und der
+        * Nachladen-Knopf am Ende der Wand verschwindet dazwischen. Die Abschnitte bleiben
+        * erreichbar — ein Tipp auf „Start" führt hin.
+        */}
+      {ansicht === "start" && (
+      <>
       {/* ── ARTIST FAIR: UNSERE HALTUNG, SICHTBAR (Owner 18.09.2026) ──────────────────────────
           „Ich weiss, dass Temu dreist die Kunst kopieren und auf T-Shirts drucken und verkaufen.
           Das soll bei uns nicht sein." · „Dafür wollen wir bekannt werden und schreiben auch in
@@ -604,7 +965,7 @@ export default async function PortalStart({ searchParams }: { searchParams: Prom
           Steht VOR dem Journal und nach den Werken: Wer bis hierher gescrollt hat, hat die Kunst
           gesehen und fragt sich, wer wir sind. Der Betrag kommt aus der Drucktabelle, nie
           getippt (Skill `bezahlung`, Regel 2). */}
-      <section className="mx-auto w-full max-w-[1120px] border-t border-[#e5e5e5] px-5 pb-16 pt-12">
+      <section className={`${SPUR} border-t border-[#e5e5e5] px-5 pb-16 pt-12`}>
         <div className="flex items-start gap-6">
           <div className="min-w-0">
             <h2 className="m-0 font-serif text-[28px] font-normal md:text-[36px]">{T.philoTitel}</h2>
@@ -627,7 +988,7 @@ export default async function PortalStart({ searchParams }: { searchParams: Prom
 
       {/* AUS DEM JOURNAL — interne Links für Google, und auf dem Handy der Weg zum Journal
           (dort steht es nicht im Kopf). */}
-      <section className="mx-auto w-full max-w-[1120px] border-t border-[#e5e5e5] px-5 pb-16 pt-12">
+      <section className={`${SPUR} border-t border-[#e5e5e5] px-5 pb-16 pt-12`}>
         <div className="flex items-baseline justify-between gap-4">
           <h2 className="m-0 font-serif text-[28px] font-normal md:text-[36px]">Journal</h2>
           <Link href={P.journal(L)} className="text-[15px] font-semibold text-[#111] underline">{JOURNAL_UI[L as JournalSprache]?.zurueck ?? "All articles"}</Link>
@@ -666,9 +1027,11 @@ export default async function PortalStart({ searchParams }: { searchParams: Prom
         * NUR IM OFFENEN PORTAL: Im `bald`-Zustand ist dieser Block der Hauptinhalt und bleibt oben.
         */}
       {!bald && (
-        <section className="mx-auto w-full max-w-[1120px] px-5 pb-20">
+        <section className={`${SPUR} px-5 pb-20`}>
           <PortalBald B={baldTexte(L)} preis={eur(VERSUSFORGE_ABO_CENTS, L)} bewerben={bewerben} knopf={T.fuerKuenstlerKnopf} />
         </section>
+      )}
+      </>
       )}
 
       <PortalFuss lang={L} />

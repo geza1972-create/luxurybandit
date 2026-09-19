@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+  <key>CFBundleName</key><string>Werbefilm Studio</string>
+  <key>CFBundleDisplayName</key><string>Werbefilm Studio</string>
+  <key>CFBundleIdentifier</key><string>com.lakatosbandi.werbefilmstudio</string>
+  <key>CFBundleVersion</key><string>1</string>
+  <key>CFBundleShortVersionString</key><string>1.0</string>
+  <key>CFBundleExecutable</key><string>WerbefilmStudio</string>
+  <key>CFBundlePackageType</key><string>APPL</string>
+  <key>LSMinimumSystemVersion</key><string>13.0</string>
+  <key>NSHighResolutionCapable</key><true/>
+  <key>CFBundleIconFile</key><string>AppIcon</string>
+  <key>NSCameraUsageDescription</key><string>Damit du dich im Kreis siehst, während du die Seite erklärst.</string>
+  <key>NSMicrophoneUsageDescription</key><string>Damit deine Stimme im Werbefilm ist.</string>
+  <key>NSScreenCaptureUsageDescription</key><string>Damit der Bildschirm im Handyformat aufgenommen wird.</string>
+</dict></plist>

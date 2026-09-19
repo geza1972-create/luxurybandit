@@ -49,9 +49,20 @@ export function kasseImFensterMoeglich(): boolean {
   return !!SCHLUESSEL;
 }
 
-export default function KasseImFenster({ clientSecret, onSchliessen, titel }: {
+export default function KasseImFenster({ clientSecret, onSchliessen, onFertig, titel }: {
   clientSecret: string;
   onSchliessen: () => void;
+  /**
+   * ── STRIPE SAGT BESCHEID, WENN BEZAHLT IST (Owner 19.09.2026) ─────────────────────────────
+   *
+   * Nur bei einer Kasse OHNE Weiterleitung (`ohneWeiterleitung` in lib/stripe.ts). Dort wechselt
+   * die Seite nicht mehr, also muss jemand sagen, dass es weitergehen kann — sonst steht der
+   * Käufer vor einer bezahlten Kasse und wartet auf nichts.
+   *
+   * Wo die Kasse wie bisher weiterleitet, bleibt dieser Weg leer: Dort übernimmt die Rückkehr
+   * auf `return_url` die Arbeit.
+   */
+  onFertig?: () => void;
   titel?: string;
 }) {
   const [stripe] = useState(stripeLaden);
@@ -122,7 +133,7 @@ export default function KasseImFenster({ clientSecret, onSchliessen, titel }: {
           * sondern ein Raetsel. Solange die Kasse UNTER dem Schritt haengt statt ihn zu
           * ersetzen, gehoert hier keiner hin; zurueck geht es ueber den Pfeil des Schritts.
           */}
-        <EmbeddedCheckoutProvider stripe={stripe} options={{ clientSecret }}>
+        <EmbeddedCheckoutProvider stripe={stripe} options={{ clientSecret, ...(onFertig ? { onComplete: onFertig } : {}) }}>
           <EmbeddedCheckout />
         </EmbeddedCheckoutProvider>
       </div>

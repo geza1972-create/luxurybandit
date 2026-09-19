@@ -1,9 +1,8 @@
 "use client";
 
-import { useContext, useRef, useState } from "react";
+import { useContext, useEffect, useRef } from "react";
 import { EigenesContext } from "@/components/PosterGross";
 import { posterStilStil } from "@/components/Poster";
-import { Pencil } from "lucide-react";
 import {
   POSTER, POSTER_TEXT_ZEICHEN, POSTER_TITEL_ZEICHEN, posterTextBreit, posterTitelBreit,
 } from "@/lib/lakatosbandi-poster";
@@ -36,6 +35,9 @@ import {
  * Gespeichert wird nichts: wie das Foto lebt der Text nur im Browser (Owner: „wenn er rausgeht
  * von der seite, dann ist das bild weg").
  */
+/** „titel" heisst die grosse Zeile — dieselbe Unterscheidung wie unten, nur früher gebraucht. */
+const istTitelVon = (art: "satz" | "titel") => art === "titel";
+
 export default function PosterDeinText({ satz, art = "satz", qrEcke = false }: {
   /** Was der Künstler geschrieben hat — steht hier, bis der Kunde darüber schreibt. */
   satz: string;
@@ -43,52 +45,141 @@ export default function PosterDeinText({ satz, art = "satz", qrEcke = false }: {
   art?: "satz" | "titel";
   qrEcke?: boolean;
 }) {
-  const { setTitelEigen } = useContext(EigenesContext);
-  const [text, setText] = useState(satz);
-  const feld = useRef<HTMLTextAreaElement>(null);
+  /**
+   * ── GESCHRIEBEN WIRD AUF DEM BLATT (Owner 19.09.2026: „ich will die Texte hier ändern,
+   * WYSIWYG") ─────────────────────────────────────────────────────────────────────────────────
+   *
+   * DREIMAL HAT DIESE ZEILE DIE SEITE GEWECHSELT, und jedes Mal aus einem echten Grund:
+   *  1. Erst auf dem Blatt — aber ohne Speichern. Er tippte seinen Namen, zahlte zehn Euro, und
+   *     in der Datei stand „Numele tău".
+   *  2. Dann nur im Fenster. Das speicherte, war aber kein Blatt mehr: Er sieht beim Schreiben
+   *     nicht, wie es gesetzt wird — welche Grösse, welcher Umbruch, ob es passt.
+   *  3. JETZT BEIDES: Hier wird geschrieben, wie auf Papier, und `PosterDeinBild` schickt das
+   *     Geschriebene an den Zettel, sobald das Blatt bezahlt ist. Das Fenster bleibt für Foto
+   *     und Adresse — für das, was kein Text auf dem Blatt ist.
+   *
+   * DIE SCHRIFT SCHRUMPFT BEIM TIPPEN MIT (`posterTitelBreit`), der Umbruch stimmt, die Farbe
+   * stimmt. Was er sieht, wird gedruckt.
+   */
+  const { setTitelEigen, eigenes, zeilen, setZeile } = useContext(EigenesContext);
+  const text = (istTitelVon(art) ? zeilen.titel : zeilen.satz) || satz;
+
+  /**
+   * DIE WORTE DES KÜNSTLERS SIND DER ANFANGSWERT — im Fenster steht dann, was gerade auf dem
+   * Blatt steht, und er ändert es, statt vor einem leeren Feld zu sitzen. Gleichzeitig ist es
+   * die Voraussetzung für den roten Rahmen: Nur wenn dort etwas steht, lässt sich sagen, ob er
+   * es angefasst hat.
+   */
+  useEffect(() => {
+    const was = istTitelVon(art) ? "titel" : "satz";
+    if (!(was === "titel" ? zeilen.titel : zeilen.satz)) setZeile(was, satz);
+  }, [art, satz, zeilen.titel, zeilen.satz, setZeile]);
 
   const istTitel = art === "titel";
   const breit = istTitel ? posterTitelBreit(text) : posterTextBreit(text, qrEcke);
 
+  /* „by …" tritt hervor, sobald er den Titel überschrieben hat. */
+  useEffect(() => {
+    if (istTitel) setTitelEigen(!!text.trim() && text.trim() !== satz.trim());
+  }, [istTitel, text, satz, setTitelEigen]);
+
+  /**
+   * ── WAS ER NOCH NICHT ANGEFASST HAT, WIRD ROT (Owner 19.09.2026: „er muss sehen, dass der Text
+   * nicht geändert ist. Entweder werden die Rahmen rot beim Text") ────────────────────────────
+   *
+   * DAS PROBLEM: Er lässt sein Bild zeichnen, freut sich, lädt die Datei — und erst an der Wand
+   * fällt ihm auf, dass oben noch der Name des Künstlers steht und darunter dessen Satz. „Er
+   * generiert das Bild zuerst, dann vergisst er seinen Namen einzutragen und ist verärgert."
+   *
+   * ── UND ZWAR VOR DER KASSE (Owner 19.09.2026: „das Problem ist hier. Es wird nur Bild gekauft
+   * und Text ist nicht geändert, aber alles schon bezahlt und versendet") ────────────────────
+   *
+   * Zuerst stand die Markierung hinter der Erzeugung. Das ist zu spät: Bezahlt und verschickt
+   * wird VORHER, und dann steht „Numele tău" auf einem Blatt, für das er zehn Euro gegeben hat.
+   * Sie erscheint deshalb, sobald sein Foto im Blatt liegt — also genau in dem Moment, in dem
+   * das Blatt seins wird und der Kaufknopf angeht.
+   *
+   * SOLANGE KEIN FOTO DRIN IST, bleibt alles ruhig: Dann ist es das Blatt des Künstlers, und
+   * dort sind seine Worte richtig — ein roter Rahmen wäre eine Rüge für nichts.
+   *
+   * ER WIRD NICHT GEHINDERT. Die Markierung sagt „schau noch mal hin", sie sperrt nichts: Wer
+   * den Satz des Künstlers stehen lassen will, darf das (Hausregel: sichtbar machen, nicht
+   * verriegeln). Sobald er tippt, ist sie weg.
+   *
+   * GESTRICHELT, NICHT AUSGEFÜLLT: Ein Feld auf einem Poster darf nicht wie ein Formular
+   * aussehen. Der gestrichelte Rand ist dieselbe Sprache, die das Dashboard für „hier kannst du
+   * schreiben" benutzt — nur in Rot.
+   */
+  const offen = eigenes && text.trim() === satz.trim();
+
+  /**
+   * ── DER TEXT IM FELD WIRD NUR VON AUSSEN GESETZT, WENN NIEMAND DARIN SCHREIBT ───────────────
+   *
+   * Ein `contentEditable`, dessen Inhalt React bei jedem Tastendruck neu setzt, wirft den Cursor
+   * an den Anfang zurück — nach dem zweiten Buchstaben tippt man rückwärts. Deshalb schreibt der
+   * Haken den Text NUR, wenn das Feld nicht den Fokus hat: beim ersten Aufbau, beim Foto-Wechsel,
+   * nach dem Laden. Was drinsteht, während er tippt, gehört dem Browser.
+   */
+  /* Beschreibbar, sobald sein Foto im Blatt liegt — davor ist es das Blatt des Künstlers, und
+     dessen Zeilen gehören ihm. Genau derselbe Moment, in dem die rote Markierung erscheint. */
+  const bearbeitbar = !!eigenes;
+
+  const feld = useRef<HTMLSpanElement | null>(null);
+  useEffect(() => {
+    const el = feld.current;
+    if (!el || document.activeElement === el) return;
+    if (el.textContent !== text) el.textContent = text;
+  }, [text, bearbeitbar]);
+
   return (
     <>
-      {/* Das Feld SIEHT aus wie die Zeile — keine Kästen, keine Ränder. Erst wer hineintippt,
-          merkt den Unterschied, und genau das ist die Absicht. */}
-      <textarea ref={feld} value={text} rows={istTitel ? 1 : 2}
-        /* Die Zeile endet dort, wo die Schrift sonst unter den Lesbarkeits-Boden fiele. */
-        maxLength={istTitel ? POSTER_TITEL_ZEICHEN : POSTER_TEXT_ZEICHEN}
-        onChange={e => {
-          const v = e.target.value.replace(/\n/g, istTitel ? "" : "\n");
-          setText(v);
-          /* Steht noch sein Name da, gehört das Blatt ihm — dann keine zweite Namenszeile. */
-          if (istTitel) setTitelEigen(!!v.trim() && v.trim() !== satz.trim());
+      {/* Dieselbe Stelle, dieselbe Schrift, dasselbe Papier — kein Rahmen, keine Linie.
+
+          EIN `span`, KEIN `p`: Das Blatt setzt die Zeile schon in einen Absatz, und ein Absatz
+          im Absatz ist ungültiges HTML — der Browser zieht ihn heraus, und React bricht beim
+          Hydrieren ab (19.09.2026 gemessen: „Hydration failed"). */}
+      <span ref={feld}
+        contentEditable={bearbeitbar}
+        suppressContentEditableWarning
+        role={bearbeitbar ? "textbox" : undefined}
+        tabIndex={bearbeitbar ? 0 : undefined}
+        spellCheck={false}
+        /* Der Klick gehört dem Feld, nicht dem Blatt darunter. */
+        onClick={e => { if (bearbeitbar) e.stopPropagation(); }}
+        onInput={e => setZeile(istTitel ? "titel" : "satz", e.currentTarget.textContent ?? "")}
+        /* Auf einem Poster gibt es keine Absätze — Enter beendet das Schreiben, statt eine
+           zweite Zeile in die Überschrift zu setzen. */
+        onKeyDown={e => { if (istTitel && e.key === "Enter") { e.preventDefault(); e.currentTarget.blur(); } }}
+        /* Eingefügtes kommt als reiner Text herein: fremde Schrift und fremde Farbe hätten auf
+           dem Blatt nichts zu suchen. */
+        onPaste={e => {
+          if (!bearbeitbar) return;
+          e.preventDefault();
+          const roh = e.clipboardData.getData("text/plain").replace(/\s+/g, " ").trim();
+          document.execCommand("insertText", false, roh);
         }}
-        onClick={e => e.stopPropagation()}
-        onKeyDown={e => { e.stopPropagation(); if (istTitel && e.key === "Enter") e.preventDefault(); }}
-        className={`lb-poster-feld block w-full resize-none bg-transparent text-center outline-none ${istTitel ? "italic" : ""}`}
+        className={`lb-poster-feld m-0 block w-full whitespace-pre-line text-center outline-none ${istTitel ? "italic" : ""}${offen ? " lb-poster-feld-offen" : ""}${bearbeitbar ? " lb-poster-feld-kann" : ""}`}
         style={{
           fontSize: `${breit.toFixed(2)}cqw`,
           lineHeight: istTitel ? 1.1 : POSTER.text.zeile,
           color: POSTER.farben.tinte,
-        }}
-      />
-
-      {/* Rechts neben der Zeile, auf halber Höhe (Owner 17.09.2026: „edit button rechts vom
-          text" · „auch edit icon zentriert") — ein Hinweis, kein Schalter: er setzt nur den
-          Cursor hinein. Beim TITEL der grosse Stift (Owner 17.09.2026: „andersrum, titel icon
-          grösser") — er gehört zur grossen Zeile; beim Satz der kleinere. */}
-      <span className="absolute flex items-center"
-        style={{ right: 0, top: "50%", transform: "translateY(-50%)" }}>
-        <button type="button" aria-label="Edit"
-          onClick={e => { e.preventDefault(); e.stopPropagation(); feld.current?.focus(); feld.current?.select(); }}
-          className="lb-poster-stift"
-          style={{
-            width: `${istTitel ? POSTER.qr.breit : POSTER.qr.breit * 0.62}cqw`,
-            height: `${istTitel ? POSTER.qr.breit : POSTER.qr.breit * 0.62}cqw`,
-          }}>
-          <Pencil style={{ width: "52%", height: "52%" }} aria-hidden />
-        </button>
-      </span>
+        }}>{/**
+          * ── SOLANGE ER TIPPT, GEHÖRT DER INHALT DEM BROWSER (Owner 19.09.2026: „ich tippe
+          * andersrum?") ──────────────────────────────────────────────────────────────────────
+          *
+          * HIER STAND `{text}`, und das war der Fehler: React setzt bei jedem Tastendruck den
+          * Inhalt des Feldes neu — und beim Ersetzen fällt der Cursor auf Position 0 zurück.
+          * „Gani" wurde so zu „aniG". Mein Haken oben half nicht: Er verhindert nur MEIN
+          * Schreiben, nicht das von React beim Abgleich.
+          *
+          * ZWEI BETRIEBSARTEN, EINE ZEILE:
+          *  · NICHT BESCHREIBBAR (das Blatt des Künstlers): `{text}` steht im HTML — so findet
+          *    es auch Google, und der Server liefert die Zeile fertig aus.
+          *  · BESCHREIBBAR (sein Foto liegt im Blatt, das gibt es nur im Browser): React lässt
+          *    die Finger davon, der Haken oben füllt das Feld — und nur dann, wenn niemand
+          *    darin schreibt.
+          */}
+          {bearbeitbar ? null : text}</span>
     </>
   );
 }

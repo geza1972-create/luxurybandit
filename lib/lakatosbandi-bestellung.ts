@@ -1,8 +1,10 @@
+import { randomBytes } from "node:crypto";
 import { sendEmail } from "@/lib/email-send";
 import { adminEmails } from "@/lib/is-admin-email";
 import { kuenstlerUrl } from "@/lib/lakatosbandi-adressen";
 import { eur } from "@/lib/pricing";
 import { DRUCK_KUENSTLER_CENTS } from "@/lib/lakatosbandi-druck";
+import { kundenbildLesen } from "@/lib/lakatosbandi-kundenbild";
 import type { MailAnhang } from "@/lib/email-send";
 import { mandantLesen, mandantSpeichern } from "@/lib/versusforge-mandanten";
 import { werkKacheln, posterAnriss } from "@/lib/lakatosbandi";
@@ -42,7 +44,43 @@ export type BestellPosten = {
   material: string;
   groesse: string;
   name?: string;
+  /**
+   * SEIN EIGENES BILD (Owner 18.09.2026) — die Kennung aus `lib/lakatosbandi-kundenbild.ts`.
+   * Fehlt sie, wird das Werk des Künstlers gedruckt.
+   */
+  bild?: string;
 };
+
+/**
+ * ── DER KORB LIEGT BEI UNS, NICHT IN EINEM STRIPE-FELD (18.09.2026) ─────────────────────────
+ *
+ * Bisher reiste die ganze Bestellung als Text in `metadata.korb` mit — abgeschnitten bei 480
+ * Zeichen. Zwanzig Posten passen dort nicht hinein, und seit an jedem Posten die Kennung seines
+ * Bildes hängt, erst recht nicht: Was abgeschnitten wird, wird nie gedruckt.
+ *
+ * Jetzt legt die Kasse den Korb ab und schickt nur seine Kennung mit. Der lesbare Text bleibt
+ * zusätzlich stehen — er ist das, was man in Stripe sieht, wenn man dort nachschaut.
+ */
+const KORB_ORDNER = "lakatosbandi-korb";
+
+export async function korbAblegen(posten: BestellPosten[]): Promise<string | null> {
+  const id = randomBytes(9).toString("hex");
+  const r = await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(`${KORB_ORDNER}/${id}.json`)}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "x-upsert": "true", "cache-control": "no-cache, max-age=0" },
+    body: JSON.stringify(posten),
+  });
+  if (!r.ok) { console.warn("[bestellung] Korb nicht abgelegt:", r.status); return null; }
+  return id;
+}
+
+export async function korbHolen(id: string): Promise<BestellPosten[] | null> {
+  if (!/^[0-9a-f]{18}$/.test(id)) return null;
+  const r = await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(`${KORB_ORDNER}/${id}.json`)}`);
+  if (!r.ok) return null;
+  const d = await r.json().catch(() => null);
+  return Array.isArray(d) ? (d as BestellPosten[]) : null;
+}
 
 export type Bestellung = {
   /** Die Stripe-Sitzung — daraus entsteht die Bestellnummer. */
@@ -157,16 +195,36 @@ async function dateiAnhaenge(b: Bestellung, materialien: (p: BestellPosten) => b
         const r = await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(pfad)}`);
         return r.ok ? new Uint8Array(await r.arrayBuffer()) : undefined;
       };
-      const bild = await holen(motivPfad(p.mandant, nr));
+      /**
+       * ── WAS GEDRUCKT WIRD: SEIN BILD, SONST DAS WERK (Owner 18.09.2026) ──────────────────
+       *
+       * Hat er sein Foto eingesetzt oder Kunst daraus machen lassen, liegt es in der Ablage und
+       * die Bestellung trägt die Kennung. Scheitert das Lesen, wird NICHT still das Werk des
+       * Künstlers gedruckt — das bekäme er nie so bestellt; die Zeile fällt aus und steht im
+       * Log, damit sie von Hand nachgeliefert wird.
+       */
+      const eigenes = p.bild ? await kundenbildLesen(p.bild) : null;
+      if (p.bild && !eigenes) { console.warn(`[bestellung] Kundenbild fehlt: ${p.bild} (${p.mandant}/${nr})`); continue; }
+      const bild = eigenes?.bild ?? await holen(motivPfad(p.mandant, nr));
       if (!bild) { console.warn(`[bestellung] Werkbild fehlt: ${p.mandant}/${nr}`); continue; }
+      /**
+       * ── OHNE SEIN WERK AUCH OHNE SEINEN NAMEN (Owner 18.09.2026: „wenn das Bild nicht
+       * generiert ist, dann darf man keine Lizenz verlangen") ────────────────────────────────
+       *
+       * Steht nur das eigene Foto des Kunden auf dem Blatt, ist nichts vom Künstler darauf —
+       * dann wäre „nach dem Stil von …" eine falsche Angabe über einem fremden Bild, und das
+       * Artist-Fair-Siegel („wir zahlen dem Künstler") ein grosses Wort für eine Vermittlung.
+       * Es bleibt das blanke Blatt mit der Adresse des Hauses.
+       */
+      const ohneKuenstler = !!eigenes && !eigenes.zettel.stil;
       const bytes = await druckdateiBauen({
         bild,
         /* Kein Name und kein Profilbild auf dem Blatt (Owner 17.09.2026: „Gerry Louisett raus")
            — dieselbe Zeile wie auf dem Schirm: oben der TITEL, unten nur die Adresse. Fehlt der
            Titel, trägt die grosse Zeile den Namen. */
-        titel: [info.titel, info.jahr].filter(Boolean).join(", ") || (m.name ?? ""),
-        text: posterAnriss(kachel?.hook ?? ""),
-        qrZiel: filmSeite(p.mandant, kachel?.i ?? -1),
+        titel: ohneKuenstler ? "" : ([info.titel, info.jahr].filter(Boolean).join(", ") || (m.name ?? "")),
+        text: ohneKuenstler ? "" : posterAnriss(kachel?.hook ?? ""),
+        qrZiel: ohneKuenstler ? undefined : filmSeite(p.mandant, kachel?.i ?? -1),
         /* Nur die Adresse (Owner 17.09.2026: „hier soll stehen nur lakatosbandi.com"). */
         recht: "lakatosbandi.com",
         nummer: bestellNummer(b.sitzung),
@@ -205,11 +263,37 @@ async function lizenzenGutschreiben(b: Bestellung): Promise<void> {
     /* Reproduktionen (gemeinfreie Meister) zahlen keine Lizenz — dort lebt niemand mehr. Und eine
        Datei trägt keinen Künstleranteil (Owner 16.09.2026: „der download soll 10 euro kosten ohne
        lizenz"). */
-    if (!m || m.reproduktion) continue;
-    const zahlbar = posten.filter(p => p.material !== "fisier");
+    /**
+     * ── UND KEINE GUTSCHRIFT AN DAS HAUS SELBST (Owner 19.09.2026: „das sind meine
+     * Generatoren-Künstler … hierfür gibt es keine Lizenz. Ich bekomme alles.") ───────────────
+     *
+     * Ein Generator-Künstler (`kunstAn`) ist vom Owner angelegt — ihm eine Lizenz gutzuschreiben
+     * hiesse, Geld von sich an sich zu buchen, und ihm darüber eine Mail zu schicken. Beides ist
+     * Lärm in einer Abrechnung, die später jemand lesen muss.
+     */
+    if (!m || m.reproduktion || m.kunstAn) continue;
+    /* Eine Datei trägt keinen Anteil, und ein Blatt mit dem Bild des Kunden auch nicht: Dort ist
+       nichts von ihm drauf (Owner 19.09.2026: „wir verdienen beim Druck des Prints"). */
+    const zahlbar = posten.filter(p => p.material !== "fisier" && !p.bild);
     if (!zahlbar.length) continue;
 
-    const cents = zahlbar.length * DRUCK_KUENSTLER_CENTS;
+    /**
+     * ── LIZENZ ODER VERMITTLUNG (Owner 18.09.2026: „1 Euro bekommt der Künstler") ──────────
+     *
+     * Volle 10 €, wenn sein Werk oder sein Stil auf dem Blatt steht. Hat der Kunde nur sein
+     * eigenes Foto eingesetzt, ist nichts von ihm drauf — dann ist es keine Lizenz, sondern
+     * eine Vermittlung: Der Käufer kam über seine Seite. 1 €, ehrlich benannt.
+     *
+     * Gelesen wird der Zettel aus der Ablage, nie eine Behauptung des Browsers — derselbe
+     * Zettel, aus dem die Kasse den Preis gerechnet hat.
+     */
+    /* ── EIN BILD DES KUNDEN HEISST VERMITTLUNG (Owner 19.09.2026) ─────────────────────────
+       Auch das ERZEUGTE — davon gibt es bei einem echten Künstler ohnehin keines (Owner
+       19.09.2026: erzeugt wird nur bei den Künstlern des Hauses). Die volle Lizenz bleibt für den
+       Fall, für den sie gedacht ist: wenn SEIN Werk gedruckt wird. Die Gutschrift muss der Kasse
+       folgen, sonst schulden wir ihm etwas anderes, als der Käufer bezahlt hat. */
+    const anteile = zahlbar.map(() => DRUCK_KUENSTLER_CENTS);
+    const cents = anteile.reduce((a, b) => a + b, 0);
     const eintrag = {
       am: new Date().toISOString(),
       bestellung: bestellNummer(b.sitzung),

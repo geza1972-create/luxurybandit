@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { SPUR } from "@/components/PortalSpur";
 import { notFound, redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { after } from "next/server";
@@ -14,23 +15,28 @@ import Poster from "@/components/Poster";
 import PosterGross, { PosterGrossKnopf } from "@/components/PosterGross";
 import PosterDeinBild from "@/components/PosterDeinBild";
 import PosterDeinText, { PosterStil, PosterRecht } from "@/components/PosterDeinText";
+import { kunstBlattSatz } from "@/lib/lakatosbandi-kunst";
 import { POSTER_TITEL } from "@/lib/lakatosbandi-poster";
 import KaufKnopf from "@/components/KaufKnopf";
 import MehrText from "@/components/MehrText";
 import Korb from "@/components/Korb";
 import { preisSatz, preisText } from "@/lib/lakatosbandi-preis";
-import { druckPreisCents, druckGroessenFuer, druckSpanneCents, DRUCK_KUENSTLER_CENTS, DRUCK_VERSAND_CENTS } from "@/lib/lakatosbandi-druck";
+import { druckPreisCents, druckGroessenFuer, druckSpanneCents, DRUCK_KUENSTLER_CENTS, DRUCK_VERSAND_CENTS, KLEIDUNG_AN, KUNST_CENTS } from "@/lib/lakatosbandi-druck";
 import { eur } from "@/lib/pricing";
 import PreisLabel from "@/components/PreisLabel";
 import { mandantPruefen } from "@/lib/versusforge-mandant";
+import { hausherrDarf } from "@/lib/lakatosbandi-hausherr";
 import { aboAktiv } from "@/lib/versusforge-abo";
 import { EIGENER_MANDANT } from "@/lib/versusforge-namen";
-import { istKuenstler, portalPfade, werkKacheln, kuenstlerUrl, posterAnriss, kuenstlerListe, imPortalSichtbar } from "@/lib/lakatosbandi";
+import { istKuenstler, portalPfade, werkKacheln, kuenstlerUrl, posterAnriss, kuenstlerListe, imPortalSichtbar, blattZeilen } from "@/lib/lakatosbandi";
 import { portalSprache, portalTexte } from "@/lib/lakatosbandi-texte";
 import PortalKopf from "@/components/PortalKopf";
 import PortalFuss from "@/components/PortalFuss";
 import PortalReiter from "@/components/PortalReiter";
 import PosterZurueckSprung from "@/components/PosterZurueckSprung";
+import PosterRaeume from "@/components/PosterRaeume";
+import PosterLizenzSatz from "@/components/PosterLizenzSatz";
+import { PosterWandFoto } from "@/components/PosterWandBild";
 import { MessageCircle } from "lucide-react";
 import PortalKuenstlerReihe from "@/components/PortalKuenstlerReihe";
 
@@ -106,8 +112,21 @@ export default async function PortalKuenstler({ params, searchParams }: Props) {
   }
   /* DER ADMIN SIEHT DIE GANZE SEITE, AUCH VOR DER FREIGABE UND OFFLINE (Owner 11.09.2026: „wie soll ich es freigeben, wenn
      ich keine Bilder sehen kann?" · „du sollst die ganze Seite bauen, du zeigst die Seite im Portal"). `?s=` = Admin-Schlüssel. */
+  /**
+   * ── ZWEI SCHLÜSSEL ÖFFNEN DIESE SEITE (Owner 19.09.2026: „ich darf ohne Stripe runterladen als
+   * 286645f5…") ───────────────────────────────────────────────────────────────────────────────
+   *
+   * `?s=` nimmt jetzt BEIDE: den Hausschlüssel (`VERSUSFORGE_DASHBOARD_KEY`) und den Schlüssel
+   * DIESES Künstlers — denselben, der sein Dashboard öffnet. Entschieden wird es in
+   * `lib/lakatosbandi-hausherr.ts` und serverseitig noch einmal in `api/poster-kunst`.
+   *
+   * WARUM NICHT `?k=`: Auf dieser Seite heisst `?k=` seit je „bearbeite meine Seite" und zeigt
+   * das Formular statt der Blätter (so steht es in der Freigabe-Mail). Zwei Bedeutungen für
+   * denselben Anhänger wären die Art Falle, die man erst bemerkt, wenn jemand vor dem falschen
+   * Bildschirm sitzt. Derselbe Schlüssel, anderer Anhänger: `?s=`.
+   */
   const adminS = String(sp.s ?? "");
-  const admin = !!adminS && mandantPruefen(EIGENER_MANDANT, adminS).ok;
+  const admin = !!adminS && await hausherrDarf(kuenstler, adminS);
   if (!m || !istKuenstler(m) || (m.freigabe === "abgelehnt" && !admin)) notFound();
 
   const L = portalSprache(sp.lang, m.sprache ?? "en");
@@ -216,7 +235,12 @@ export default async function PortalKuenstler({ params, searchParams }: Props) {
   }
 
   /* In der Sprache des Besuchers, sonst im Original (Owner 14.09.2026: „hier wird nichts übersetzt"). */
-  const kacheln = werkKacheln(m, L);
+  /* Abgelehnte Werke haben kein Bild mehr in der Galerie (Owner 19.09.2026) — ihr Satz steht
+     weiter im Datensatz, das Bild nicht. Ohne diese Zeile stünde hier ein leerer Rahmen, und mit
+     dem alten Rückfall in `portal-werk` stand achtmal dasselbe Bild da. Im Dashboard sieht er
+     sie weiter, dort gehören sie hin. */
+  const kacheln = werkKacheln(m, L)
+    .filter(k => !m.werkInfo?.[k.i < 0 ? "standard" : String(k.i)]?.abgelehntAm);
   /* Die Bilder liefert `api/portal-werk` vor der Freigabe nur mit Schlüssel aus — für den Admin mit seinem. */
   const mitAdmin = (url: string) => (admin ? `${url}&s=${encodeURIComponent(adminS)}` : url);
   /* „VORBEȘTE CU AGENTUL MEU" ÖFFNET SEINEN AGENTEN AUF DIESER SEITE (Owner 11.09.2026) — statt der alten Firmen-Seite
@@ -280,10 +304,31 @@ export default async function PortalKuenstler({ params, searchParams }: Props) {
   const premium = !!m.reproduktion || aboAktiv(m as Parameters<typeof aboAktiv>[0]);
   const posterAnsicht = !!m.posterViu && premium && sp.ansicht !== "werke";
   const kaufBar = !!m.reproduktion || posterAnsicht;
-  /* Das lebende Blatt — Kundenfoto, „Generate art", überschreibbare Zeilen — hängt an
-     demselben `premium` wie der Postershop (Owner 17.09.2026: „also upload und edit texte soll
-     bei denen gar nicht erscheinen, nur wenn sie premium haben"). */
   const alsPoster = kaufBar;
+  /**
+   * ── DAS LEBENDE BLATT GIBT ES NICHT BEI JEDEM (Owner 19.09.2026: „wir müssen das nur bei
+   * bestimmten Künstlern anbieten, also bei Caricaturist. Jetzt nur bei Caricaturist") ────────
+   *
+   * Kundenfoto ins Blatt, „Generate art", überschreibbare Zeilen — das hing bis heute an
+   * demselben `premium` wie der Postershop (Owner 17.09.2026: „also Upload und Edit Texte soll
+   * bei denen gar nicht erscheinen, nur wenn sie Premium haben"). Premium war damit zweierlei
+   * gleichzeitig: „darf Poster verkaufen" UND „sein Werk darf umgebaut werden".
+   *
+   * DAS IST NICHT DASSELBE. Wer ein gemaltes Porträt verkauft, will meistens NICHT, dass ein
+   * Fremder sein Gesicht hineinsetzt — das Werk ist das Produkt. Bei „Caricaturist AI" ist das
+   * Umbauen umgekehrt der ganze Zweck: „Transform poza ta in caricatura."
+   *
+   * Also ein eigener Schalter am Künstler, `kunstAn`. Er ist AUS, solange ihn niemand setzt —
+   * niemandes Werk wird ohne ausdrückliches Ja zur Vorlage. `premium` bleibt Voraussetzung: Das
+   * Blatt selbst ist ein Premium-Produkt.
+   *
+   * DER SCHALTER AM EINZELNEN WERK (`werkInfo[nr].kunst`) bleibt daneben bestehen und kann
+   * innerhalb eines erlaubten Künstlers einzelne Werke ausnehmen — etwa wenn der Bildanbieter
+   * eines abgewiesen hat (siehe `werkVorlageSperren`).
+   */
+  const lebend = premium && m.kunstAn === true;
+  /* Karikaturist oder Maler? Davon hängt ab, was auf dem Knopf steht — siehe `kunstStil`. */
+  const kariStil = !!String(m.kunstStil ?? "").trim();
   /* Poster und Kleidung werden getrennt gezeigt (15.09.2026) — `produkt` sagt, was ein Stück ist. */
   const istKleidung = (i: number) => !!m.werkInfo?.[i < 0 ? "standard" : String(i)]?.produkt;
   /* IN DER POSTERANSICHT NUR, WAS ER ANGEHAKT HAT (Owner 16.09.2026: „auch bei jedem bild wenn
@@ -294,15 +339,20 @@ export default async function PortalKuenstler({ params, searchParams }: Props) {
      — eine leere Kategorie sähe aus wie ein Fehler, nicht wie eine offene Entscheidung. */
   const eigeneAuswahl = kacheln.some(k => posterWerk(k.i));
   /**
-   * ── VIER AUF EINEN BLICK, DER REST AUF KLICK (Owner 16.09.2026: „4 werke zeigen und mehr
-   * button") ────────────────────────────────────────────────────────────────────────────────
+   * ── ALLE BLÄTTER STEHEN DA (Owner 19.09.2026: „blende alle Bilder ein") ────────────────────
    *
-   * Ein Poster ist ein Blatt mit viel Papier darauf; sechs davon untereinander sind eine lange
-   * Rolle, auf der das einzelne Werk untergeht. Vier zeigen, was es gibt — wer mehr will, sagt
-   * es mit einem Klick (`?alle=1`).
+   * HIER STANDEN VIER, der Rest hinter einem Knopf (Owner 16.09.2026: „4 Werke zeigen und mehr
+   * Button"). Die Begründung war die Länge der Seite: Ein Poster ist ein Blatt mit viel Papier
+   * darauf, und sechs davon untereinander sind eine lange Rolle.
+   *
+   * ER DREHT DAS UM, und das ist auf einer Künstlerseite das Richtige: Wer hier landet, will
+   * SEHEN, was der Künstler hat — nicht vier Kostproben und eine Aufforderung. Ein Knopf mit
+   * „alle 10 ansehen" sagt dem Besucher, dass ihm etwas vorenthalten wird, und kostet den Blick
+   * auf sechs Werke, die niemand mehr anklickt.
+   *
+   * `?alle=1` bleibt ohne Wirkung gültig — alte Verweise laufen weiter ins Leere statt in einen
+   * Fehler.
    */
-  const alleZeigen = String(sp.alle ?? "") === "1";
-  const POSTER_ZUERST = 4;
   /* ── DAS REPRÄSENTATIVE WERK ZUERST (Owner 17.09.2026: „diese kachel machst du als erstes") ──
      Das Häkchen „dieses Bild repräsentiert mich" (`vertritt`, im Dashboard) bestimmt seit heute
      auch die Reihenfolge: das angehakte Werk steht vorn, der Rest bleibt in seiner Ordnung.
@@ -312,7 +362,8 @@ export default async function PortalKuenstler({ params, searchParams }: Props) {
     .filter(k => !istKleidung(k.i))
     .filter(k => !posterAnsicht || m.reproduktion || !eigeneAuswahl || posterWerk(k.i))
     .sort((a, b) => Number(vertritt(b.i)) - Number(vertritt(a.i)));
-  const kleidungKacheln = kacheln.filter(k => istKleidung(k.i));
+  /* Kleidung ist abgeschaltet (Owner 18.09.2026) — Begründung an `KLEIDUNG_AN`. */
+  const kleidungKacheln = KLEIDUNG_AN ? kacheln.filter(k => istKleidung(k.i)) : [];
   /* Die Seite eines Werks: lakatosbandi.com/{name}/{nr} („standard" = das erste). */
   const werkLink = (i: number) =>
     `${P.kuenstler(kuenstler)}/${i < 0 ? "standard" : i}${admin ? `?s=${encodeURIComponent(adminS)}` : ""}`;
@@ -343,8 +394,26 @@ export default async function PortalKuenstler({ params, searchParams }: Props) {
        Van Gogh ist der Name, nach dem gesucht wird, und von seiner Seite aus soll man bei den
        lebenden landen (und umgekehrt). Die eigene Gruppe steht vorn, die andere schliesst an. */
     .sort((a, b) => Number(!!a.reproduktion !== !!m.reproduktion) - Number(!!b.reproduktion !== !!m.reproduktion))
+    /**
+     * ── WER NICHTS ZU ZEIGEN HAT, STEHT NICHT IN DER REIHE (Owner 19.09.2026: „Maia fehlt, ich
+     * weiss nicht wieso") ─────────────────────────────────────────────────────────────────────
+     *
+     * In der Reihe stand ein leerer weisser Kreis mit „Maia" darunter. Ihre vier Fotos sind alle
+     * abgelehnt, ihr Ordner in der Galerie ist leer — auch das Profilbild. `profilBild: true`
+     * steht noch im Datensatz, aber die Datei gibt es nicht mehr; ein Merker ist eine Behauptung,
+     * keine Datei.
+     *
+     * Statt zu prüfen, ob eine Datei existiert (das wären zweiundzwanzig Auflistungen je
+     * Seitenaufruf), wird gefragt, ob überhaupt noch ein Werk übrig ist. Wer keines hat, hat
+     * auch kein Profilbild verdient und gehört nicht in eine Reihe, die zum Entdecken einlädt.
+     * Seine Seite bleibt erreichbar, und der Reiter „Künstler" zeigt ihn weiter mit 0 Werken.
+     */
+    .filter(x => werkKacheln(x, L).some(y => {
+      const wi = x.werkInfo?.[y.i < 0 ? "standard" : String(y.i)];
+      return !wi?.abgelehntAm;
+    }))
     .map(x => {
-      const w = werkKacheln(x, L);
+      const w = werkKacheln(x, L).filter(y => !x.werkInfo?.[y.i < 0 ? "standard" : String(y.i)]?.abgelehntAm);
       const vertreter = w.find(y => x.werkInfo?.[y.i < 0 ? "standard" : String(y.i)]?.vertritt) ?? w[0];
       const bild = x.profilBild
         ? `/api/portal-werk?m=${encodeURIComponent(x.kennung)}&i=profil`
@@ -364,9 +433,34 @@ export default async function PortalKuenstler({ params, searchParams }: Props) {
     <div data-lang={L} className="lb-portal min-h-[100dvh] bg-white text-[#111]">
       <PortalKopf T={T} lang={L} login={P.login} start={P.start} preise={P.preise} journal={P.journal(L)} />
       <PortalKuenstlerReihe reihe={reihe} />
+      {/**
+        * ── DIE KATEGORIEN STEHEN AUCH HIER (Owner 19.09.2026: „auf dieser Seite sehe ich die Tabs
+        * nicht. Ich muss hier auch andere Kategorien anklicken können") ───────────────────────
+        *
+        * Von einer Künstlerseite führte bisher nur das Logo zurück — und das landet auf der
+        * Startseite, nicht in der Kategorie, aus der man kam. Wer über eine Anzeige direkt bei
+        * Botticelli landet, sah gar nicht, dass es hier Originale und Living Poster als eigene
+        * Flächen gibt.
+        *
+        * SIE STEHEN OBEN, NICHT IM INHALT: Hier sind sie Navigation des Hauses. Der zweite
+        * Reiter weiter unten („Living Poster / Originale") gehört dem KÜNSTLER und schaltet
+        * zwischen seinen beiden Läden um — zwei verschiedene Dinge, deshalb zwei Orte.
+        *
+        * „KÜNSTLER" IST AKTIV, weil man genau das gerade ansieht; kam man aus dem Laden
+        * (`?ansicht=poster`), steht „Living Poster" hervorgehoben. Ein Reiterband, in dem nichts
+        * aktiv ist, sieht aus wie ein Fehler.
+        */}
+      <div className={`${SPUR} px-5`}>
+        <PortalReiter reiter={[
+          { label: T.tabStart, href: `${P.start}${L === "en" ? "" : `?lang=${L}`}`, aktiv: false },
+          { label: T.tabKuenstler, href: `${P.start}?ansicht=kuenstler${L === "en" ? "" : `&lang=${L}`}`, aktiv: sp.ansicht !== "poster" },
+          { label: T.tabWerke, href: `${P.start}?ansicht=werke${L === "en" ? "" : `&lang=${L}`}`, aktiv: false },
+          { label: T.tabReproduktionen, href: `${P.start}?ansicht=repro${L === "en" ? "" : `&lang=${L}`}`, aktiv: sp.ansicht === "poster" },
+        ]} />
+      </div>
       <PosterZurueckSprung />
 
-      <main className="mx-auto w-full max-w-[1120px] px-5 pb-20 pt-10 md:pt-14">
+      <main className={`${SPUR} px-5 pb-20 pt-10 md:pt-14`}>
         {/* NUR FÜR DEN ADMIN: was Käufer sehen — und der Knopf dazu (Owner 11.09.2026). Deutsch, sie liest es. */}
         {admin && (
           <div className="mb-8 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl bg-[#fff6e0] px-4 py-3 text-[14.5px] text-[#5b4a00]">
@@ -521,22 +615,71 @@ export default async function PortalKuenstler({ params, searchParams }: Props) {
           ]} />
         ) : null}
 
-        <ul className="mt-10 grid list-none grid-cols-1 gap-x-8 gap-y-12 p-0 sm:grid-cols-2 lg:grid-cols-3">
-          {(alsPoster && !alleZeigen ? posterKacheln.slice(0, POSTER_ZUERST) : posterKacheln).map(k => (
+        {/**
+          * ── AM RECHNER FÜLLT EIN POSTER DEN BILDSCHIRM (Owner 18.09.2026: „auf Desktop müssen
+          * die Poster viel grösser sein" · „ein Poster muss die Höhe des Bildschirms füllen") ──
+          *
+          * HIER STANDEN DREI SPALTEN. Auf einem 1440er Schirm ist ein Blatt damit rund 400 px
+          * breit — kleiner als auf dem Handy, wo es die volle Breite bekommt. Ein Poster ist aber
+          * kein Vorschaubild, es ist das Produkt: Wer entscheidet, ob er es sich an die Wand
+          * hängt, muss es in der Grösse sehen, in der es hängt.
+          *
+          * DIE BREITE FOLGT DER HÖHE, nicht umgekehrt: Ein A-Bogen hat ein festes Verhältnis
+          * (1 : 1,4142). Soll die HÖHE den Schirm füllen, ist die Breite `88svh / 1,4142` — und
+          * `min(92vw, …)` sorgt dafür, dass es auf einem breiten, flachen Schirm nicht seitlich
+          * hinausläuft. Dieselbe Rechnung wie im Vollbild (`PosterGross`), damit beide gleich
+          * gross sind.
+          *
+          * `svh` STATT `vh`: Auf dem Telefon wächst und schrumpft die Adressleiste; `vh` rechnet
+          * mit dem grössten Zustand, und das Blatt ragte dann unten heraus. Am Rechner sind beide
+          * identisch.
+          *
+          * Tablet behält zwei Spalten — dort ist ein bildschirmhohes Blatt breiter als der halbe
+          * Schirm und es entstünde eine Spalte mit Löchern daneben.
+          */}
+        <ul className="mt-10 grid list-none grid-cols-1 justify-items-center gap-x-8 gap-y-12 p-0 sm:grid-cols-2 lg:grid-cols-1">
+          {posterKacheln.map(k => (
             /* `lb-poster-block` grenzt die Rahmenwahl auf DIESE Kachel ein (globals.css) —
                sonst färbt eine Wahl alle Poster der Seite (16.09.2026). */
             /* ── DIE KACHEL HAT EINE MARKE (Owner 18.09.2026: „muss genau zu der stelle
                springen in der seite, wo er war") ───────────────────────────────────────────
                `#w-3` hängt an der Adresse, die wir Stripe für „Abbrechen" mitgeben — der Browser
                springt damit genau an dieses Werk zurück, nicht an den Seitenanfang. */
-            <li key={k.i} id={`w-${k.i < 0 ? "standard" : k.i}`} className="lb-poster-block">
+            <li key={k.i} id={`w-${k.i < 0 ? "standard" : k.i}`}
+              className="lb-poster-block w-full lg:w-[min(92vw,calc(88svh/1.4142))]">
               {/* ── ZWEI KLICKS, ZWEI ZIELE (Owner 17.09.2026: „klick aufs bild vergrössert das
                   poster full und klick auf code führt zum QR fenster") ──────────────────────────
                   Bis heute war die ganze Kachel EIN Link zum Film — wer das Blatt genauer ansehen
                   wollte, landete im Fenster. Jetzt macht das Blatt das Blatt gross, und der Code
                   tut, was ein Code tut: er führt ins Fenster (der Link sitzt im Poster selbst).
                   Ohne Posterlayout bleibt es bei der einen Kachel zur Werkseite. */}
-              <PosterGross alsPoster={alsPoster} href={agentLink(String(k.i))}>
+              {/* ── DAS BLATT UND SEINE ZIMMER, EIN SLIDER (Owner 18.09.2026: „nicht als Extrabild
+                  sondern nach dem Poster die Slides") ──────────────────────────────────────────
+                  Folie 0 ist das Werk selbst, danach hängt dasselbe Blatt in unseren Zimmern:
+                  Wer ein Poster kauft, will wissen, wie es zu Hause aussieht. Nur im Postershop —
+                  bei den Originalen gibt es nichts zu hängen. */}
+              <PosterRaeume aus={!alsPoster || istKleidung(k.i)} hoch={!m.werkInfo?.[k.i < 0 ? "standard" : String(k.i)]?.quer} blatt={
+
+                  <Poster
+                    klasse="lb-rahmen-fest"
+                    titel={blattZeilen(m.name, m.werkInfo?.[k.i < 0 ? "standard" : String(k.i)]).gross}
+                    stil={blattZeilen(m.name, m.werkInfo?.[k.i < 0 ? "standard" : String(k.i)]).klein}
+                    text={posterAnriss(k.hook)}
+                    qrEcke
+                    qr="/api/portal-qr"
+                    siegel={!m.reproduktion}
+                    recht={`lakatosbandi.com/${kuenstler}`}
+                    bild={
+                      /* Sein Foto bzw. das erzeugte Bild, sobald eines im Blatt steht
+                         (Owner 18.09.2026) — sonst das Werk des Künstlers. */
+                      <PosterWandFoto standard={mitAdmin(P.werkBild(kuenstler, k.i))}
+                        className={m.werkInfo?.[k.i < 0 ? "standard" : String(k.i)]?.quer ? "block h-auto w-full" : "block h-full w-auto"} />
+                    }
+                  />
+              }>
+              <PosterGross alsPoster={alsPoster} href={agentLink(String(k.i))}
+                /* Im Vollbild holt sich der Hausherr die Druckdatei ohne Kasse (Owner 19.09.2026). */
+                mandant={kuenstler} werk={k.i < 0 ? "standard" : String(k.i)} adminS={admin ? adminS : ""}>
                 {/* ── DIE KACHEL IST DAS POSTER (Owner 15.09.2026: „also kachel soll aussehen
                     wie das poster mit qr code und allem") ──────────────────────────────────────
 
@@ -582,23 +725,36 @@ export default async function PortalKuenstler({ params, searchParams }: Props) {
                          Kein Platzhalter, auch nicht über dem erzeugten Bild: Das Blatt gehört
                          dem Künstler. Der Kunde kann die Zeile überschreiben — dann tritt
                          darunter „BY …" hervor (`PosterStil`). */
+                      /* ── DER TITEL DES WERKS STEHT GROSS, WENN ES EINEN HAT (Owner 19.09.2026:
+                         „ich will extra in jedem Poster den Titel ändern und die Texte") ───────
+                         Die Regel samt Begründung steht in `blattZeilen` (lib/lakatosbandi.ts).
+                         Hier kommt nur dazu, dass der KUNDE die grosse Zeile überschreiben darf —
+                         dann tritt darunter „by …" hervor (`PosterStil`). */
+                      const zeilen = blattZeilen(m.name, m.werkInfo?.[k.i < 0 ? "standard" : String(k.i)]);
                       return {
-                        titel: premium ? <PosterDeinText satz={m.name} art="titel" /> : m.name,
-                        stil: premium ? <PosterStil name={m.name} /> : titel,
+                        titel: lebend ? <PosterDeinText satz={zeilen.gross} art="titel" /> : zeilen.gross,
+                        stil: lebend ? <PosterStil name={zeilen.klein || m.name} /> : zeilen.klein,
                       };
                     })()}
                     /* ── DEN SATZ SCHREIBT DER KUNDE SELBST (Owner 17.09.2026: „ok jetzt text
                        editieren") ───────────────────────────────────────────────────────────
                        Der Stift steckt im Satz, weil nur er weiss, ob gerade gelesen oder
                        geschrieben wird. Nur im Browser — wie das Foto. */
-                    text={premium ? <PosterDeinText satz={posterAnriss(k.hook)} qrEcke /> : posterAnriss(k.hook)}
+                    /* ── AUF DEM BLATT STEHT KEIN WERBESATZ (Owner 19.09.2026: „hier brauche einen
+                       Text, der zu allen passt, auf Englisch") ─────────────────────────────────
+                       Bei einem Generator ist der Hook eine Anzeige („Transformă poza ta…") und
+                       gehört auf die Seite, nicht über ein fremdes Gesicht an der Wand. Der
+                       Rückfall sagt, was das Bild IST — überschreiben kann er ihn im Fenster. */
+                    text={lebend
+                      ? <PosterDeinText satz={m.kunstAn ? kunstBlattSatz(m.kunstStil) : posterAnriss(k.hook)} qrEcke />
+                      : posterAnriss(k.hook)}
                     /* Der Knopf „You as a picture" sitzt jetzt IM Bildfeld, weil er das Bild
                        tauscht (`PosterDeinBild` weiter unten) — nicht mehr hier am Blatt. */
                     qrEcke
                     /* Der Code führt ins Fenster — dorthin, wo er auch auf Papier hinführt
                        (Owner 17.09.2026: „klick auf code führt zum QR fenster"). */
                     qrLink={filmLink(k.i)}
-                    qr={`/lakatosbandi/qr/${kuenstler}-${k.i < 0 ? "standard" : k.i}.png`}
+                    qr="/api/portal-qr"
                     scan={T.qrScannen}
                     /* Nur die Adresse (Owner 17.09.2026: „hier soll stehen nur
                        lakatosbandi.com") — wer das Blatt an der Wand sieht, soll EINE Sache
@@ -620,11 +776,41 @@ export default async function PortalKuenstler({ params, searchParams }: Props) {
                          picture‘ ersetzt nur das bild") ───────────────────────────────────────
                          Nur im Browser, nichts gespeichert: „wenn er rausgeht von der seite,
                          dann ist das bild weg" — ein Zwischenspeicher, kein Konto. */
-                      <PosterDeinBild knopf="You as a picture" erzeugen="Generate art" warten="Creating art…" sprache={L}
+                      /* ── DER KNOPF SPRICHT DIE SPRACHE DER SEITE UND NENNT DEN PREIS (Owner
+                          19.09.2026: „hier muss fett stehen Generează caricatura, aber 4,99 Euro")
+                          ────────────────────────────────────────────────────────────────────────
+                          Hier standen drei englische Wörter fest im Code, auf einer rumänischen
+                          Seite, ohne Betrag. „Generate art" sagt ausserdem nicht, was herauskommt:
+                          Bei einem Karikaturisten ist das Ergebnis eine Karikatur, und genau das
+                          gehört auf den Knopf.
+
+                          DER PREIS STEHT IM KNOPF, nicht daneben (Hausregel `cta-im-viewport`:
+                          „Preis IM Knopf"). Er kommt aus `KUNST_CENTS` — nie eine Zahl tippen
+                          (Hausregel `prices-only-from-pricing-table`). */
+                      <PosterDeinBild
+                        knopf={T.kunstKnopf}
+                        erzeugen={(kariStil ? T.kunstErzeugenKari : T.kunstErzeugen).replace("{preis}", eur(KUNST_CENTS, L))}
+                        /* Schritt 3: Das Blatt ist bezahlt — der Knopf schreibt, statt neu zu erzeugen. */
+                        texteKnopf={T.kunstTexteKnopf}
+                        /* Mit `?s=` erzeugt der Hausherr ohne Kasse — geprüft wird serverseitig. */
+                        adminS={adminS}
+                        warten={T.kunstWartet}
+                        texte={{
+                          zahlungAus: T.kunstZahlungAus, zahlungDa: T.kunstZahlungDa,
+                          zahlungWartet: T.kunstZahlungWartet, zahlungWeg: T.kunstZahlungWeg,
+                          werkGesperrt: T.kunstWerkGesperrt, fotoAbgelehnt: T.kunstFotoAbgelehnt,
+                          nichtHier: T.kunstNichtHier, fehlgeschlagen: T.kunstFehlgeschlagen,
+                          nurBilder: T.kunstNurBilder, zuGross: T.kunstZuGross,
+                          schritt1: T.kunstSchritt1, schritt2: T.kunstSchritt2,
+                          fensterTitel: T.kunstFensterTitel, fotoTauschen: T.kunstFotoTauschen,
+                          feldMail: T.kunstFeldMail, mailWarum: T.kunstMailWarum,
+                          speichern: T.kunstSpeichern, gespeichert: T.kunstGespeichert,
+                        }}
+                        sprache={L}
                         mandant={kuenstler} werk={k.i < 0 ? "standard" : String(k.i)}
                         /* Häkchen am Werk (`kunst`): fehlt es, ist der Knopf da; steht es auf
                            „nein", bleibt das Werk ein Werk. */
-                        aus={!premium || m.werkInfo?.[k.i < 0 ? "standard" : String(k.i)]?.kunst === false}>
+                        aus={!lebend || m.werkInfo?.[k.i < 0 ? "standard" : String(k.i)]?.kunst === false}>
                       <PosterFilm
                         /* Im Blatt gehört der Klick dem Blatt, das Fenster dem Code
                            (Owner 17.09.2026). */
@@ -691,6 +877,7 @@ export default async function PortalKuenstler({ params, searchParams }: Props) {
                   </div>
                 )}
               </PosterGross>
+              </PosterRaeume>
               {(() => {
                 const w = m.werkInfo?.[k.i < 0 ? "standard" : String(k.i)];
                 /* Das Preisschild: bei Kleidung fest, beim Poster die Spanne, sonst sein Satz. */
@@ -714,29 +901,75 @@ export default async function PortalKuenstler({ params, searchParams }: Props) {
                     {preis && !kaufBar ? <p className="m-0 mt-2"><PreisLabel>{preis}</PreisLabel></p> : null}
                     {/* Der Verkaufssatz — unter der Kachel, nicht im Poster (Owner 16.09.2026).
                         Nur beim Druck: bei einem T-Shirt wäre „Drucke dieses Bildes" falsch. */}
+                    {/**
+                      * ── AUF GENERATOREN ERST MIT SEINEM BILD (Owner 19.09.2026: „jeder Besucher
+                      * soll es nicht sehen, nur ich als Inhaber" · „nur für meine Generatoren")
+                      *
+                      * Das Blatt eines Generators ist ein Schaufenster. Wer dort den Druck des
+                      * Musterblattes kauft, bekommt das Bild einer fremden Person — kein Angebot,
+                      * sondern ein Missverständnis mit Rechnung. Bei echten Künstlern bleibt der
+                      * Block stehen: Dort IST das Werk die Ware, und der Druck ist ihr Verdienst.
+                      *
+                      * Der Inhaber sieht ihn immer (`admin`), sonst könnte er nicht prüfen, was
+                      * ein Käufer bekommt.
+                      */}
                     {kaufBar && !w?.produkt ? (
                       <>
-                        <p className="m-0 mx-auto max-w-[42ch] text-[14px] leading-[1.5] text-[#666]">
-                          {m.reproduktion
-                            ? T.druckVerkauf
-                            : T.druckVerkaufKuenstler.replace("{anteil}", eur(DRUCK_KUENSTLER_CENTS, L))}
-                        </p>
+                        {/**
+                          * ── KEINE LIZENZ BEI SEINEN EIGENEN GENERATOREN (Owner 19.09.2026:
+                          * „was ist mit Print?" · Regel vom selben Tag: „auf die von mir extra
+                          * dafür erstellten … hierfür gibt es keine Lizenz. Ich bekomme alles.")
+                          *
+                          * Auf dem Blatt von „Caricaturist AI" stand „Der Preis enthält eine
+                          * Lizenz von 10 €, die direkt an den Künstler geht". Diesen Künstler hat
+                          * der Owner selbst angelegt — die zehn Euro gingen von ihm an ihn, und
+                          * der Käufer zahlte sie. Ein Satz, der eine Zahlung verspricht, die es
+                          * nicht gibt, ist auf einem Verkaufsblatt keine Kleinigkeit.
+                          *
+                          * `kunstAn` ist genau das Kennzeichen dieser Künstler. Sie bekommen
+                          * denselben nüchternen Satz wie eine Reproduktion: Wir verkaufen Drucke.
+                          */}
+                        {m.reproduktion || m.kunstAn ? (
+                          <p className="m-0 mx-auto max-w-[42ch] text-[14px] leading-[1.5] text-[#666]">{T.druckVerkauf}</p>
+                        ) : (
+                          /* Setzt der Kunde sein eigenes Foto ein, steht hier die Vermittlung
+                             statt der Lizenz (Owner 18.09.2026) — sonst nennt der Satz eine Zahl,
+                             die der Kaufknopf daneben nicht verlangt. */
+                          <PosterLizenzSatz mandant={kuenstler} werk={k.i < 0 ? "standard" : String(k.i)}
+                            werkSatz={T.druckVerkaufKuenstler.replace("{anteil}", eur(DRUCK_KUENSTLER_CENTS, L))}
+                            eigenesSatz={T.druckVerkaufEigenes} />
+                        )}
                         {/* ── DER VERSAND STEHT VOR DEM KLICK (Skill `bezahlung`, Regel 8) ──────
                             Er hängt seit 17.09.2026 an der Wahl (gerahmt fährt teurer, eine Datei
                             fährt gar nicht), also schreibt ihn der Kaufknopf selbst — hier stünde
                             sonst eine feste Zahl, die für zwei von drei Fällen falsch ist. */}
-
                       </>
                     ) : null}
                     {kaufBar ? (
                       <KaufKnopf mandant={kuenstler} werk={k.i < 0 ? "standard" : String(k.i)}
-                        material={w?.produkt ?? "posterramaneagra"} sprache={L} anteil={!m.reproduktion} adminS={admin ? adminS : ""}
+                        /* Kein Künstleranteil bei Reproduktionen UND bei den eigenen Generatoren
+                           (Owner 19.09.2026) — verbindlich gerechnet wird in `api/druck-kasse`. */
+                        material={w?.produkt ?? "posterramaneagra"} sprache={L} anteil={!m.reproduktion && !m.kunstAn} adminS={admin ? adminS : ""}
+                        /**
+                         * ── AUF SEINEN GENERATOREN GIBT ES KEINEN DRUCKVERSAND (Owner 19.09.2026:
+                         * „sie sollen den Print-Button nicht sehen" · „hier auf dieser Seite
+                         * Print-Button raus") ──────────────────────────────────────────────────
+                         *
+                         * Erst galt es nur für Besucher, der Inhaber sah den Chip weiter. Das war
+                         * eine Ausnahme ohne Zweck: Seinen eigenen Druck holt er sich im Vollbild
+                         * als Datei und geht damit zum Fotodienst — er bestellt bei sich selbst
+                         * keinen Versand. Der Chip stand also nur im Weg.
+                         *
+                         * Bei echten Künstlern bleibt der Druck, was er ist: ihr Verdienst.
+                         */
+                        ohnePrint={m.kunstAn === true}
                         texte={{ kaufen: T.kaufKaufen, korb: T.kaufKorb, groesse: T.kaufGroesse, fehler: T.korbFehler,
                           ohneRahmen: T.druckOhneRahmen, ohneRahmenWahl: T.ohneRahmenWahl, mitRahmen: T.druckMitRahmen, mitRahmenWahl: T.mitRahmenWahl, versand: T.druckVersandDrin, rahmenSchwarz: T.druckRahmenSchwarz }}
                         /* Die Datei steckt im selben Block (Owner 17.09.2026) — nur beim Poster,
                            nicht bei Kleidung: „Druckdatei eines T-Shirts" gibt es nicht. */
                         datei={!w?.produkt ? { kaufen: T.dateiKaufen, erklaerung: T.dateiErklaerung,
-                          schwarz: T.dateiSchwarz, holz: T.dateiHolz, ohne: T.dateiOhne } : undefined} />
+                          schwarz: T.dateiSchwarz, holz: T.dateiHolz, ohne: T.dateiOhne,
+                          frei: T.kunstDateiFrei } : undefined} />
                     ) : null}
                     {/* ── DIE FRAGE NACH DEM ORIGINAL STEHT BEIM KAUF, NICHT UNTER DER DATEI
                         (Owner 17.09.2026: „aber nicht hier · sondern · hier") ─────────────────
@@ -751,14 +984,6 @@ export default async function PortalKuenstler({ params, searchParams }: Props) {
           ))}
         </ul>
 
-        {alsPoster && !alleZeigen && posterKacheln.length > POSTER_ZUERST ? (
-          <p className="mt-10 text-center">
-            <a href={`${P.kuenstler(kuenstler)}?alle=1${sp.ansicht === "poster" ? "&ansicht=poster" : ""}${L === "en" ? "" : `&lang=${L}`}`}
-              className="inline-block rounded-xl border border-[#111] px-6 py-3 text-[15px] font-semibold text-[#111] no-underline transition hover:bg-[#111] hover:text-white">
-              {T.mehrWerke.replace("{n}", String(posterKacheln.length))}
-            </a>
-          </p>
-        ) : null}
 
         {kleidungKacheln.length > 0 && (
           <>

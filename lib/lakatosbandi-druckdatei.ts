@@ -2,6 +2,7 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { PDFDocument, rgb, type PDFFont, type PDFPage } from "pdf-lib";
 import fontkit from "@pdf-lib/fontkit";
+import { aufFeldSchneiden } from "@/lib/lakatosbandi-feldschnitt";
 import QRCode from "qrcode";
 import { POSTER, POSTER_VERHAELTNIS, POSTER_FORMATE } from "@/lib/lakatosbandi-poster";
 
@@ -128,15 +129,17 @@ export async function druckdateiBauen(a: DruckAngaben): Promise<Uint8Array> {
 
   /* ── Der gedruckte Rahmen ─────────────────────────────────────────────────────────────── */
   const leiste = a.rahmen ? cqw(P.rahmen.breit) : 0;
+  const leisteUnten = a.rahmen ? cqw(P.rahmen.breitUnten) : 0;
   if (a.rahmen) {
-    /* Eine einzige Leiste in einem Ton — die Mitte der Linie liegt auf der halben Breite,
-       damit die Leiste genau am Blattrand endet und innen bei `leiste` aufhört. */
-    seite.drawRectangle({
-      x: leiste / 2, y: leiste / 2,
-      width: B - leiste, height: H - leiste,
-      borderColor: farbe(a.rahmen === "holz" ? P.rahmen.holz : P.rahmen.schwarz),
-      borderWidth: leiste,
-    });
+    /* ── VIER LEISTEN, UNTEN BREITER (Owner 19.09.2026) ───────────────────────────────────
+       Ein einziges Rechteck mit `borderWidth` kann nur EINE Breite. Der Schirm zeichnet unten
+       eine dickere Leiste (`border-width: … 1.47cqw …`), weil das Blatt im Rahmen etwas tiefer
+       sitzt. Vier gefüllte Rechtecke geben dasselbe Bild — und nur so stimmt die Vorschau. */
+    const ton = farbe(a.rahmen === "holz" ? P.rahmen.holz : P.rahmen.schwarz);
+    seite.drawRectangle({ x: 0, y: H - leiste, width: B, height: leiste, color: ton });
+    seite.drawRectangle({ x: 0, y: 0, width: B, height: leisteUnten, color: ton });
+    seite.drawRectangle({ x: 0, y: 0, width: leiste, height: H, color: ton });
+    seite.drawRectangle({ x: B - leiste, y: 0, width: leiste, height: H, color: ton });
   }
 
   const randX = leiste + cqw(P.rand);
@@ -144,7 +147,7 @@ export async function druckdateiBauen(a: DruckAngaben): Promise<Uint8Array> {
   const mitte = B / 2;
   /* In PDF zählt y von UNTEN. Wir rechnen von oben und ziehen ab. */
   let obenY = H - leiste - cqw(P.randOben);
-  const untenY = leiste + cqw(P.randUnten);
+  const untenY = leisteUnten + cqw(P.randUnten);
 
   /* ── KEIN KOPF ÜBER DEM WERK (Owner 17.09.2026: „raus") ────────────────────────────────
      Bis heute stand `POSTER_TITEL` hier oben auf dem Blatt. Auf dem Schirm ist die Zeile weg;
@@ -160,7 +163,7 @@ export async function druckdateiBauen(a: DruckAngaben): Promise<Uint8Array> {
   /* Der Künstlername steht nur noch in der Rechtezeile (Owner 17.09.2026: „Gerry Louisett
      raus") — wird er nicht übergeben, fällt die Zeile hier genauso weg wie auf dem Schirm. */
   if (a.name) zeilen.push({ art: "sperr", inhalt: nameText, font: serif, groesse: nameGroesse, fill: farbe(f.tinte), sperre: nameGroesse * P.name.sperre, danach: cqw(P.luft) });
-  if (a.titel) zeilen.push({ art: "text", inhalt: a.titel, font: kursiv, groesse: cqw(P.titel.breit), fill: farbe(f.tinte), sperre: 0, danach: cqw(P.luft) });
+  if (a.titel) zeilen.push({ art: "text", inhalt: a.titel, font: kursiv, groesse: cqw(P.titel.breit), fill: farbe(f.tinte), sperre: 0, danach: cqw(P.titel.luftUnten) });
   /* Seit der Code unten neben der Adresse steht (Owner 17.09.2026: „dieser qr code stört, muss
      klein sein neben lakatosbandi.com"), hält der Satz keinen Platz mehr für ihn frei — er hat
      die ganze Breite, genau wie auf dem Schirm. */
@@ -192,17 +195,41 @@ export async function druckdateiBauen(a: DruckAngaben): Promise<Uint8Array> {
   if (a.recht) zeilen.push({ art: a.qrZiel ? "qr" : "text", inhalt: a.recht, font: serif, groesse: cqw(P.recht.breit), fill: farbe(f.leise), sperre: 0, danach: cqw(P.luft) * 0.4 });
   if (a.nummer) zeilen.push({ art: "text", inhalt: `Licență ${a.nummer} · uz personal`, font: serif, groesse: cqw(P.recht.breit), fill: farbe(f.leise), sperre: 0, danach: 0 });
 
+
+  /**
+   * ── DER CODE IST HÖHER ALS SEINE ZEILE (Owner 19.09.2026, beim Vergleich Datei/Schirm) ──────
+   *
+   * Die Adresszeile ist klein (`recht.breit`), der Code daneben misst das 2,2-Fache und sitzt
+   * mittig darauf. Er ragt also oben über die Zeile hinaus — gemessen blieben zwischen Satz und
+   * Code nur 0,40 % der Blattbreite, während zwischen Titel und Satz 2,00 % standen. Der Abstand
+   * war gerechnet richtig und gesehen falsch: Gemessen wurde bis zur SCHRIFT, gesehen wird bis
+   * zum CODE.
+   *
+   * Deshalb bekommt die Zeile VOR dem Code den Überhang zusätzlich. Dann stimmt der Abstand, den
+   * man sieht, mit `P.qr.luft` überein — und zwar unabhängig davon, wie gross der Code gerade ist.
+   */
+  {
+    const i = zeilen.findIndex(z => z.art === "qr");
+    if (i > 0) zeilen[i - 1].danach += ((2.2 - 1) / 2) * zeilen[i].groesse;
+  }
+
   const blockHoehe = zeilen.reduce((s, z) => s + z.groesse + z.danach, 0);
 
   /* ── Das Werk: was zwischen Kopf und Textblock frei bleibt, höchstens das Rasterfeld ──── */
   const bildEinbetten = a.bildTyp === "png" ? pdf.embedPng.bind(pdf) : pdf.embedJpg.bind(pdf);
-  const werk = await bildEinbetten(a.bild);
-  const feldHoehe = Math.min(cqw(P.bild.hoch * POSTER_VERHAELTNIS), Math.max(1, obenY - (untenY + blockHoehe + cqw(P.bild.luftUnten))));
+  /* Derselbe Rand unten wie oben (Owner 18.09.2026, siehe components/Poster.tsx) — sonst sitzt
+     das Werk im Druck anders als auf dem Schirm, und genau das darf nicht passieren. */
+  const feldHoehe = Math.min(cqw(P.bild.hoch * POSTER_VERHAELTNIS) - cqw(P.randOben), Math.max(1, obenY - (untenY + blockHoehe + cqw(P.bild.luftSchrift))));
   const feldBreite = innen - 2 * cqw(P.bild.randSeite);
+  /* Wie auf dem Schirm: Das Werk füllt die Breite, der Überhang fällt unten weg
+     (`lib/lakatosbandi-feldschnitt.ts`). */
+  const geschnitten = await aufFeldSchneiden(a.bild, feldBreite, feldHoehe);
+  const werk = await bildEinbetten(geschnitten.bild);
   const skala = Math.min(feldBreite / werk.width, feldHoehe / werk.height);
   const bw = werk.width * skala;
   const bh = werk.height * skala;
-  seite.drawImage(werk, { x: mitte - bw / 2, y: obenY - feldHoehe + (feldHoehe - bh) / 2, width: bw, height: bh });
+  /* Oberkante am Feldrand — unten bleibt, was der Textblock braucht. */
+  seite.drawImage(werk, { x: mitte - bw / 2, y: obenY - bh, width: bw, height: bh });
 
   /* ── Der Textblock, von unten nach oben gesetzt ───────────────────────────────────────── */
   const qrBild = a.qrZiel
@@ -227,7 +254,16 @@ export async function druckdateiBauen(a: DruckAngaben): Promise<Uint8Array> {
       const bText = z.font.widthOfTextAtSize(z.inhalt, z.groesse);
       const gesamt = seiteQr + luft + bText;
       const x0 = mitte - gesamt / 2;
-      seite.drawImage(qrBild, { x: x0, y: y - (seiteQr - z.groesse) / 2, width: seiteQr, height: seiteQr });
+      /**
+       * ── DER CODE SITZT AUF DER ZEILE, NICHT ÜBER IHR (Owner 19.09.2026: „QR-Code etwas weiter
+       * runter, damit es auf einer Linie steht, mit der Zeile zentriert") ──────────────────────
+       *
+       * Mittig gesetzt wurde bisher zur SCHRIFTKASTEN-Mitte: Grundlinie plus halbe Schriftgrösse.
+       * Ein Buchstabe füllt diesen Kasten aber nicht — er reicht nach oben etwa 0,7 Schriftgrössen
+       * (Versalhöhe) und nach unten 0,2 (Unterlänge). Seine sichtbare Mitte liegt also rund ein
+       * Viertel TIEFER als die Kastenmitte, und der Code stand entsprechend zu hoch.
+       */
+      seite.drawImage(qrBild, { x: x0, y: y - (seiteQr - z.groesse) / 2 - z.groesse * 0.25, width: seiteQr, height: seiteQr });
       seite.drawText(z.inhalt, { x: x0 + seiteQr + luft, y, size: z.groesse, font: z.font, color: z.fill ?? farbe(f.tinte) });
     } else if (z.art === "sperr" && z.font) {
       const b = sperrBreite(z.inhalt, z.font, z.groesse, z.sperre);
@@ -246,7 +282,7 @@ export async function druckdateiBauen(a: DruckAngaben): Promise<Uint8Array> {
      wie auf dem Schirm. Ohne Satz bleibt es bei der Ecke. */
   /* Ohne Rechtezeile hätte der Code keinen Platz — dann steht er wie früher unten links. */
   if (qrBild && !a.recht) {
-    seite.drawImage(qrBild, { x: randX, y: leiste + cqw(P.randUnten), width: qrSeite, height: qrSeite });
+    seite.drawImage(qrBild, { x: randX, y: leisteUnten + cqw(P.randUnten), width: qrSeite, height: qrSeite });
   }
 
   /* Das Gesicht des Künstlers neben dem Namen: pdf-lib kann nicht runden, also kommt es als
@@ -267,6 +303,32 @@ export async function druckdateiBauen(a: DruckAngaben): Promise<Uint8Array> {
     const ky = nameY - (kreis - nameGroesse) / 2;
     seite.drawImage(bild, { x: kx, y: ky, width: kreis, height: kreis });
     seite.drawCircle({ x: kx + kreis / 2, y: ky + kreis / 2, size: kreis / 2 + cqw(0.35), borderColor: farbe(f.papier), borderWidth: cqw(0.7) });
+  }
+
+  /**
+   * ── DAS SIEGEL GEHÖRT AUFS GEDRUCKTE BLATT (Owner 19.09.2026, beim Vergleich Datei/Schirm) ──
+   *
+   * Auf dem Schirm sitzt „ARTIST FAIR · Respect the Artist" unten links auf dem Papier; in der
+   * Datei fehlte es ganz. Es ist kein Schmuck: Es ist die Aussage, dass der Künstler bezahlt
+   * wurde ([[artist-fair-siegel]]) — und die gehört genau auf das Blatt, das jemand an die Wand
+   * hängt, nicht nur auf die Vorschau.
+   *
+   * DIESELBEN ZAHLEN WIE IM BLATT (`components/Poster.tsx`): halber unterer Rand nach links,
+   * derselbe nach unten minus 0,4, Kantenlänge `qr.breit * 1.35`.
+   */
+  try {
+    const stempel = await readFile(path.join(process.cwd(), "public", "lakatosbandi", "artist-fair-stempel.png"));
+    const bildS = await pdf.embedPng(stempel);
+    const seite2 = cqw(P.qr.breit * 1.35);
+    seite.drawImage(bildS, {
+      x: leiste + cqw(P.randUnten / 2),
+      y: leisteUnten + cqw(P.randUnten / 2 - 0.4),
+      width: seite2, height: seite2,
+    });
+  } catch (e) {
+    /* Ohne Siegel ist das Blatt unvollständig, aber brauchbar — ein bezahlter Druck darf nicht
+       an einer fehlenden Datei scheitern. */
+    console.warn("[druckdatei] Siegel nicht gesetzt:", e);
   }
 
   return pdf.save();

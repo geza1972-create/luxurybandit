@@ -14,7 +14,7 @@ import KaufKnopf from "@/components/KaufKnopf";
 import Korb from "@/components/Korb";
 import { preisSatz, preisText } from "@/lib/lakatosbandi-preis";
 import PreisLabel from "@/components/PreisLabel";
-import { druckPreisCents, druckGroessenFuer, druckSpanneCents } from "@/lib/lakatosbandi-druck";
+import { druckPreisCents, druckGroessenFuer, druckSpanneCents, KLEIDUNG_AN } from "@/lib/lakatosbandi-druck";
 import { eur } from "@/lib/pricing";
 
 /**
@@ -74,6 +74,9 @@ export default async function PortalWerk({ params, searchParams }: Props) {
   const datenschutz = P.start === "/" ? "/privacy" : "/portal/privacy";
 
   const w = m.werkInfo?.[i < 0 ? "standard" : String(i)];
+  /* Kleidung ist abgeschaltet (Owner 18.09.2026) — ein alter Link soll kein kaufbares Shirt
+     zeigen, das es nicht mehr gibt. Begründung an `KLEIDUNG_AN` in lib/lakatosbandi-druck.ts. */
+  if (w?.produkt && !KLEIDUNG_AN) notFound();
   const zeile = w ? [w.titel, w.technik, w.groesse, w.jahr].filter(Boolean).join(" · ") : "";
   /* Sein Preis für dieses Werk — sonst sein allgemeiner Satz (Owner 12.09.2026).
      Bei Reproduktionen steht der echte Preis: fest bei Shirt und Hoodie, sonst die Spanne aus
@@ -117,7 +120,7 @@ export default async function PortalWerk({ params, searchParams }: Props) {
                   geschichte={k.hook} ueber={m.ueberMich} />
               </div>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={`/lakatosbandi/qr/${kuenstler}-${i < 0 ? "standard" : i}.png`} alt=""
+              <img src="/api/portal-qr" alt=""
                 className="mx-auto mt-6 block h-[66px] w-[66px]" />
               <p className="m-0 mt-2 font-serif text-[12.5px] italic text-[#8a8375]">{T.qrScannen}</p>
               <p className="m-0 mt-6 font-serif text-[15px] uppercase tracking-[0.22em] text-[#111]">{m.name}</p>
@@ -142,7 +145,9 @@ export default async function PortalWerk({ params, searchParams }: Props) {
               <KaufKnopf mandant={kuenstler} werk={i < 0 ? "standard" : String(i)}
                 material={w?.produkt ?? "posterramaneagra"} sprache={L} anteil={!m.reproduktion}
                 texte={{ kaufen: T.kaufKaufen, korb: T.kaufKorb, groesse: T.kaufGroesse, fehler: T.korbFehler,
-                          ohneRahmen: T.druckOhneRahmen, mitRahmen: T.druckMitRahmen, rahmenSchwarz: T.druckRahmenSchwarz }} />
+                          ohneRahmen: T.druckOhneRahmen, ohneRahmenWahl: T.ohneRahmenWahl,
+                          mitRahmen: T.druckMitRahmen, mitRahmenWahl: T.mitRahmenWahl,
+                          versand: T.druckVersandDrin, rahmenSchwarz: T.druckRahmenSchwarz }} />
               <a href={`?agent=1${admin ? `&s=${encodeURIComponent(adminS)}` : ""}`}
                 className="mt-4 inline-block text-[14px] text-[#111] underline">{T.agent}</a>
             </div>

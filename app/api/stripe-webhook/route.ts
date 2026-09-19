@@ -1,4 +1,5 @@
 import crypto from "crypto";
+import { kunstGutschreiben } from "@/lib/lakatosbandi-kunst-riegel";
 import { NextResponse } from "next/server";
 import { enrollWetter } from "@/lib/wetter-enroll";
 import { setWetterPaid, grantMonthlySubscriptionCredits } from "@/lib/try-this-look-store";
@@ -6,7 +7,7 @@ import { lebenslaufAboFreischalten, lebenslaufAboBeenden } from "@/lib/lebenslau
 import { bezahltVermerken, lieferungAnstossen } from "@/lib/kiss-delivery";
 import { capiKaufMelden } from "@/lib/meta-capi";
 import { mandantLesen, mandantSpeichern } from "@/lib/versusforge-mandanten";
-import { druckBestellungMelden } from "@/lib/lakatosbandi-bestellung";
+import { druckBestellungMelden, korbHolen } from "@/lib/lakatosbandi-bestellung";
 
 export const runtime = "nodejs";
 
@@ -160,6 +161,26 @@ export async function POST(request: Request) {
           console.info(`[stripe-webhook] lebenslauf-abo aktiv — ${lebenslaufId} (${subId || "ohne subId"})`);
         } catch (e) { console.warn("[stripe-webhook] lebenslauf-abo Freischaltung fehlgeschlagen", e); }
       }
+    } else if (String(meta?.art ?? "") === "kunst") {
+      /**
+       * ── EIN EURO, EIN LAUF (Owner 18.09.2026) ─────────────────────────────────────────────
+       *
+       * Gutgeschrieben wird HIER und nur hier — der Browser kann sich kein Guthaben ausstellen.
+       * Die Gerätekennung stammt aus unseren eigenen Metadaten, die die Kasse gesetzt hat; es
+       * gibt an dieser Stelle kein Konto und keine Anmeldung, an der man es sonst festmachen
+       * könnte.
+       *
+       * Verbraucht wird erst, wenn ein Bild wirklich entstanden ist (`api/poster-kunst`).
+       */
+      const geraet = String(meta?.geraet ?? "").trim();
+      if (geraet) {
+        try {
+          const offen = await kunstGutschreiben(geraet, 1);
+          console.info(`[stripe-webhook] kunst +1 fuer ${geraet} — offen: ${offen}`);
+        } catch (e) { console.warn("[stripe-webhook] kunst-Gutschrift fehlgeschlagen", e); }
+      } else {
+        console.warn("[stripe-webhook] kunst bezahlt, aber ohne Geraetekennung — nicht gutgeschrieben");
+      }
     } else if (String(meta?.art ?? "") === "druck") {
       /**
        * ── DIE DRUCKBESTELLUNG (Owner 16.09.2026: „ich will nicht wissen was nach bestellung
@@ -173,8 +194,14 @@ export async function POST(request: Request) {
        * ALLES KOMMT AUS DER STRIPE-SITZUNG, nichts aus dem Browser: der Korb aus unseren
        * eigenen Metadaten, Adresse und Name aus dem, was Stripe erhoben hat.
        */
+      /* ── DER KORB KOMMT AUS UNSERER ABLAGE (18.09.2026) ────────────────────────────────
+         Das Stripe-Feld fasst 500 Zeichen; seit an jedem Posten die Kennung seines eigenen
+         Bildes hängt, reicht das nicht mehr. Die Kasse legt den Korb ab und schickt nur die
+         Kennung. Der Klartext bleibt als Rückfall — eine alte Sitzung, die noch vor diesem
+         Umbau entstanden ist, wird so trotzdem ausgeliefert. */
       const korb = String(meta?.korb ?? "").trim();
-      const posten = korb.split(";").filter(Boolean).map(t => {
+      const abgelegt = meta?.korbId ? await korbHolen(String(meta.korbId)).catch(() => null) : null;
+      const posten = abgelegt ?? korb.split(";").filter(Boolean).map(t => {
         const [mandant, werk, material, groesse] = t.split("/");
         return { mandant: mandant ?? "", werk: werk ?? "", material: material ?? "", groesse: groesse ?? "" };
       });

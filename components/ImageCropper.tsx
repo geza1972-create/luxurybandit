@@ -67,6 +67,7 @@ export const CROP_TEXTE_JE_SPRACHE: Record<string, CropTexte> = {
 export default function ImageCropper({
   file,
   aspect = 2 / 3,
+  obenAnsetzen = false,
   title = "Ausschnitt wählen",
   sprache,
   texte,
@@ -75,6 +76,16 @@ export default function ImageCropper({
 }: {
   file: File;
   aspect?: number;                       // Breite / Höhe der Zielkachel
+  /**
+   * ── OBEN NICHTS WEGNEHMEN (Owner 19.09.2026: „die Bilder darf man oben nicht abschneiden im
+   * Poster, nur unten") ────────────────────────────────────────────────────────────────────
+   *
+   * Auf einem POSTER sitzt der Kopf oben. Ein mittiger Ausschnitt nimmt oben und unten gleich
+   * viel — und köpft damit die Person. Beim Selfie-Zuschnitt in den anderen Trichtern bleibt es
+   * bei der Mitte (Owner 02.09.2026, ausdrücklich); deshalb ein Schalter und keine neue Regel
+   * für alle.
+   */
+  obenAnsetzen?: boolean;
   title?: string;
   /** Die Sprache der Seite — waehlt die passende Zeile aus `CROP_TEXTE_JE_SPRACHE`. Einfacher
    *  Weg fuer jeden Aufrufer, der ohnehin schon eine Sprachkennung fuehrt (fast alle). */
@@ -141,7 +152,9 @@ export default function ImageCropper({
     if (!nat.w || !frameW) return;
     if (!zentriert.current) {
       zentriert.current = true;
-      setOff(clamp({ x: (frameW - dispW) / 2, y: (frameH - dispH) / 2 }));
+      /* Waagerecht immer mittig; senkrecht je nach Auftrag oben ansetzen (Poster) oder mittig
+         (Selfie-Trichter). */
+      setOff(clamp({ x: (frameW - dispW) / 2, y: obenAnsetzen ? 0 : (frameH - dispH) / 2 }));
       return;
     }
     setOff(o => clamp(o));

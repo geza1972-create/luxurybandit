@@ -3,8 +3,10 @@ import { str } from "@/lib/agent-modell";
 import { mandantLesen } from "@/lib/versusforge-mandanten";
 import { mandantPruefen } from "@/lib/versusforge-mandant";
 import { EIGENER_MANDANT } from "@/lib/versusforge-namen";
-import { werkKacheln } from "@/lib/lakatosbandi";
-import { druckPreisCents, istTextil, istDatei, druckVersandCents, DRUCK_LAENDER } from "@/lib/lakatosbandi-druck";
+import { werkKacheln, portalPfade } from "@/lib/lakatosbandi";
+import { druckPreisCents, druckAbzugCents, istTextil, istDatei, druckVersandCents, DRUCK_LAENDER } from "@/lib/lakatosbandi-druck";
+import { kundenbildZettel } from "@/lib/lakatosbandi-kundenbild";
+import { korbAblegen } from "@/lib/lakatosbandi-bestellung";
 import { createPackCheckout, stripeConfigured } from "@/lib/stripe";
 import { keinMensch } from "@/lib/kein-mensch";
 
@@ -43,7 +45,7 @@ export const runtime = "nodejs";
 /** Mehr passt in kein Paket und in keine ehrliche Bestellung. */
 const HOECHSTENS = 20;
 
-type Posten = { mandant: string; werk: string; material: string; groesse: string; name: string; cents: number };
+type Posten = { mandant: string; werk: string; material: string; groesse: string; name: string; cents: number; bild?: string };
 
 export async function POST(request: Request) {
   if (keinMensch(request)) return NextResponse.json({ ok: false }, { status: 403 });
@@ -51,6 +53,8 @@ export async function POST(request: Request) {
 
   const b = (await request.json().catch(() => ({}))) as Record<string, unknown>;
   /* Ein einzelner Posten kommt weiterhin ohne Korb — der Agent kauft so. */
+  /* Gefüllt beim Durchgehen der Posten — die erste Adresse, die an einem Bild hängt. */
+  let kaeuferMail = "";
   const roh = Array.isArray(b.artikel) && b.artikel.length
     ? (b.artikel as Record<string, unknown>[])
     : [b];
@@ -89,9 +93,51 @@ export async function POST(request: Request) {
 
     const material = str(a.material, 20);
     const groesse = str(a.groesse, 20);
-    /* Sein Honorar liegt oben drauf, und ob es gilt, entscheidet DIESE Zeile — nicht der
-       Browser (Owner 16.09.2026: „dann muss die marge drauf"). */
-    const cents = druckPreisCents(material, groesse, !m.reproduktion);
+    /**
+     * ── WAS AUF DEM BLATT STEHT, BESTIMMT DEN ANTEIL (Owner 18.09.2026: „wenn das Bild nicht
+     * generiert ist, dann darf man keine Lizenz verlangen" · „1 Euro bekommt der Künstler") ──
+     *
+     * Drei Fälle, und der Server entscheidet sie allein (Skill `bezahlung`, Regel 3):
+     *   — kein eigenes Bild → das Werk des Künstlers → volle Lizenz (10 €)
+     *   — eigenes Bild, IM STIL ERZEUGT → sein Stil ist drin → volle Lizenz (10 €)
+     *   — eigenes Bild, nur hochgeladen → nichts von ihm drauf → Vermittlung (1 €)
+     *
+     * Der Beweis ist der Zettel neben dem abgelegten Bild; `stil: true` schreibt nur die
+     * Erzeugungs-Route. Eine erfundene oder fremde Kennung fällt hier durch und wird verworfen
+     * — dann gilt der teurere Fall, nie der billigere.
+     */
+    const bildId = str(a.bild, 32);
+    const zettel = bildId ? await kundenbildZettel(bildId) : null;
+    const eigenes = zettel && zettel.mandant === mandant;
+    /* Hat er seine Adresse schon einmal getippt (im Fenster am Blatt), fragt Stripe sie nicht
+       noch einmal ab (Owner 19.09.2026: „ich muss in Stripe immer zwei Mal die E-Mail angeben"). */
+    if (!kaeuferMail && String(zettel?.mail ?? "").includes("@")) kaeuferMail = String(zettel!.mail).trim();
+    /**
+     * ── DIE VOLLE LIZENZ GILT FÜR SEIN WERK, NICHT FÜR DAS BLATT DES KUNDEN (Owner 19.09.2026:
+     * „es müsste jetzt insgesamt 18 kosten der Druck, wenn er generiert hat sein Bild") ───────
+     *
+     * HIER STAND `!zettel.stil ? Vermittlung : volle Lizenz` — ein erzeugtes Blatt trug also die
+     * 10 € Lizenz UND kostete vorher 10 € fürs Erzeugen. Zusammen 28 € für ein A3 ohne Rahmen,
+     * das ohne Erzeugung 18 € kostet. „Etwas zu viel", und zwar doppelt kassiert für dasselbe
+     * Blatt.
+     *
+     * Die volle Lizenz bleibt, wofür sie gedacht war: wenn SEIN Werk gedruckt wird. Setzt ein
+     * Kunde sein eigenes Bild auf das Blatt, ist nichts von ihm darauf — dann bekommt er nichts
+     * (Owner 19.09.2026: „nein. wir verdienen beim Druck des Prints."). Bis dahin war dafür eine
+     * Vermittlung von 1 € vorgesehen; sie fällt weg, und der Druck wird für den Käufer um
+     * denselben Euro billiger.
+     *
+     * ERZEUGT WIRD OHNEHIN NUR BEI DEN KÜNSTLERN DES HAUSES (Owner 19.09.2026: „nur auf die von
+     * mir extra dafür erstellten. Und hierfür gibt es keine Lizenz. Ich bekomme alles."). Bei
+     * einem echten Künstler kann gar kein erzeugtes Bild entstehen — der Schalter `kunstAn` steht
+     * dort nicht.
+     */
+    /* ── UND NICHT BEI SEINEN EIGENEN GENERATOREN (Owner 19.09.2026) ──────────────────────
+       `kunstAn` tragen nur Künstler, die der Owner selbst angelegt hat. Dort gibt es niemanden
+       zu bezahlen; eine Lizenz wäre eine Buchung von ihm an sich selbst, die der Käufer bezahlt.
+       Hier steht die verbindliche Rechnung — der Satz auf der Seite folgt ihr nur. */
+    const anteil = !m.reproduktion && !eigenes && m.kunstAn !== true;
+    const cents = druckPreisCents(material, groesse, anteil);
     if (cents === null) return NextResponse.json({ ok: false, grund: "kein-preis" }, { status: 400 });
 
     const schluessel = String(kachel.i) === "-1" ? "standard" : String(kachel.i);
@@ -106,10 +152,36 @@ export async function POST(request: Request) {
     const titel = m.werkInfo?.[schluessel]?.titel || m.name || mandant;
     posten.push({
       mandant, werk: String(kachel.i), material, groesse, cents,
+      /* Für die Anrechnung unten: nur ein ERZEUGTES Bild ist schon bezahlt worden. */
+      ...(zettel?.stil ? { erzeugt: bildId } : {}),
+      ...(eigenes ? { bild: bildId } : {}),
       /* „L cm" wäre Unsinn — Zentimeter nur beim Druck. */
       name: `${titel} · ${material} · ${groesse}${istTextil(material) || istDatei(material) ? "" : " cm"}`,
     });
   }
+
+  /**
+   * ── DAS ERZEUGEN WIRD AUF DEN DRUCK ANGERECHNET (Owner 19.09.2026: „hier kostet eigentlich der
+   * Print 18 + 10 seine Generierung, also 28 Euro. Etwas zu viel" · „also 10 abziehen, oder?") ──
+   *
+   * EINMAL JE ERZEUGTEM BILD, nicht je Stück: Wer dasselbe Blatt dreimal druckt, hat einmal
+   * erzeugt — dreimal abzuziehen wäre ein Rabatt fürs Mengenbestellen, den niemand beschlossen
+   * hat. Der Abzug landet auf dem ersten Posten mit dieser Kennung.
+   *
+   * AUF DEM SERVER, nicht im Browser: Der Knopf zeigt denselben Preis, aber verbindlich ist der
+   * Zettel neben dem abgelegten Bild (`stil: true` schreibt nur die bezahlte Erzeugungs-Route).
+   *
+   * Den Boden — nie unter die Druckkosten — setzt `druckAbzugCents`.
+   */
+  const schonAngerechnet = new Set<string>();
+  for (const p of posten) {
+    const id = (p as { erzeugt?: string }).erzeugt;
+    if (!id || schonAngerechnet.has(id)) continue;
+    const ab = druckAbzugCents(p.material, p.groesse, p.cents);
+    if (ab > 0) { p.cents -= ab; schonAngerechnet.add(id); }
+  }
+  /* Der Merker gehört nicht in die Bestellung — er hat seine Arbeit getan. */
+  for (const p of posten) delete (p as { erzeugt?: string }).erzeugt;
 
   /**
    * ── ZURÜCK AUF DIESELBE SEITE, AUF DER ER STAND (Owner 17./18.09.2026: „habe dir gesagt, mit
@@ -145,6 +217,10 @@ export async function POST(request: Request) {
   const eigen = /^\/[A-Za-z0-9\-_/?=&%.,+#]*$/.test(her) && !her.startsWith("//") ? her : "";
   const zurueck = eigen ? `${basis}${eigen}` : (posten.length === 1 ? `${basis}/${posten[0].mandant}` : basis);
 
+  /* Vor der Kasse ablegen: Scheitert es, wird trotzdem verkauft — dann steht im Klartextfeld
+     immer noch, was bestellt wurde (nur ohne die Bilder). */
+  const korbId = await korbAblegen(posten).catch(() => null);
+
   try {
     const sitzung = await createPackCheckout({
       posten: posten.map(p => ({ amount: p.cents, name: p.name })),
@@ -152,12 +228,30 @@ export async function POST(request: Request) {
          gibt es immer noch nicht") — vorher landete er mit `?bestellt=1` wieder auf der
          Werkseite, und diesen Anhänger las niemand. Die Sitzungskennung reist mit, damit die
          Seite bei Stripe nachfragen kann, statt einen Kauf zu behaupten. */
-      successUrl: `${basis}/comanda?s={CHECKOUT_SESSION_ID}&lang=${encodeURIComponent(sprache)}`,
+      /**
+       * ── DER PFAD IST NICHT ÜBERALL DERSELBE (Owner 19.09.2026: „Profil nicht gefunden") ────
+       *
+       * `/comanda` gibt es nur auf lakatosbandi.com, und zwar durch einen Rewrite
+       * (next.config.mjs). Überall sonst — localhost, Vorschau, versusforge.com — liegt die
+       * Seite unter `/portal/comanda`.
+       *
+       * HART GESCHRIEBEN FÜHRTE DAS NACH DER ZAHLUNG INS LEERE: `localhost:3000/comanda` fällt
+       * in die Künstlerseite `/[creator]`, und dort heisst „comanda" ein Künstler, den es nicht
+       * gibt — „Profil nicht gefunden", nach einem echten Kauf.
+       *
+       * `portalPfade(host)` kennt beide Welten; dieselbe Stelle, die auch Login und Preise
+       * richtig setzt.
+       */
+      successUrl: `${basis}${portalPfade(kopfHost).start === "/" ? "" : "/portal"}/comanda?s={CHECKOUT_SESSION_ID}&lang=${encodeURIComponent(sprache)}`,
       cancelUrl: zurueck,
+      ...(kaeuferMail ? { email: kaeuferMail } : {}),
       sprache,
       metadata: {
         art: "druck",
-        /* Was bestellt wurde, kurz genug für Stripes Feldgrenze. */
+        /* Der ganze Korb liegt bei uns; hier reist nur seine Kennung (18.09.2026) — an jedem
+           Posten hängt jetzt auch das Bild des Kunden, und das passt in kein 500-Zeichen-Feld. */
+        ...(korbId ? { korbId } : {}),
+        /* Was bestellt wurde, zusätzlich als Klartext — das sieht man in Stripe. */
         korb: posten.map(p => `${p.mandant}/${p.werk}/${p.material}/${p.groesse}`).join(";").slice(0, 480),
         /* Damit die Bestätigung in der Sprache ankommt, in der bestellt wurde. */
         sprache,

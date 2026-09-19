@@ -79,6 +79,20 @@ export const druckGroessenFuer = (material: string): readonly string[] =>
 /** Ob dieses Material Kleidung ist — sie ist schwarz, und das steht auch so auf der Seite. */
 export const istTextil = (material: string) => material === "tricou" || material === "hanorac";
 
+/**
+ * ── KLEIDUNG IST VORERST AUS (Owner 18.09.2026: „mach die T-Shirts jetzt raus und Hoodies. Die
+ * gehen eh nicht. Wir werden sie wie die Poster machen müssen") ─────────────────────────────
+ *
+ * EIN SCHALTER STATT EINER LÖSCHUNG: Die Werke bleiben in den Daten, die Preise und Grössen
+ * bleiben in dieser Datei, der Kaufweg bleibt gebaut. Sichtbar ist nichts davon. Wer sie
+ * zurückholt, setzt hier `true` — und baut vorher die Darstellung neu, so wie beim Poster.
+ *
+ * WAS „WIE DIE POSTER" HEISST: Beim Poster steht das Werk auf einem Blatt, mit Rahmen, Raum
+ * und Massstab — man sieht, was man bekommt. Beim Shirt stand ein Foto in einem Raster, ohne
+ * Vorschau am Körper, ohne Stoff. Deshalb hat es nicht verkauft.
+ */
+export const KLEIDUNG_AN = false;
+
 /** Eine Datei wird nicht geliefert — kein Versand, keine Adresse, kein Paket. */
 export const istDatei = (material: string) => material === "fisier";
 
@@ -165,7 +179,11 @@ const PREISE: Record<DruckMaterial, Record<string, number>> = {
   ),
   /* 10 € — für jeden gleich, ohne Lizenzaufschlag (Owner 16.09.2026: „der download soll 10 euro
      kosten ohne lizenz"). Die Datei ist zum privaten Gebrauch bestimmt und darf nicht
-     vervielfältigt werden; das steht in der Mail und in den AGB. */
+     vervielfältigt werden; das steht in der Mail und in den AGB.
+
+     AUSNAHME SEIT 19.09.2026: Wer das Blatt selbst für `KUNST_CENTS` hat erzeugen lassen, bekommt
+     SEINE Datei ohne zweite Zahlung (`api/kunst-datei`). Dieser Preis gilt für die Werke der
+     Künstler — die hat er nicht bezahlt. */
   fisier: gleich(GROESSEN.fisier, 1000),
   tricou: gleich(GROESSEN.tricou, 2400),
   hanorac: gleich(GROESSEN.hanorac, 4900),
@@ -194,6 +212,53 @@ const PREISE: Record<DruckMaterial, Record<string, number>> = {
 export const DRUCK_KUENSTLER_CENTS = 1000;
 
 /**
+ * ── DIE VERMITTLUNG GIBT ES NICHT MEHR (Owner 19.09.2026: „nein. wir verdienen beim Druck des
+ * Prints." · „das Foto des Kunden — 1 € Vermittlung … das gibt es nicht mehr") ───────────────
+ *
+ * HIER STAND `DRUCK_VERMITTLUNG_CENTS = 100`. Gedacht war sie für den Fall, dass ein Kunde nur
+ * SEIN Foto ins Blatt setzt: keine Lizenz, weil nichts vom Künstler darauf ist, aber ein Euro,
+ * weil der Käufer über seine Seite kam.
+ *
+ * Sie fällt weg. Steht nichts vom Künstler auf dem Blatt, bekommt er auch nichts — verdient wird
+ * am Druck. Der Käufer zahlt denselben Euro weniger.
+ *
+ * WAS BLEIBT: die volle Lizenz (`DRUCK_KUENSTLER_CENTS`), wenn SEIN Werk gedruckt wird. Und für
+ * den Kunden bleiben die zwei Wege, die es gibt — gedruckt oder als Datei.
+ */
+
+/**
+ * ── EIN ERZEUGTES BILD KOSTET EINEN EURO (Owner 18.09.2026: „und leider müssen sie 1 Euro
+ * bezahlen" · „das dürfen die Leute nur ein Mal machen") ────────────────────────────────────
+ *
+ * ── WARUM ES ÜBERHAUPT ETWAS KOSTEN MUSS ────────────────────────────────────────────────────
+ *
+ * Ein Lauf kostet UNS rund 17 Cent bei OpenAI ([[kunst-rollen-statt-prompt]]). Der Knopf steht
+ * auf einer offenen Seite ohne Anmeldung; gratis ist er nach oben offen, und der Owner hat
+ * selbst gesagt, was dann passiert: „hier werden einen haufen leute generieren wenn es
+ * kostenlos ist."
+ *
+ * ── ZEHN EURO, UND DIE DATEI IST DRIN (Owner 19.09.2026: „generează kostet 10 Euro, klar? Dann
+ * ist Download gratis") ─────────────────────────────────────────────────────────────────────
+ *
+ *   10,00 € Einnahme − 0,39 € Stripe (0,25 € + 1,4 %) − 0,17 € OpenAI = 9,44 €
+ *
+ * ZWEI ZAHLEN WURDEN ZU EINER. Vorher kostete das Erzeugen 1 € und die Druckdatei danach 10 € —
+ * wer sein Bild behalten wollte, zahlte zweimal und stand nach der ersten Zahlung vor einer
+ * zweiten Kasse. Das ist der Moment, in dem Leute abbrechen und ihr Geld zurückfordern: Sie
+ * hatten das Gefühl, sie hätten das Bild schon gekauft.
+ *
+ * Jetzt kauft EIN Betrag das Bild UND die Datei. Der Ertrag ist derselbe wie vorher aus beiden
+ * Schritten zusammen, nur ohne die zweite Hürde — und es gibt nichts mehr zu erklären.
+ *
+ * DER DRUCK BLEIBT DAVON UNBERÜHRT: Ein gedrucktes Blatt mit Rahmen und Versand ist ein anderes
+ * Produkt und kostet weiter seinen Preis.
+ *
+ * EIN KAUF IST GENAU EIN LAUF, nicht drei. Bei drei Versuchen für denselben Preis wäre
+ * ausgerechnet der Interessierteste — der dreimal drückt — der unrentabelste.
+ */
+export const KUNST_CENTS = 1000;
+
+/**
  * Der Betrag zu einer Wahl — oder `null`, wenn die Wahl nicht in der Liste steht.
  *
  * NIEMALS EINEN RÜCKFALL AUF DIE KLEINSTE STUFE: Bei einem Guthaben wäre das harmlos, hier
@@ -202,7 +267,7 @@ export const DRUCK_KUENSTLER_CENTS = 1000;
  * `kuenstlerAnteil` entscheidet der SERVER aus dem Datensatz des Künstlers, nie der Browser
  * (Skill `bezahlung`, Regel 3) — im Korb steht er nur, damit das Schild stimmt.
  */
-export function druckPreisCents(material: string, groesse: string, kuenstlerAnteil = false): number | null {
+export function druckPreisCents(material: string, groesse: string, kuenstlerAnteil: boolean | number = false): number | null {
   const m = DRUCK_MATERIAL.find(x => x === material);
   if (!m) return null;
   if (!druckGroessenFuer(m).includes(groesse)) return null;
@@ -210,7 +275,40 @@ export function druckPreisCents(material: string, groesse: string, kuenstlerAnte
   if (p === null) return null;
   /* Die Datei kostet überall dasselbe — der Künstleranteil hängt am gedruckten Poster, nicht an
      einer Datei (Owner 16.09.2026: „ohne lizenz"). */
-  return kuenstlerAnteil && m !== "fisier" ? p + DRUCK_KUENSTLER_CENTS : p;
+  /* `true` heisst die volle Lizenz; eine Zahl heisst genau diesen Betrag (die Vermittlung von
+     1 €, wenn nur sein eigenes Foto im Blatt steht). */
+  const dazu = kuenstlerAnteil === true ? DRUCK_KUENSTLER_CENTS : (typeof kuenstlerAnteil === "number" ? kuenstlerAnteil : 0);
+  return dazu && m !== "fisier" ? p + dazu : p;
+}
+
+/**
+ * ── WER SCHON ERZEUGT HAT, ZAHLT DEN DRUCK NUR NOCH ZUR HÄLFTE (Owner 19.09.2026: „hier kostet
+ * eigentlich der Print 18 + 10 seine Generierung, also 28 Euro. Etwas zu viel. Es müsste jetzt
+ * insgesamt 18 kosten" · „also 10 abziehen, oder?") ─────────────────────────────────────────
+ *
+ * Die 10 €, die das Erzeugen gekostet hat, werden auf den Druck angerechnet. Wer sein Bild
+ * erzeugen liess und es danach drucken will, zahlt zusammen dasselbe wie jemand, der nur druckt
+ * — nicht zweimal.
+ *
+ *   A3 ohne Rahmen, eigenes Bild:  18 € Liste − 10 € angerechnet = 8 € · zusammen 18 €
+ *
+ * WARUM DAS RICHTIG IST: Das Erzeugen und der Druck sind nicht zwei Produkte, sondern zwei
+ * Schritte zu EINEM Blatt. Zweimal zu kassieren wäre die Stelle, an der jemand den Warenkorb
+ * schliesst — und ausgerechnet bei dem, der am weitesten gekommen ist.
+ *
+ * ── DER BODEN IST DIE DRUCKEREI ─────────────────────────────────────────────────────────────
+ *
+ * Nie unter das, was das Blatt in der Herstellung kostet (`DRUCK_KOSTEN`). Sonst legte ein
+ * künftiges kleineres Format am Ende Geld drauf — und der Versand steht daneben, er wird nicht
+ * mitgerechnet.
+ *
+ * ANGERECHNET WIRD EINMAL JE ERZEUGTEM BILD, nicht je Stück: Wer dasselbe Blatt dreimal druckt,
+ * hat einmal erzeugt. Das entscheidet die Kasse (`api/druck-kasse`), nicht diese Funktion.
+ */
+export function druckAbzugCents(material: string, groesse: string, preis: number): number {
+  const boden = (DRUCK_KOSTEN as Record<string, number>)[groesse] ?? 0;
+  if (material === "fisier") return 0;
+  return Math.max(0, Math.min(KUNST_CENTS, preis - boden));
 }
 
 /**

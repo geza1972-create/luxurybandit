@@ -105,6 +105,15 @@ export const DASHBOARD_TEXTE = {
   tage30: "30 Tage",
   tage7: "7 Tage",
 
+  /* ── Was er verkauft hat (Owner 19.09.2026: „eigentlich müssen sie auch auf dem Dashboard
+     stehen des Künstlers") ─────────────────────────────────────────────────────────────────
+     SEIN WORT, NICHT MEINES: Er nennt das erzeugte Blatt „Poster" („die Käufe sehen mit
+     Poster die generiert worden sind"). Getrennte Schlüssel für Einzahl und Mehrzahl —
+     „1 Postere vândute" ist der Fehler, den man nur in der eigenen Sprache nicht sieht.
+     `{n}` wird nach der Übersetzung eingesetzt ([[uebersetzer-fallen]]). */
+  posterVerkauft1: "1 Poster verkauft",
+  posterVerkauftN: "{n} Poster verkauft",
+
   /* ── Wo sie abspringen ───────────────────────────────────────────────── */
   abspringenTitel: "Wo sie abspringen",
   abspringenZeit: "Letzte 30 Tage",

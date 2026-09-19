@@ -90,6 +90,56 @@ export type WerkInfo = {
    */
   kunst?: boolean;
   /**
+   * ── WANN DER BILDANBIETER DIESES WERK ABGEWIESEN HAT (Owner 18.09.2026, an Munchs „Madonna":
+   * „ich konnte das nicht generieren … obwohl es Kunst ist") ─────────────────────────────────
+   *
+   * Der Filter von fal und OpenAI sieht nicht das Museum, er sieht einen Akt als Bildvorlage —
+   * und weist ab. Kein Prompt hilft dagegen, und Umgehen wäre der Weg zur Kontosperre.
+   *
+   * Merkt sich der Server beim ERSTEN „abgelehnt" und setzt zugleich `kunst: false`. Ab dann
+   * steht auf diesem Werk kein Knopf mehr — der Kunde erfährt es also nicht erst, nachdem er
+   * sein Foto hochgeladen und gewartet hat. Das kostet genau EINEN abgewiesenen Versuch je Werk
+   * (nicht abgerechnet, es entsteht kein Bild) statt Handarbeit an 47 Meisterwerken.
+   *
+   * DAS DATUM STEHT SEPARAT, damit im Dashboard unterscheidbar bleibt, was der Künstler selbst
+   * abgeschaltet hat und was der Anbieter verweigert. Wer das Häkchen wieder setzt, überstimmt
+   * uns — dieses Feld hindert niemanden, es hält nur fest, warum.
+   */
+  kunstAbsage?: string;
+  /**
+   * WIE OFT DER ANBIETER SCHON NEIN GESAGT HAT. Gesperrt wird erst beim ZWEITEN Mal — siehe
+   * `werkVorlageSperren`.
+   */
+  kunstAbsagen?: number;
+  /**
+   * ── WANN DER OWNER DIESES WERK FREIGEGEBEN HAT (Owner 18.09.2026: „das Neueste ist das, was
+   * ich zuletzt freigegeben habe") ────────────────────────────────────────────────────────────
+   *
+   * Die Startseite sortierte nach `angelegt` am KÜNSTLER — also danach, wann er sich angemeldet
+   * hat. Ein heute freigegebenes Werk eines Künstlers vom Juli stand damit hinten. Dieses Feld
+   * ist der Zeitpunkt, den der Besucher meint, wenn er „neu" liest.
+   *
+   * Geschrieben in `api/freigabe` beim Verschieben in die Galerie — einmal, statt bei jedem
+   * Seitenaufruf zweiundzwanzig Ordner aufzulisten.
+   */
+  freiAm?: string;
+  /**
+   * ── UND WANN DU ES ABGELEHNT HAST (Owner 19.09.2026: „Maia Bild fehlt") ────────────────────
+   *
+   * EINE KACHEL ENTSTAND BISHER AUS EINEM SATZ, NICHT AUS EINEM BILD: `werkKacheln` baut die
+   * Liste aus `hook`/`hooks`, und der Text bleibt stehen, auch wenn das Foto abgelehnt und aus
+   * der Galerie entfernt wurde. Auf der Startseite stand deshalb Maias Name unter einem leeren
+   * Rahmen mit dem kaputten Bildsymbol — alle vier ihrer Fotos waren abgelehnt.
+   *
+   * Der Ablehnungsvermerk liegt heute als Datei (`<nr>.abgelehnt.json` in der Prüfablage). Ihn
+   * beim Rendern zu lesen hiesse, für jede Startseite zweiundzwanzig Ordner aufzulisten —
+   * dieselbe Rechnung wie bei `freiAm`. Also steht er hier, einmal geschrieben.
+   *
+   * WIRD BEIM FREIGEBEN WIEDER ENTFERNT: Wer ein besseres Foto nachreicht und freigegeben wird,
+   * ist nicht mehr abgelehnt.
+   */
+  abgelehntAm?: string;
+  /**
    * Die Kennung seines Films auf YouTube (Owner 17.09.2026). Steht sie da, spielt das Fenster
    * von dort; fehlt sie, spielt es unsere eigene Datei — ein gedruckter QR-Code darf nicht davon
    * abhängen, dass ein fremder Dienst den Film noch hat.
@@ -352,6 +402,49 @@ export type MandantAngaben = {
    * NUR MIT SEINER ZUSTIMMUNG (Memory `reproduktionen-und-prints-lebende-kuenstler`): Für Fremde
    * wird dieses Feld erst gesetzt, wenn der Owner sie gefragt hat.
    */
+  /**
+   * ── DARF SEIN WERK ZUR VORLAGE WERDEN (Owner 19.09.2026: „wir müssen das nur bei bestimmten
+   * Künstlern anbieten, also bei Caricaturist") ───────────────────────────────────────────────
+   *
+   * Schaltet auf seiner Seite das „lebende Blatt" frei: Kundenfoto hinein, „Generate art",
+   * überschreibbare Zeilen. AUS, solange es niemand setzt — niemandes Bild wird ohne
+   * ausdrückliches Ja zur Vorlage für ein fremdes Gesicht.
+   *
+   * NICHT DASSELBE WIE `posterViu`: Das ist „ich will meine Werke als Poster verkaufen". Hier
+   * geht es darum, ob das Werk UMGEBAUT werden darf — bei einem gemalten Porträt fast nie, bei
+   * einem Karikaturisten immer.
+   *
+   * Gesetzt wird er heute von Hand (Owner-Entscheidung je Künstler), nicht vom Künstler selbst.
+   */
+  /**
+   * ── DIGITAL ART (Owner 19.09.2026: „wir machen noch eine Rubrik für Digital Art und
+   * Caricaturist gehört da rein") ─────────────────────────────────────────────────────────────
+   *
+   * Eine eigene Kategorie neben Originalen und Living Poster. Sie beschreibt, WOMIT gearbeitet
+   * wurde, nicht was verkauft wird — deshalb ein Merker am Künstler und kein weiteres Häkchen
+   * am Werk: Wer digital arbeitet, tut das in aller Regel bei allem, was er zeigt.
+   *
+   * Von Hand gesetzt. Ein Künstler kann ihn nicht selbst anhaken — sonst stünde binnen einer
+   * Woche jeder dort, und die Kategorie sagte nichts mehr.
+   */
+  digital?: boolean;
+  kunstAn?: boolean;
+  /**
+   * ── WELCHES REZEPT (Owner 19.09.2026: „wir programmieren dieses Tool extra für jeden" · „in
+   * diesem Fall ist es Vintage-Karikaturen") ──────────────────────────────────────────────────
+   *
+   * Leer heisst: das Haus-Rezept — das Werk ist die Stilvorlage, das Kundengesicht wird
+   * hineingesetzt ([[kunst-rollen-statt-prompt]]). Das ist richtig für einen Maler, dessen Bild
+   * das Produkt ist.
+   *
+   * Steht hier ein Stil aus `KARIKATUR_STILE` (lib/lakatosbandi-kunst.ts), wird stattdessen das
+   * FOTO umgezeichnet — bei „Caricaturist AI" ist genau das die Ware, und sein „Werk" ist nur
+   * das Schaufenster dafür.
+   *
+   * Von Hand gesetzt, je Künstler. Der Owner: „Ich werde das nur für meine selbst angelegten
+   * Künstler anbieten."
+   */
+  kunstStil?: string;
   posterViu?: boolean;
   /**
    * Sein Stil als Rezept (siehe `StilRezept`) — die Vorlage für erzeugte Porträts „im Stil von".
@@ -495,6 +588,57 @@ export async function mandantOeffentlich(mandantRoh: string): Promise<MandantOef
   if (!m) return null;
   const { schluessel: _s, loeschSchluessel: _l, plan: _p, mail: _m, ...rest } = m;
   return rest;
+}
+
+/**
+ * ── EIN WERK TAUGT NICHT ALS VORLAGE — GEMERKT, NICHT GERATEN (Owner 18.09.2026) ────────────
+ *
+ * Gerufen von `api/poster-kunst`, wenn der Bildanbieter „abgelehnt" gesagt hat. Setzt genau den
+ * Schalter, den der Künstler auch selbst im Dashboard hat (`kunst: false`), plus das Datum in
+ * `kunstAbsage`. Mehr passiert nicht: kein eigener Mechanismus, keine zweite Liste.
+ *
+ * LESEN-ÄNDERN-SCHREIBEN, MIT ANSAGE: Das ist der Weg, an dem sich das Haus schon zweimal die
+ * Finger verbrannt hat ([[delete-resurrection-merge-bug]]). Hier ist er vertretbar, weil er je
+ * Werk GENAU EINMAL vorkommt — beim ersten abgewiesenen Versuch — und danach nie wieder, denn
+ * ohne Knopf gibt es keinen zweiten. Wer daraus einmal einen Weg macht, der oft läuft, muss ihn
+ * umbauen.
+ *
+ * SCHON GESETZT HEISST NICHTS TUN: Hat der Künstler den Schalter selbst umgelegt, bleibt sein
+ * Datum weg — und ein überflüssiger Schreibvorgang bleibt aus.
+ */
+export async function werkVorlageSperren(mandantRoh: string, werkRoh: string): Promise<boolean> {
+  const werk = String(werkRoh || "standard").replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 10) || "standard";
+  const m = await mandantLesen(mandantRoh);
+  if (!m) return false;
+  const bisher = m.werkInfo?.[werk];
+  if (bisher?.kunst === false) return true;
+  const absagen = (Number(bisher?.kunstAbsagen) || 0) + 1;
+  /**
+   * ── ERST DAS ZWEITE NEIN SPERRT (18.09.2026) ────────────────────────────────────────────
+   *
+   * Der Filter schaut auf BEIDE Bilder. Schlägt er beim Kundenfoto an — ein Aktfoto, ein Foto
+   * mit zu wenig Kleidung —, dann liegt es nicht am Werk, und ein einziger solcher Versuch
+   * hätte ein gutes Porträt für immer abgeschaltet. Beim Werk kommt das Nein bei JEDEM Kunden,
+   * beim Foto nur bei diesem einen. Zwei verschiedene Kunden mit demselben Ergebnis heisst
+   * also: es liegt am Werk.
+   *
+   * Preis dieser Vorsicht: ein zweiter abgewiesener Versuch je Aktwerk. Der ist nicht
+   * abgerechnet, es entsteht kein Bild.
+   */
+  const sperren = absagen >= 2;
+  const angaben: MandantAngaben = {
+    ...m,
+    werkInfo: {
+      ...(m.werkInfo ?? {}),
+      [werk]: {
+        ...(bisher ?? {}),
+        kunstAbsagen: absagen,
+        ...(sperren ? { kunst: false, kunstAbsage: new Date().toISOString() } : {}),
+      },
+    },
+  };
+  const ok = await mandantSpeichern(mandantRoh, angaben);
+  return ok && sperren;
 }
 
 export async function mandantSpeichern(mandantRoh: string, angaben: MandantAngaben): Promise<boolean> {

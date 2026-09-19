@@ -45,7 +45,7 @@ export default function Korb({ sprache, texte }: {
 
   if (!posten.length) return null;
 
-  const preise = posten.map(p => druckPreisCents(p.material, p.groesse, p.anteil === true) ?? 0);
+  const preise = posten.map(p => druckPreisCents(p.material, p.groesse, p.anteil ?? false) ?? 0);
   const waren = preise.reduce((a, b) => a + b, 0);
   /* Dieselbe Rechnung wie die Kasse (Skill `bezahlung`, Regel 2) — 5 € für das erste Stück,
      2 € für jedes weitere; Dateien zählen nicht mit. */

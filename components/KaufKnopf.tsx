@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
-import { ShoppingBag, Check } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { ShoppingBag, Check, Printer, Download } from "lucide-react";
 import { korbDazu } from "@/lib/lakatosbandi-korb";
-import { druckGroessenFuer, druckPreisCents, druckMass, druckVersandCents } from "@/lib/lakatosbandi-druck";
+import { kundenbildSichern, POSTER_BILD_EREIGNIS, POSTER_RAHMEN_EREIGNIS, type PosterBildArt, type PosterBildNachricht, type PosterRahmenNachricht } from "@/components/PosterDeinBild";
+import { druckGroessenFuer, druckPreisCents, druckMass, druckVersandCents, druckAbzugCents } from "@/lib/lakatosbandi-druck";
 import { eur } from "@/lib/pricing";
 
 /**
@@ -24,7 +25,7 @@ import { eur } from "@/lib/pricing";
  * DER ANGEZEIGTE BETRAG IST NUR DAS SCHILD. Verbindlich ist der, den `api/druck-kasse` aus
  * derselben Tabelle liest (Skill `bezahlung`, Regel 3) — der Browser schickt nur die Wahl.
  */
-export default function KaufKnopf({ mandant, werk, material, sprache, anteil = false, adminS = "", texte, datei }: {
+export default function KaufKnopf({ mandant, werk, material, sprache, anteil = false, adminS = "", ohnePrint = false, texte, datei }: {
   mandant: string;
   /** „standard" oder die Kachelnummer. */
   werk: string;
@@ -39,6 +40,21 @@ export default function KaufKnopf({ mandant, werk, material, sprache, anteil = f
   anteil?: boolean;
   /** Der Admin-Schlüssel der Seite — damit der Owner einen Testkauf ohne Versand machen kann. */
   adminS?: string;
+  /**
+   * ── OHNE GEDRUCKTEN VERSAND (Owner 19.09.2026: „sie sollen den Print-Button nicht sehen" ·
+   * „nur für meine Generatoren") ─────────────────────────────────────────────────────────────
+   *
+   * Auf seinen Generatoren bleibt für Besucher nur die Datei. Der Druck ist ein Versandgeschäft
+   * mit Lieferzeit und Adresse — bei einem Werkzeug, dessen ganzer Sinn „in zehn Minuten in der
+   * Hand" ist, führt er vom Produkt weg statt hin.
+   *
+   * Dann entfällt die Wahl zwischen beiden: Es gibt nur noch einen Weg, also braucht es keine
+   * Frage. Auch Rahmen und Grössen fallen weg — sie gehören zum gedruckten Blatt.
+   *
+   * DER INHABER SIEHT WEITERHIN BEIDES (`?s=`), sonst könnte er nicht prüfen, was ein Käufer
+   * bekommt.
+   */
+  ohnePrint?: boolean;
   texte: { kaufen: string; korb: string; groesse: string; fehler: string;
     ohneRahmen: string; ohneRahmenWahl: string; mitRahmenWahl: string; mitRahmen: string; rahmenSchwarz: string;
     /** „Auf Bestellung gedruckt. Lieferung nach Rumänien {versand}." */
@@ -55,7 +71,10 @@ export default function KaufKnopf({ mandant, werk, material, sprache, anteil = f
    * Ist die Datei gewählt, zeigt das zweite Feld statt der Papiergrösse die Rahmen-Fassung: Die
    * Datei hat keine Grösse (sie wird in jeder gedruckt), aber sehr wohl einen Rahmen im Bild.
    */
-  datei?: { kaufen: string; erklaerung: string; schwarz: string; holz: string; ohne: string };
+  datei?: { kaufen: string; erklaerung: string; schwarz: string; holz: string; ohne: string;
+    /** „Gratis" — steht am Knopf, wenn die Datei im Erzeugen-Preis steckt. */
+    frei?: string;
+  };
 }) {
   /**
    * ── MIT ODER OHNE HOLZRAHMEN (Owner 15.09.2026: „können wir das mit rahmen auch anbieten? es
@@ -86,28 +105,174 @@ export default function KaufKnopf({ mandant, werk, material, sprache, anteil = f
    * und man druckt selbst. Diese Frage steht deshalb ganz oben, die zwei Möglichkeiten
    * nebeneinander, und erst darunter die Einzelheiten der gewählten.
    */
-  const [istDatei, setIstDatei] = useState(false);
+  const [istDateiRoh, setIstDatei] = useState(false);
+  /* Ohne Druck gibt es nur die Datei — die Wahl ist dann keine. */
+  const istDatei = ohnePrint || istDateiRoh;
   /* Welche Holzfarbe zuletzt gewählt war — damit „ohne Rahmen" und zurück nicht auf Schwarz
      zurückspringt, wenn er Hell gewählt hatte. */
   const [farbe, setFarbe] = useState("2");
   const echtesMaterial = istDatei && rahmenBar ? "fisier"
     : rahmenBar ? (rahmen === "1" ? "posterrama" : rahmen === "2" ? "posterramaneagra" : "poster")
     : material;
-  const groessen = druckGroessenFuer(echtesMaterial);
+  /* ── GRÖSSEN GEHÖREN ZUM BLATT, NICHT ZUM VERSAND (Owner 19.09.2026: „nur Print") ────────
+     `echtesMaterial` ist ohne Druckweg „fisier", und die Datei kennt nur die eine Fassung „fara".
+     Die Datei kommt aber sehr wohl in A3, A2 und A1 — also kommen die Masse vom Blattmaterial. */
+  const groessen = druckGroessenFuer(ohnePrint
+    ? (material === "posterrama" ? "posterrama" : material === "poster" ? "poster" : "posterramaneagra")
+    : echtesMaterial);
   const [groesse, setGroesse] = useState(druckGroessenFuer(material === "posterrama" ? "posterrama" : material === "poster" ? "poster" : "posterramaneagra")[0] ?? "");
   /* Die Datei hat nur eine Fassung: ohne Rahmen (Owner 17.09.2026). In der Preistabelle heisst
      sie weiterhin „fara" — dort ist die „Grösse" die Fassung. */
   const fassung = "fara";
+  /**
+   * ── DER PREIS HÄNGT AN DER WARE, DAS MASS AM BLATT (19.09.2026) ─────────────────────────────
+   *
+   * Kurz stand hier `groesse` auch für die Datei — und damit suchte die Preistabelle „fisier/A3".
+   * Das gibt es nicht (die Datei kennt nur die Fassung „fara"), also kam `null` zurück und der
+   * ganze Kaufblock verschwand wortlos von der Seite.
+   *
+   * Der Preis bleibt deshalb an der Fassung. Die gewählte GRÖSSE reist getrennt mit — sie sagt
+   * nur, in welchem Mass die Datei gebaut wird (`api/kunst-datei?format=…`).
+   */
   const wahl = istDatei ? fassung : groesse;
   const [drin, setDrin] = useState(false);
+  /* Was gerade im Blatt steht — das Blatt sagt es an (`POSTER_BILD_EREIGNIS`). */
+  const [bildArt, setBildArt] = useState<PosterBildArt>("keins");
+  useEffect(() => {
+    const hoeren = (e: Event) => {
+      const d = (e as CustomEvent<PosterBildNachricht>).detail;
+      if (d?.mandant === mandant && d?.werk === werk) setBildArt(d.art);
+    };
+    window.addEventListener(POSTER_BILD_EREIGNIS, hoeren);
+    return () => window.removeEventListener(POSTER_BILD_EREIGNIS, hoeren);
+  }, [mandant, werk]);
   const [laeuft, setLaeuft] = useState(false);
   const [fehler, setFehler] = useState(false);
+  /* Was gewählt ist, sagen wir an: das Vollbild zeichnet danach, die Druckdatei nimmt es mit. */
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent<PosterRahmenNachricht>(POSTER_RAHMEN_EREIGNIS, {
+      detail: { mandant, werk, wahl: istDatei ? "0" : rahmen },
+    }));
+  }, [mandant, werk, rahmen, istDatei]);
+  /**
+   * ── NACH DER ERZEUGUNG STEHT DIE DATEI VORN (Owner 19.09.2026: „soll sofort der Chip
+   * «Descarcă fișierul» aktiv sein") ──────────────────────────────────────────────────────────
+   *
+   * Wer sein Blatt gerade hat zeichnen lassen, will es zuerst HABEN — und für ihn ist es gratis.
+   * Stünde weiter „Print" vorn, müsste er erst umschalten, um an das zu kommen, was er schon
+   * bezahlt hat. Der Druck bleibt daneben stehen, einen Tipp entfernt.
+   *
+   * NUR EINMAL, BEIM UMSCHLAG AUF „KUNST": `gesehen` merkt sich, dass es schon geschehen ist —
+   * sonst spränge die Wahl bei jedem erneuten Rendern zurück, und wer bewusst auf Print tippt,
+   * fände sich sofort wieder bei der Datei.
+   */
+  const gesehen = useRef(false);
+  useEffect(() => {
+    if (bildArt === "kunst" && !gesehen.current) { gesehen.current = true; setIstDatei(true); }
+    if (bildArt !== "kunst") gesehen.current = false;
+  }, [bildArt]);
 
-  const cents = druckPreisCents(echtesMaterial, wahl, anteil);
-  if (cents === null) return null;
+  /**
+   * ── DAS SCHILD FOLGT DEM BLATT (Owner 18.09.2026: „wenn das Bild nicht generiert ist, dann
+   * darf man keine Lizenz verlangen" · „1 Euro bekommt der Künstler") ─────────────────────────
+   *
+   * Setzt der Kunde nur sein eigenes Foto ein, steht nichts vom Künstler auf dem Blatt: dann
+   * 1 € Vermittlung statt 10 € Lizenz — und der Preis am Knopf muss das sofort zeigen, nicht
+   * erst die Kasse. Gerechnet wird trotzdem auf dem Server.
+   */
+  /* Steht ein Bild des Kunden im Blatt — hochgeladen ODER erzeugt —, ist nichts vom Künstler
+     darauf: keine Lizenz und auch keine Vermittlung (Owner 19.09.2026: „wir verdienen beim Druck
+     des Prints"). Die Begründung steht in `api/druck-kasse`; dort wird verbindlich gerechnet. */
+  const anteilJetzt: boolean | number = anteil === false ? false : bildArt === "keins";
 
-  const dazu = () => {
-    korbDazu({ mandant, werk, material: echtesMaterial, groesse: wahl, anteil });
+  const listenPreis = druckPreisCents(echtesMaterial, wahl, anteilJetzt);
+  if (listenPreis === null) return null;
+  /**
+   * ── DAS ERZEUGEN IST SCHON BEZAHLT (Owner 19.09.2026: „also 10 abziehen, oder?") ──────────
+   *
+   * Steht auf dem Blatt ein erzeugtes Bild, hat er dafür bereits `KUNST_CENTS` gezahlt. Der
+   * Betrag wird auf den Druck angerechnet — die Begründung und der Boden stehen bei
+   * `druckAbzugCents`. Das Schild rechnet hier mit, damit er den Preis VOR dem Klick sieht;
+   * verbindlich rechnet `api/druck-kasse` aus dem Zettel neben dem abgelegten Bild.
+   */
+  const abzug = bildArt === "kunst" ? druckAbzugCents(echtesMaterial, wahl, listenPreis) : 0;
+  const cents = listenPreis - abzug;
+
+  /**
+   * ── SEINE EIGENE DATEI IST BEZAHLT (Owner 19.09.2026: „generează kostet 10 Euro, klar? Dann
+   * ist Download gratis") ────────────────────────────────────────────────────────────────────
+   *
+   * Steht auf dem Blatt ein Bild, das er selbst hat ERZEUGEN lassen (`bildArt === "kunst"`),
+   * dann hat er dafür schon bezahlt — eine zweite Kasse für dieselbe Sache wäre die Stelle, an
+   * der Leute abbrechen und ihr Geld zurückfordern.
+   *
+   * NUR FÜR DIE DATEI, nicht für den Druck: Ein gedrucktes Blatt mit Rahmen und Versand ist ein
+   * anderes Produkt.
+   *
+   * NUR FÜR „kunst", nicht für „foto": Ein bloss hochgeladenes Foto hat niemand bezahlt.
+   *
+   * ENTSCHIEDEN WIRD ES TROTZDEM AUF DEM SERVER (`api/kunst-datei` prüft den Zettel neben dem
+   * abgelegten Bild). Das hier ist das Schild, nicht der Riegel.
+   */
+  /**
+   * ── UND FÜR DEN HAUSHERRN IMMER (Owner 19.09.2026: „ich soll jederzeit die Datei runterladen
+   * können, egal in welchem Zustand" · „mit oder ohne Generierung, mit hochgeladenem Bild auch")
+   *
+   * Für den Käufer hängt die Gratis-Datei am bezahlten Lauf. Für ihn an gar nichts: erzeugtes
+   * Blatt, bloss hochgeladenes Foto oder das blanke Werk — alle drei gehen.
+   *
+   * ENTSCHIEDEN WIRD ES AUF DEM SERVER (`api/kunst-datei` prüft den Schlüssel zeitsicher); hier
+   * steht nur, was der Knopf anbietet.
+   */
+  const dateiBezahlt = istDatei && (bildArt === "kunst" || !!adminS);
+
+  /* Die Datei liegt beim Server, nicht im Browser: Er baut sie aus dem abgelegten Bild — dasselbe
+     Blatt, das die Druckerei bekäme. */
+  /**
+   * ── BILD ODER PDF (Owner 19.09.2026: „ich denke, dass JPGs sogar besser sind" · „als Datei und
+   * nicht PDFs") ────────────────────────────────────────────────────────────────────────────
+   *
+   * SEIN FALL ENTSCHEIDET DIE REIHENFOLGE: „Stell dir vor, ich bin als Künstler auf einer
+   * Hochzeit eingeladen, ich will sofort Poster erstellen und drucken." Wer so unterwegs ist,
+   * geht zum nächsten Fotodienst — und der nimmt ein Bild, kein PDF. Also ist das JPG der Knopf
+   * und das PDF der Satz darunter, nicht umgekehrt.
+   *
+   * Beide kosten nichts und lassen sich beliebig oft holen: Es ist reine Rechenzeit, kein Modell.
+   */
+  const dateiHolen = async (typ: "jpg" | "pdf" = "jpg") => {
+    if (laeuft) return;
+    setLaeuft(true); setFehler(false);
+    try {
+      const bild = await kundenbildSichern(mandant, werk);
+      /* Kein Bild des Kunden im Blatt: Für ihn ist das kein Fehler — dann wird das Werk des
+         Künstlers gesetzt. Für alle anderen bricht es hier ab wie bisher. */
+      if (!bild && !adminS) { setFehler(true); setLaeuft(false); return; }
+      const u = new URL("/api/kunst-datei", window.location.origin);
+      if (typ === "jpg") u.searchParams.set("typ", "jpg");
+      if (bild) u.searchParams.set("bild", bild);
+      /* Sein Schlüssel reist mit — ohne ihn verlangt die Route eine bezahlte Erzeugung. */
+      if (adminS) u.searchParams.set("s", adminS);
+      u.searchParams.set("m", mandant);
+      u.searchParams.set("i", werk);
+      /* Seine Wahl, nicht eine feste Zahl — Grösse und Rahmen stehen an den Chips darüber. */
+      u.searchParams.set("format", ["A3", "A2", "A1"].includes(groesse) ? groesse : "A3");
+      if (ohnePrint && rahmen === "1") u.searchParams.set("rahmen", "holz");
+      if (ohnePrint && rahmen === "2") u.searchParams.set("rahmen", "schwarz");
+      if (fassung !== "fara") u.searchParams.set("rahmen", fassung);
+      /* Ein Wechsel der Adresse startet den Download und lässt die Seite stehen — kein neues
+         Fenster, das der Blocker abfängt. */
+      window.location.href = u.toString();
+      /* Der Knopf muss zurückkommen: Ein Download wechselt die Seite nicht, `onload` feuert nie
+         ([[immer-close-einbauen]]). */
+      window.setTimeout(() => setLaeuft(false), 4000);
+    } catch { setFehler(true); setLaeuft(false); }
+  };
+
+  const dazu = async () => {
+    /* Auch im Korb hängt sein Bild am Posten — sonst kauft er drei Poster und bekommt dreimal
+       das Werk des Künstlers. */
+    const bild = await kundenbildSichern(mandant, werk);
+    korbDazu({ mandant, werk, material: echtesMaterial, groesse: wahl, anteil: anteilJetzt, ...(bild ? { bild } : {}) });
     setDrin(true);
     window.setTimeout(() => setDrin(false), 2200);
   };
@@ -116,11 +281,17 @@ export default function KaufKnopf({ mandant, werk, material, sprache, anteil = f
     if (laeuft) return;
     setLaeuft(true); setFehler(false);
     try {
+      /* ── SEIN BILD MUSS DEN WEG ÜBER STRIPE ÜBERLEBEN (Owner 18.09.2026) ─────────────────
+         Steht sein Foto (oder das erzeugte Bild) im Blatt, wird es JETZT abgelegt und reist als
+         Kennung mit. Ohne diesen Schritt bekäme er das Werk des Künstlers gedruckt — und die
+         Kasse könnte nicht unterscheiden, ob 10 € Lizenz oder 1 € Vermittlung fällig sind. */
+      const bild = await kundenbildSichern(mandant, werk);
       const res = await fetch("/api/druck-kasse", {
         method: "POST", headers: { "Content-Type": "application/json" },
         /* `zurueck`: Bricht er bei Stripe ab, kommt er auf DIESE Seite zurück — mit Reiter
            und Sprache, nicht auf die nackte Künstleradresse (Owner 17.09.2026). */
         body: JSON.stringify({ mandant, werk, material: echtesMaterial, groesse: wahl, sprache,
+          ...(bild ? { bild } : {}),
           zurueck: (() => {
             /* `?zu=` statt `#…`: Eine Marke überlebt den Weg über Stripe nicht zuverlässig, ein
                Abfrageteil schon (Owner 18.09.2026). Den Sprung macht `PosterZurueckSprung`. */
@@ -163,20 +334,31 @@ export default function KaufKnopf({ mandant, werk, material, sprache, anteil = f
 
   return (
     <div className="mt-3">
-      {rahmenBar && datei ? (
+      {rahmenBar && datei && !ohnePrint ? (
         /* Die eine Frage, zwei Antworten, nebeneinander. */
         <div className="flex flex-wrap items-center justify-center gap-2">
-          {[{ d: false, t: texte.ohneRahmen }, { d: true, t: datei.kaufen }].map(o => (
-            <label key={String(o.d)} className={schalter(istDatei === o.d)}>
+          {/* Das Zeichen sagt in einem Blick, was der Chip liefert: gedrucktes Papier oder eine
+              Datei (Owner 19.09.2026: „zwei Icons bitte in den Chips, Print und Download"). */}
+          {[
+            { d: false, t: texte.ohneRahmen, I: Printer },
+            { d: true, t: datei.kaufen, I: Download },
+          ].map(o => (
+            <label key={String(o.d)} className={`${schalter(istDatei === o.d)} inline-flex items-center gap-1.5`}>
               <input type="radio" name={`art-${mandant}-${werk}`} checked={istDatei === o.d}
                 onChange={() => setIstDatei(o.d)} className="sr-only" />
+              <o.I className="h-[15px] w-[15px] shrink-0" aria-hidden />
               {o.t}
             </label>
           ))}
         </div>
       ) : null}
 
-      {rahmenBar && !istDatei ? (
+      {/* ── RAHMEN UND GRÖSSE GELTEN AUCH FÜR DIE DATEI (Owner 19.09.2026: „nur Print") ─────
+          Beim Entfernen des Druckwegs waren auch Rahmen- und Grössenwahl verschwunden. Sie
+          gehören aber nicht dem Druck, sondern dem BLATT: Die Datei kommt in A3, A2 oder A1 und
+          wahlweise mit gedrucktem Rahmen (`api/kunst-datei?format=…&rahmen=…`). Nur bestellen
+          kann man auf einem Generator nichts. */}
+      {rahmenBar && (!istDatei || ohnePrint) ? (
         /* `lb-rahmen-wahl`: Daran hängt die CSS-Regel, die im Poster darüber den Rahmen zeichnet
            (globals.css, Owner 15.09.2026: „wenn ich einen rahmen auswähle soll auch der rahmen
            erscheinen beim kachel"). */
@@ -199,7 +381,7 @@ export default function KaufKnopf({ mandant, werk, material, sprache, anteil = f
         </div>
       ) : null}
 
-      {rahmenBar && !istDatei && rahmen !== "0" ? (
+      {rahmenBar && (!istDatei || ohnePrint) && rahmen !== "0" ? (
         /* Die Farbe des Holzes — nur wenn überhaupt gerahmt wird.
 
            `lb-rahmen-wahl` MUSS an DIESER Reihe hängen (17.09.2026: „schalter holzfarben geht
@@ -227,7 +409,7 @@ export default function KaufKnopf({ mandant, werk, material, sprache, anteil = f
       ) : null}
 
       <div className="mt-2 flex flex-wrap items-center justify-center gap-2">
-        {istDatei ? (
+        {istDatei && !ohnePrint ? (
           /* ── DIE DATEI GIBT ES NUR OHNE RAHMEN (Owner 17.09.2026: „und datei gibts nur ohne
              rahmen fertig") ──────────────────────────────────────────────────────────────────
              Ein gedruckter Rahmen IN einer Datei ist ein Bild von einem Rahmen: Wer sie selbst
@@ -237,12 +419,15 @@ export default function KaufKnopf({ mandant, werk, material, sprache, anteil = f
         ) : (
           groessen.map(g => {
             /* Der Preis steht an der Grösse: „alles auf Anhieb" heisst auch, was es kostet. */
-            const p = druckPreisCents(echtesMaterial, g, anteil);
+            const p = druckPreisCents(echtesMaterial, g, anteilJetzt);
             return (
               <label key={g} className={schalter(groesse === g)}>
                 <input type="radio" name={`g-${mandant}-${werk}`} value={g} checked={groesse === g}
                   onChange={() => setGroesse(g)} className="sr-only" />
-                {p === null ? druckMass(g) : `${druckMass(g)} · ${eur(p, sprache)}`}
+                {/* Ohne Druckweg steht nur das Mass: Ein Druckpreis an einer Datei wäre eine
+                    Zahl, die niemand verlangt (Owner 19.09.2026). */}
+                {ohnePrint || p === null ? druckMass(g)
+                  : `${druckMass(g)} · ${eur(p - (bildArt === "kunst" ? druckAbzugCents(echtesMaterial, g, p) : 0), sprache)}`}
               </label>
             );
           })
@@ -250,20 +435,37 @@ export default function KaufKnopf({ mandant, werk, material, sprache, anteil = f
       </div>
 
       <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
-        <button type="button" onClick={() => void kaufen()} disabled={laeuft}
+        <button type="button" onClick={() => void (dateiBezahlt ? dateiHolen("jpg") : kaufen())} disabled={laeuft}
           className="rounded-xl bg-[#111] px-4 py-2 text-[14px] font-semibold text-white transition hover:bg-[#333] disabled:opacity-40">
-          {laeuft ? "…" : `${texte.kaufen} · ${eur(cents, sprache)}`}
+          {laeuft ? "…" : dateiBezahlt
+            ? `${datei?.kaufen ?? texte.kaufen} · ${datei?.frei ?? ""}`.replace(/ · $/, "")
+            : `${texte.kaufen} · ${eur(cents, sprache)}`}
         </button>
         {/* ── DER KORB WIRD AUSGESCHRIEBEN (Owner 17.09.2026: „ich habe auf dem icon warenkorb
             geklickt. Es muss ausgeschrieben sein") ───────────────────────────────────────────
             Ein Täschchen allein erklärt nicht, was passiert: Er hielt es für den Kaufweg und
             landete nicht dort, wo er wollte. Jetzt steht das Wort daneben — schwarz gefüllt
             bleibt allein „Kaufen". */}
+        {/* KEIN KORB FÜR ETWAS, DAS NICHTS KOSTET (Owner 19.09.2026): Der Korb sammelt Posten für
+            EINE Zahlung. Eine bezahlte Datei gehört dort nicht hinein — sie käme mit 10 € auf die
+            Rechnung, obwohl er sie schon hat. */}
+        {/* ── KEIN ZWEITER DATEI-WEG (Owner 19.09.2026: „die auch raus") ────────────────────
+            Hier stand „PDF für die Druckerei" als Nebenlink. Das war mein Vorschlag, nicht seiner
+            — und er hatte schon gesagt, worauf es ankommt: „als Datei und nicht PDFs", „ich denke,
+            dass JPGs sogar besser sind". Zwei Wege zur selben Datei sind eine Frage, die sich
+            niemand stellt; wer auf einer Hochzeit steht, will EINEN Knopf.
+
+            Das PDF bleibt gebaut: Die Auftragsmail an die Druckerei hängt es an
+            (`lib/lakatosbandi-bestellung.ts`), und `api/kunst-datei` liefert es weiterhin ohne
+            `typ=jpg`. Es steht nur nicht mehr auf der Seite. */}
+
+        {dateiBezahlt ? null : (
         <button type="button" onClick={dazu}
           className="inline-flex items-center gap-2 rounded-xl border border-[#111] px-4 py-2 text-[14px] font-semibold text-[#111] transition hover:bg-[#111] hover:text-white">
           {drin ? <Check className="h-4 w-4" aria-hidden /> : <ShoppingBag className="h-4 w-4" aria-hidden />}
           {texte.korb}
         </button>
+        )}
       </div>
 
       {/* Was die Lieferung für DIESE Wahl kostet — vor dem Klick, nicht erst bei Stripe (Skill

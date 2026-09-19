@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import StimmeAufnehmen from "@/components/StimmeAufnehmen";
-import { Camera, ImagePlus, LayoutDashboard, Sparkles, Undo2 } from "lucide-react";
+import { Camera, ImagePlus, LayoutDashboard, Sparkles, Undo2, Crop } from "lucide-react";
 
 /**
  * ── WIE VIELE WERKE EINER ZEIGEN DARF (Owner 13.09.2026: „wenn der User versucht, mehr als 10
@@ -157,6 +157,69 @@ export default function PortalBearbeiten({ mandant, k, T, lang, aufbau = false, 
   /* Je Werk ein eigener Ladezustand — ein gemeinsamer würde alle Knöpfe zugleich drehen lassen. */
   const [spruchLaeuft, setSpruchLaeuft] = useState<Record<number, boolean>>({});
   /**
+   * ── „KUNST FREISTELLEN" (Owner 18.09.2026: „sie haben drum herum fotografiert") ─────────────
+   *
+   * `freiLaeuft` je Werk, damit sich beim Klick nicht alle zwölf Knöpfe drehen — dieselbe Regel
+   * wie beim Satz-Knopf darunter.
+   *
+   * `freiVorher` hält das Bild, das VOR dem Freistellen dastand. Damit ist der Knopf umkehrbar:
+   * Ein Druck stellt frei, der nächste holt das Original zurück. Ohne diesen Merker wäre die
+   * einzige Rückfahrkarte „Seite neu laden und hoffen, dass nichts gespeichert wurde" — und bei
+   * einem Werk, das bewusst im Raum fotografiert wurde, ist das Freistellen ein Schaden.
+   */
+  const [freiLaeuft, setFreiLaeuft] = useState<Record<number, boolean>>({});
+  const [freiVorher, setFreiVorher] = useState<Record<number, string>>({});
+  /**
+   * ── DER STAND JEDES WERKS (Owner 18.09.2026) ────────────────────────────────────────────────
+   *
+   * „Er kann das hochladen, und dann steht auf Status ‚noch nicht freigegeben'. Ich gebe das
+   * frei, dann bekommt er den Status ‚freigegeben'."
+   *
+   * Kommt aus der ABLAGE (`api/portal-status`), nicht aus dem Formular: Wo die Datei liegt, ist
+   * die Wahrheit. Nach jedem Speichern neu geholt — dann sieht er sofort, dass sein frisches
+   * Bild wartet.
+   */
+  const [staende, setStaende] = useState<Record<string, { stand: "frei" | "pruefung" | "abgelehnt"; gruende?: string[]; notiz?: string }>>({});
+  /**
+   * ── DER ZÄHLER ZÄHLT, WAS MAN SIEHT (Owner 18.09.2026: „hier steht 5/10, aber es sind nur 3") ─
+   *
+   * `kacheln` kommt aus `werkNummern` — der Liste der PLÄTZE. Bei `artist-2` stehen dort fünf,
+   * aber für zwei davon liegt nirgends eine Datei: weder in der Galerie noch in der Prüfung.
+   * Solche Geisterplätze entstehen, wenn ein Upload scheitert oder ein Bild gelöscht wird, ohne
+   * dass die Nummer mitgeht.
+   *
+   * Gezählt wird deshalb, was WIRKLICH ein Bild hat: auf dem Server (`staende`) oder als frisch
+   * gewähltes im Browser (`ausstehend`). Die Geisterplätze bleiben sichtbar und sagen es selbst —
+   * verstecken wäre schlimmer, dann wüsste er nicht, warum er keine zehn hochladen kann.
+   */
+  const hatBild = (i: number) => !!staende[nrVon(i)] || !!ausstehend[nrVon(i)];
+  /**
+   * ── „GESPEICHERT" MUSS MAN SEHEN (Owner 18.09.2026: „wurde gespeichert müsste kommen, wenn
+   * Bild hochgeladen wird oder ich auch save klicke" · „soll automatisch verschwinden") ────────
+   *
+   * Es gab eine Meldung — aber sie stand in der unteren Leiste hinter `sm:block`, also auf dem
+   * Handy gar nicht, und sie blieb stehen, bis der nächste Schritt sie überschrieb. Wer auf
+   * einem Telefon speicherte, bekam nie eine Rückmeldung; wer am Rechner speicherte, sah sie
+   * noch Minuten später und wusste nicht, ob sie von eben stammt.
+   *
+   * Jetzt eine Sprechblase über der Leiste, auf jeder Grösse, die nach zweieinhalb Sekunden von
+   * selbst geht. Der Merker liegt an der Zeit, nicht am nächsten Klick — sonst hinge sie wieder.
+   */
+  const [bestaetigung, setBestaetigung] = useState("");
+  const bestaetigen = useCallback((text: string) => {
+    setBestaetigung(text);
+    setTimeout(() => setBestaetigung(v => (v === text ? "" : v)), 2500);
+  }, []);
+  const staendeHolen = useCallback(async () => {
+    try {
+      const r = await fetch(`/api/portal-status?m=${encodeURIComponent(mandant)}&k=${encodeURIComponent(k)}`);
+      const d = (await r.json().catch(() => ({}))) as { ok?: boolean; staende?: { nr: string; stand: "frei" | "pruefung" | "abgelehnt"; gruende?: string[]; notiz?: string }[] };
+      if (!d.ok) return;
+      setStaende(Object.fromEntries((d.staende ?? []).map(x => [x.nr, { stand: x.stand, gruende: x.gruende, notiz: x.notiz }])));
+    } catch { /* ohne Stand sieht die Kachel aus wie bisher */ }
+  }, [mandant, k]);
+  useEffect(() => { void staendeHolen(); }, [staendeHolen]);
+  /**
    * ── DER WEG ZURÜCK (Owner 13.09.2026: „Icon für zurück zur letzten Version" · „auch bei den
    * Werken") ──────────────────────────────────────────────────────────────────────────────────
    *
@@ -179,6 +242,20 @@ export default function PortalBearbeiten({ mandant, k, T, lang, aufbau = false, 
   const [vollDialog, setVollDialog] = useState(false);
   const [ueberMichVorher, setUeberMichVorher] = useState<string | null>(null);
   const [spruchVorher, setSpruchVorher] = useState<Record<number, string>>({});
+  /**
+   * ── DIE ABSAGE STEHT AM KNOPF, NICHT AM SEITENANFANG (Owner 19.09.2026: „als ich noch kein Abo
+   * hatte, habe ich versucht die Texte vom Poster mit AI zu korrigieren, und habe keine Meldung
+   * bekommen: kauf Premium") ─────────────────────────────────────────────────────────────────
+   *
+   * Der Hinweis gab es längst — er stand nur an EINER Stelle, oben über dem Werk-Raster. Wer beim
+   * siebten Werk auf „Scrie cu AI" drückt, sieht davon nichts: Die Meldung erscheint mehrere
+   * Bildschirmhöhen weiter oben, während unter seinem Finger der Knopf einfach aufhört zu drehen.
+   * Ein stummer Knopf liest sich als Defekt, nicht als Grenze.
+   *
+   * Hausregel (Skill `ci-design`): Absagen gehören ANS FELD. Also je Werk gemerkt und je Werk
+   * angezeigt — beim Premium-Fall mit dem Kaufknopf direkt daneben.
+   */
+  const [spruchAbsage, setSpruchAbsage] = useState<Record<number, "premium" | "fehler">>({});
   const dateiProfil = useRef<HTMLInputElement>(null);
   const dateiKachel = useRef<HTMLInputElement>(null);
   /* Sein eigenes Gerät zählt nicht als Besucher und schickt ihm keine Besuchs-Mail (Owner 11.09.2026). */
@@ -234,6 +311,59 @@ export default function PortalBearbeiten({ mandant, k, T, lang, aufbau = false, 
     : null;
   const bildUrl = (nr: string) =>
     `/api/portal-werk?m=${encodeURIComponent(mandant)}&i=${encodeURIComponent(nr)}&k=${encodeURIComponent(k)}&v=${version[nr] ?? 0}`;
+  /**
+   * Das Werk freistellen: Ecken suchen lassen, entzerren, als vorgemerktes Bild einsetzen.
+   *
+   * GESPEICHERT WIRD NICHTS — das Ergebnis liegt wie ein frisch gewähltes Foto in `ausstehend`
+   * und geht erst mit „Speichern" auf den Server. Bis dahin sieht der Künstler Vorher und
+   * Nachher, indem er den Knopf drückt und wieder drückt.
+   */
+  async function freistellen(i: number) {
+    const nr = nrVon(i);
+    if (freiLaeuft[i]) return;
+    /* Zweiter Druck: zurück zum Original. */
+    if (freiVorher[i] !== undefined) {
+      const zurueck = freiVorher[i];
+      setFreiVorher(v => { const n = { ...v }; delete n[i]; return n; });
+      setAusstehend(v => {
+        const n = { ...v };
+        if (zurueck) n[nr] = zurueck; else delete n[nr];
+        return n;
+      });
+      return;
+    }
+    setFreiLaeuft(v => ({ ...v, [i]: true }));
+    try {
+      /* Das Bild als Daten-URI — entweder das vorgemerkte aus dem Browser oder das vom Server. */
+      let quelle = ausstehend[nr] ?? "";
+      if (!quelle) {
+        const r = await fetch(bildUrl(nr));
+        const blob = await r.blob();
+        quelle = await new Promise<string>((ok, weg) => {
+          const leser = new FileReader();
+          leser.onload = () => ok(String(leser.result ?? ""));
+          leser.onerror = weg;
+          leser.readAsDataURL(blob);
+        });
+      }
+      const res = await fetch("/api/werk-freistellen", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mandant, schluessel: k, bild: quelle }),
+      });
+      const d = (await res.json().catch(() => ({}))) as { ok?: boolean; bild?: string };
+      if (d.ok && d.bild) {
+        setFreiVorher(v => ({ ...v, [i]: ausstehend[nr] ?? "" }));
+        setAusstehend(v => ({ ...v, [nr]: d.bild as string }));
+      } else {
+        setHinweis(T.freistellenNichts);
+      }
+    } catch {
+      setHinweis(T.freistellenNichts);
+    } finally {
+      setFreiLaeuft(v => ({ ...v, [i]: false }));
+    }
+  }
+
   /* Bilder, die (noch) nicht da sind — in der Prüfung oder nie hochgeladen. Sie zeigen den Platzhalter. */
   const [fehlt, setFehlt] = useState<Record<string, boolean>>({});
   const neuLaden = (nr: string) => {
@@ -338,6 +468,9 @@ export default function PortalBearbeiten({ mandant, k, T, lang, aufbau = false, 
       setEntfernt([]);
       setAusstehend({});
       setStatus(res.ok && !abgelehnt ? "gespeichert" : "fehler");
+      /* Auch beim grossen Speichern die Sprechblase — sie ist die einzige Rückmeldung, die auf
+         dem Handy überhaupt zu sehen ist. */
+      if (res.ok && !abgelehnt) { bestaetigen(T.gespeichert); void staendeHolen(); }
     } catch {
       setStatus("fehler");
     }
@@ -419,6 +552,7 @@ export default function PortalBearbeiten({ mandant, k, T, lang, aufbau = false, 
     if (spruchLaeuft[i]) return;
     setSpruchLaeuft(v => ({ ...v, [i]: true }));
     setHinweis("");
+    setSpruchAbsage(v => { const n = { ...v }; delete n[i]; return n; });
     try {
       const res = await fetch("/api/portal-spruch", {
         method: "POST",
@@ -436,13 +570,9 @@ export default function PortalBearbeiten({ mandant, k, T, lang, aufbau = false, 
       /* Kein stummer Knopf: Liegt das Bild noch in der Prüfung, erfährt sie den Grund.
          OHNE ABO IST ES KEIN FEHLER, sondern eine Grenze — „Speichern fehlgeschlagen" würde ihr
          einen Defekt vorspiegeln, wo sie nur etwas kaufen muss (Owner 14.09.2026). */
-      else {
-        const istPremium = d?.grund === "premium";
-        setPremium(istPremium);
-        setHinweis(istPremium ? T.aboKiGesperrt : T.speichernFehler);
-      }
+      else setSpruchAbsage(v => ({ ...v, [i]: d?.grund === "premium" ? "premium" : "fehler" }));
     } catch {
-      setHinweis(T.speichernFehler);
+      setSpruchAbsage(v => ({ ...v, [i]: "fehler" }));
     } finally {
       setSpruchLaeuft(v => ({ ...v, [i]: false }));
     }
@@ -578,6 +708,26 @@ export default function PortalBearbeiten({ mandant, k, T, lang, aufbau = false, 
             const nr = kachelZiel < 0 ? "-1" : String(kachelZiel);
             const daten = await verkleinern(dateien[0]);
             setAusstehend(v => ({ ...v, [nr]: daten }));
+            /**
+             * ── EIN GETAUSCHTES BILD GEHT SOFORT HOCH (Owner 18.09.2026: „ich glaube, die Bilder
+             * beim Hochladen müssen automatisch gespeichert werden") ────────────────────────────
+             *
+             * Bisher wurde es nur VORGEMERKT und erst bei „Speichern" hochgeladen. Das war der
+             * Grund, warum nach dem Speichern scheinbar „das alte Bild wieder da" war: Wer die
+             * Seite vorher neu lud oder das Speichern übersah, hatte das neue Bild nie irgendwo
+             * ausser in seinem Browser.
+             *
+             * Beim gezielten TAUSCHEN ist die Kachel eindeutig, also gibt es nichts mehr zu
+             * sammeln — es geht sofort in die Prüfung, und der Stand daneben sagt es ihm.
+             *
+             * Beim Hochladen MEHRERER neuer Werke (oben) bleibt es beim Sammeln: Dort entstehen
+             * die Kachelnummern erst, und ein halb hochgeladener Stapel wäre schwerer zu
+             * verstehen als einer, der auf einen Knopf wartet.
+             */
+            void (async () => {
+              const r = await hochladen(daten, nr);
+              if (r) { neuLaden(nr); void staendeHolen(); bestaetigen(T.gespeichert); }
+            })();
             setEntfernt(v => v.filter(x => x !== nr));
           }
           setStatus("");
@@ -623,6 +773,13 @@ export default function PortalBearbeiten({ mandant, k, T, lang, aufbau = false, 
         <div className="min-w-0 flex-1">
           <input value={name} onChange={e => { setName(e.target.value); setStatus(""); }} maxLength={80}
             placeholder={T.namePlatzhalter} className={`${feld} font-serif text-[32px] font-normal leading-[1.15] md:text-[48px]`} />
+          {/* ── DIESES FELD SPEICHERT, DIE ZEILE AUF DEM BLATT NICHT (Owner 19.09.2026: „ich kann
+              den Text im Poster nicht ändern" · „ich habe überall versucht") ───────────────────
+              Beide sehen gleich aus — grosse Serifenschrift, dieselbe Stelle. Das hier ist seins
+              und bleibt; die Zeile auf dem Blatt gehört dem KÄUFER und lebt nur in dessen Browser.
+              Ohne diesen Satz tippt er dort und wundert sich; genau so ist am 19.09. „Your name"
+              als Künstlername in den Datensatz geraten. */}
+          <p className="m-0 mt-1 text-[13.5px] leading-[1.4] text-[#777]">{T.blattName}</p>
           <input value={ort} onChange={e => { setOrt(e.target.value); setStatus(""); }} maxLength={80}
             placeholder={T.ortPlatzhalter} className={`${feld} mt-1.5 text-[15px] text-[#555]`} />
           {/* WAS SEINE WERKE KOSTEN — EIN Satz, der an JEDEM Bild erscheint (Owner 12.09.2026:
@@ -824,7 +981,7 @@ export default function PortalBearbeiten({ mandant, k, T, lang, aufbau = false, 
         <ImagePlus className="h-[18px] w-[18px]" aria-hidden />
         {T.bildHinzufuegen}
         <span className="rounded-full bg-white/20 px-2 py-0.5 text-[13px] font-bold tabular-nums">
-          {kacheln.length}/{werkeMax}
+          {kacheln.filter(x => hatBild(x.i)).length}/{werkeMax}
         </span>
       </button>
       <ul className="mt-6 grid list-none grid-cols-1 gap-x-8 gap-y-12 p-0 sm:grid-cols-2 lg:grid-cols-3">
@@ -839,7 +996,36 @@ export default function PortalBearbeiten({ mandant, k, T, lang, aufbau = false, 
                 : <img src={ausstehend[nrVon(kc.i)] ?? bildUrl(nrVon(kc.i))} alt="" className="max-h-full max-w-full object-contain"
                     onError={() => setFehlt(v => ({ ...v, [nrVon(kc.i)]: true }))} />}
               <span className="absolute bottom-3 left-3 rounded-full bg-white/95 px-3 py-1.5 text-[13px] font-semibold text-[#111] shadow">{T.bildTauschen}</span>
+              {/* ── DER STAND, AUF DEM BILD (Owner 18.09.2026) ─────────────────────────────────
+                  Oben links, damit er beim Überfliegen seiner Werke sofort sieht, was noch
+                  wartet — ohne unter jede Kachel zu schauen. Grün heisst online, gelb heisst
+                  wir schauen gerade, rot heisst: hier musst du etwas tun. */}
+              {/* Ein Platz ohne jede Datei — das ist kein Zustand, sondern ein Loch. Er soll es
+                  sehen und ein Bild hineinlegen können, statt sich über den Zähler zu wundern. */}
+              {!staende[nrVon(kc.i)] && !ausstehend[nrVon(kc.i)] ? (
+                <span className="absolute left-3 top-3 rounded-full bg-[#b3261e] px-3 py-1.5 text-[12.5px] font-bold text-white shadow">
+                  {T.standLeer}
+                </span>
+              ) : null}
+              {staende[nrVon(kc.i)] ? (
+                <span className={`absolute left-3 top-3 rounded-full px-3 py-1.5 text-[12.5px] font-bold shadow ${
+                  staende[nrVon(kc.i)].stand === "frei" ? "bg-[#1b7f4b] text-white"
+                    : staende[nrVon(kc.i)].stand === "pruefung" ? "bg-[#a86a00] text-white"
+                    : "bg-[#b3261e] text-white"}`}>
+                  {staende[nrVon(kc.i)].stand === "frei" ? T.standFrei
+                    : staende[nrVon(kc.i)].stand === "pruefung" ? T.standPruefung
+                    : T.standAbgelehnt}
+                </span>
+              ) : null}
             </button>
+            {/* Die Gründe stehen UNTER der Kachel, nicht darauf — sie sind zwei Zeilen lang und
+                sagen ihm, was zu ändern ist. Dieselben Sätze wie in seiner Mail. */}
+            {staende[nrVon(kc.i)]?.stand === "abgelehnt" && (staende[nrVon(kc.i)].gruende?.length || staende[nrVon(kc.i)].notiz) ? (
+              <p className="m-0 mt-2 text-[13.5px] font-semibold leading-[1.45] text-[#b3261e]">
+                {[...(staende[nrVon(kc.i)].gruende ?? []).map(g => (T as unknown as Record<string, string>)[g] ?? ""), staende[nrVon(kc.i)].notiz ?? ""]
+                  .filter(Boolean).join(" · ")}
+              </p>
+            ) : null}
             <textarea value={kc.spruch} onChange={e => aendern(kc.i, "spruch", e.target.value)} rows={3} maxLength={280}
               placeholder={T.spruchPlatzhalter} className={`${feld} mt-4 resize-none py-1 text-[17px] font-semibold leading-[1.35]`} />
             {/**
@@ -853,6 +1039,22 @@ export default function PortalBearbeiten({ mandant, k, T, lang, aufbau = false, 
               * DER LADEZUSTAND HÄNGT AM WERK, nicht am Formular: Sonst drehten sich beim Klick auf
               * ein Bild alle zwölf Knöpfe, und niemand wüsste, welcher gerade arbeitet.
               */}
+            {/**
+              * ── „KUNST FREISTELLEN" (Owner 18.09.2026: „diese Künstler waren nicht in der Lage
+              * die Kunst richtig zu posten. Sie haben drum herum fotografiert") ──────────────────
+              *
+              * Neben dem Satz-Knopf, weil beide dasselbe tun: Sie nehmen dem Künstler eine Arbeit
+              * ab, die er selbst nicht machen mag. Und beide sind freiwillig und umkehrbar.
+              *
+              * Der zweite Druck holt das Original zurück — so ist der Knopf zugleich das
+              * Vorher/Nachher, ohne dass daneben ein zweites Bild stehen muss.
+              */}
+            <button type="button" disabled={!!freiLaeuft[kc.i]}
+              onClick={() => void freistellen(kc.i)}
+              className="mt-1.5 mr-2 inline-flex items-center gap-1.5 rounded-full border border-[#dfe4e9] px-3 py-1.5 text-[12.5px] font-semibold text-[#555] transition hover:border-[#1d6fd0] hover:text-[#1d6fd0] disabled:opacity-50">
+              <Crop className="h-[14px] w-[14px]" aria-hidden />
+              {freiLaeuft[kc.i] ? T.freistellenLaeuft : (freiVorher[kc.i] !== undefined ? T.freistellenZurueck : T.freistellen)}
+            </button>
             <button type="button" disabled={!!spruchLaeuft[kc.i]}
               onClick={() => void spruchSchreiben(kc.i)}
               className="mt-1.5 inline-flex items-center gap-1.5 rounded-full border border-[#dfe4e9] px-3 py-1.5 text-[12.5px] font-semibold text-[#555] transition hover:border-[#1d6fd0] hover:text-[#1d6fd0] disabled:opacity-50">
@@ -871,6 +1073,19 @@ export default function PortalBearbeiten({ mandant, k, T, lang, aufbau = false, 
                 <Undo2 className="h-[13px] w-[13px]" aria-hidden />
               </button>
             )}
+            {spruchAbsage[kc.i] && (
+              <div className="mt-2">
+                <p className={`m-0 text-[13.5px] font-bold leading-[1.4] ${spruchAbsage[kc.i] === "premium" ? "text-[#14181c]" : "text-[#b3261e]"}`}>
+                  {spruchAbsage[kc.i] === "premium" ? T.aboKiGesperrt : T.speichernFehler}
+                </p>
+                {spruchAbsage[kc.i] === "premium" && (
+                  <MandantKaufen mandant={mandant} k={k} abo wort={T.aboUpgradeKnopf}
+                    klasse="mt-1.5 inline-block rounded-xl bg-[#1d6fd0] px-4 py-2 text-[14px] font-extrabold text-white transition active:scale-[.99] disabled:opacity-60" />
+                )}
+              </div>
+            )}
+            {/* Welche Zeile wohin geht — sonst rät er (Owner 19.09.2026). */}
+            <p className="m-0 mt-2.5 text-[13.5px] leading-[1.4] text-[#777]">{T.blattFelder}</p>
             <div className="mt-1.5 grid grid-cols-2 gap-1.5">
               {([
                 ["titel", T.titelPlatzhalter],
@@ -950,6 +1165,14 @@ export default function PortalBearbeiten({ mandant, k, T, lang, aufbau = false, 
           „Speichern" und fuhr bei jedem Schritt mit — der einzige unwiderrufliche Weg der Seite,
           dauerhaft in Daumenreichweite. Er steht jetzt am Seitenende, wo man ihn sucht, wenn man
           ihn will, und nicht findet, wenn man ihn nicht will. */}
+      {/* Über der Leiste, damit sie den Speichern-Knopf nicht verdeckt. */}
+      {bestaetigung ? (
+        <div className="pointer-events-none fixed inset-x-0 bottom-[72px] z-50 flex justify-center px-5">
+          <span className="rounded-full bg-[#1a7f37] px-5 py-2.5 text-[15px] font-bold text-white shadow-[0_4px_18px_rgba(0,0,0,.25)]">
+            {bestaetigung}
+          </span>
+        </div>
+      ) : null}
       <div className="fixed inset-x-0 bottom-0 z-40 border-t border-[#e5e5e5] bg-white/95 px-5 py-3 backdrop-blur">
         {/* EINE ZEILE, AUCH AUF DEM HANDY: Mit Umbruch fiel „Speichern" in eine zweite Reihe und
             stand dort allein links — der wichtigste Knopf am unerwartetsten Ort. Deshalb kein

@@ -32,15 +32,22 @@ export type KorbPosten = {
    * wirklich gilt, entscheidet der Server aus dem Datensatz des Künstlers; hier steht es, damit
    * die Summe im Fenster nicht von der an der Kasse abweicht.
    */
-  anteil?: boolean;
+  anteil?: boolean | number;
+  /**
+   * SEIN EIGENES BILD AN DIESEM POSTEN (Owner 18.09.2026) — die Kennung aus der Ablage
+   * (`lib/lakatosbandi-kundenbild.ts`), nicht das Bild selbst: Ein Poster im `localStorage`
+   * wäre ein Megabyte je Posten. Fehlt sie, wird das Werk des Künstlers gedruckt.
+   */
+  bild?: string;
 };
 
 const SCHLUESSEL = "lb_korb";
 /** Mehr passt in kein Paket und in keine ehrliche Bestellung — dieselbe Grenze wie im Server. */
 export const KORB_HOECHSTENS = 20;
 
-/** Zwei Posten sind gleich, wenn Werk, Material und Größe gleich sind. */
-const kennung = (p: KorbPosten) => `${p.mandant}|${p.werk}|${p.material}|${p.groesse}`;
+/** Zwei Posten sind gleich, wenn Werk, Material, Größe UND das eingesetzte Bild gleich sind —
+    sein Foto und das Werk des Künstlers sind zwei verschiedene Waren. */
+const kennung = (p: KorbPosten) => `${p.mandant}|${p.werk}|${p.material}|${p.groesse}|${p.bild ?? ""}`;
 
 export function korbLesen(): KorbPosten[] {
   if (typeof window === "undefined") return [];

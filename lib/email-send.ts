@@ -144,7 +144,12 @@ function textAusHtml(html: string): string {
  * einen mitschickt, während SMTP nicht eingerichtet ist, bekommt eine ehrliche Absage statt
  * einer Mail ohne das, was drin sein sollte.
  */
-export type MailAnhang = { name: string; inhalt: Buffer; typ?: string };
+/**
+ * `cid` macht aus einem Anhang ein BILD IM TEXT (Owner 18.09.2026: „man sollte die Bilder
+ * mitschicken, klein"): Im HTML steht dann `<img src="cid:…">`, und der Anhang erscheint an
+ * genau dieser Stelle statt als Büroklammer am Ende. Ohne `cid` bleibt alles wie bisher.
+ */
+export type MailAnhang = { name: string; inhalt: Buffer; typ?: string; cid?: string };
 
 export async function sendEmail(opts: { to: string; subject: string; html: string; replyTo?: string; bcc?: string; text?: string; listUnsubscribe?: string; anhaenge?: MailAnhang[]; konto?: MailKonto;
   /** Nur der Anzeigename vor der Adresse — dasselbe Postfach (Owner 11.09.2026, Künstler-Mails: „lakatosbandi.com" statt „VersusForge", kein neues Postfach). */
@@ -196,7 +201,7 @@ export async function sendEmail(opts: { to: string; subject: string; html: strin
         from, to, subject: opts.subject, html: opts.html, text, replyTo,
         ...(bcc ? { bcc } : {}), ...(unsubHeaders ? { headers: unsubHeaders } : {}),
         ...(opts.anhaenge?.length
-          ? { attachments: opts.anhaenge.map(a => ({ filename: a.name, content: a.inhalt, contentType: a.typ ?? "application/octet-stream" })) }
+          ? { attachments: opts.anhaenge.map(a => ({ filename: a.name, content: a.inhalt, contentType: a.typ ?? "application/octet-stream", ...(a.cid ? { cid: a.cid } : {}) })) }
           : {}),
       });
       return { ok: true, via: "smtp" };

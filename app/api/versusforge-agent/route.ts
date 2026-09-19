@@ -789,7 +789,20 @@ export async function POST(request: Request) {
               console.warn("[versusforge-agent] Werk abgelehnt, nicht gespeichert:", name, nr, urteil.gruende.join(", "));
               return;
             }
-            const ziel = urteil.urteil === "markiert" ? pruefPfad(name, nr) : motivPfad(name, nr);
+            /**
+             * ── AUCH AUS DEM TRICHTER GEHT NICHTS DIREKT AUF DIE SEITE (Owner 18.09.2026:
+             * „auch für den Tunnel bitte") ────────────────────────────────────────────────────
+             *
+             * Dieselbe Entscheidung wie in `api/versusforge-bild`: Hier stand
+             * `markiert ? pruefPfad : motivPfad` — was der Moderation nicht auffiel, war sofort
+             * öffentlich. Der Trichter ist sogar der wichtigere der beiden Wege: Über ihn kommt
+             * ein Künstler zum ERSTEN Mal herein, und sein erster Eindruck ist genau das, was
+             * der Owner auswählen will.
+             *
+             * Die Bilder warten jetzt in der Prüfablage und erscheinen im Freigabe-Werkzeug
+             * (`/portal/freigabe`) — mit Name und Adresse des Künstlers daneben.
+             */
+            const ziel = pruefPfad(name, nr);
             const put = await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(ziel)}`, {
               method: "POST",
               headers: { "Content-Type": "image/jpeg", "x-upsert": "true" },

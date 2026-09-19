@@ -548,6 +548,18 @@ export default function AgentChat({ S: SQuelle, lang, gewaehlt, auftrag, lead = 
    */
   const [mailPruefen, setMailPruefen] = useState(false);
   /**
+   * ── „NEIN, STIMMT NICHT" MUSS IRGENDWOHIN FÜHREN (Owner 18.09.2026: „wenn ich die E-Mail im
+   * Tunnel korrigieren möchte, geht nicht") ───────────────────────────────────────────────────
+   *
+   * Die Felder für Name und Adresse standen unter `!kontaktDa` — sie verschwanden also in dem
+   * Moment, in dem die Adresse GÜLTIG AUSSAH. Genau dann braucht man sie aber: Ein Tippfehler
+   * sieht gültig aus. `oana_boboc@yahoo.c` ist gültiges Muster und trotzdem tot.
+   *
+   * Der Knopf „Nein, stimmt nicht" schloss danach nur die Rückfrage und führte auf eine Karte
+   * ohne Feld. Jetzt holt er die Felder zurück.
+   */
+  const [korrigieren, setKorrigieren] = useState(false);
+  /**
    * Ob die Felder vor der Analyse offen stehen (Owner 14.09.2026: „will er Analyse starten, dann
    * fragst du nach der Email"). Der Knopf „Analizează acum" klappt sie auf; erst das Absenden
    * startet die Analyse.
@@ -604,6 +616,16 @@ export default function AgentChat({ S: SQuelle, lang, gewaehlt, auftrag, lead = 
    * sieht. Der Abschluss fragt sie deshalb NICHT erneut — er übernimmt sie.
    */
   const kontaktDa = !!kontakt.name.trim() && MAIL_MUSTER.test(kontakt.mail.trim());
+  /**
+   * ── OHNE BILD KEINE SEITE UND KEINE MAIL (Owner 18.09.2026: „und er soll keine E-Mail
+   * schicken können, wenn kein Bild") ─────────────────────────────────────────────────────────
+   *
+   * Seit die Bilder bis zuletzt gelöscht werden dürfen, kann der Trichter in einem Zustand
+   * stehen, den es vorher nicht gab: Name da, Adresse da, Häkchen gesetzt — und kein einziges
+   * Werk. Der Knopf hätte eine leere Künstlerseite angelegt und ihm eine Willkommensmail mit
+   * Links darauf geschickt. Das ist keine Seite, das ist eine Enttäuschung mit Absender.
+   */
+  const bilderDa = verlauf.some(m => (m.fotos?.length ?? 0) > 0);
   /* Er ändert einen Spruch über „✎" (Owner 11.09.2026: „ich habe eins korrigiert, du weisst es nicht welches").
      Solange gesetzt, geht das Feld als „dieser Spruch für Bild nr" hinaus — der Server zeigt ihn sofort. */
   const [spruchAendern, setSpruchAendern] = useState<{ nr: number } | null>(null);
@@ -1043,7 +1065,26 @@ export default function AgentChat({ S: SQuelle, lang, gewaehlt, auftrag, lead = 
           name: kontakt.name.trim(), mail: kontakt.mail.trim(),
         }),
       });
-      const d = (await res.json().catch(() => ({}))) as { ok?: boolean; kennung?: string; schluessel?: string; url?: string };
+      const d = (await res.json().catch(() => ({}))) as { ok?: boolean; grund?: string; kennung?: string; schluessel?: string; url?: string };
+      /**
+       * ── BELEGT: ABLEHNEN UND ZURÜCK INS FELD (Owner 18.09.2026) ────────────────────────────
+       *
+       * „Du lehnst es ab und sagst, diese E-Mail kann nicht verwendet werden … und falls Name
+       * auch existiert, er muss auch einen anderen Namen benutzen."
+       *
+       * Die Absage steht ROT AM FELD, nicht als Nachricht des Agenten — sie betrifft etwas, das
+       * er eintippen muss, und dort muss sie stehen ([[sichtbare-fehler-keine-formularfelder]]).
+       * `korrigieren` holt die Felder zurück, sonst stünde die Absage über einer Karte ohne
+       * Eingabe.
+       *
+       * Die Karte kommt wieder (`publizieren: true`), damit der Knopf wieder da ist.
+       */
+      if (d.grund === "mail-belegt" || d.grund === "name-belegt") {
+        setKorrigieren(true);
+        setFehler(d.grund === "mail-belegt" ? S.mailBelegt : S.nameBelegt);
+        setVerlauf(v => v.slice(0, -1));
+        return;
+      }
       if (!d.ok || !d.kennung || !d.url) {
         setVerlauf(v => [...v.slice(0, -1), { rolle: "agent", text: S.anlegenFehler, publizieren: true }]);
         return;
@@ -1524,7 +1565,19 @@ export default function AgentChat({ S: SQuelle, lang, gewaehlt, auftrag, lead = 
                 </div>
               )}
               {/* SEINE BILDER BLEIBEN IM GESPRÄCH SICHTBAR — über seiner Nachricht, rechts wie sie. */}
-              {m.fotos && m.fotos.length > 0 && (
+              {/**
+                * ── DIE REIHE BLEIBT, AUCH WENN SIE LEER IST (Owner 18.09.2026: „der Plus-Kasten
+                * muss stehen bleiben nach Löschen") ──────────────────────────────────────────
+                *
+                * HIER STAND `m.fotos.length > 0`. Wer sein letztes Bild wegnahm, verlor damit die
+                * ganze Reihe — und mit ihr den Plus-Kasten. Es gab keinen Weg zurück ausser von
+                * vorn anzufangen. Ein Löschknopf, der die einzige Stelle zum Nachlegen mitnimmt,
+                * ist eine Falle.
+                *
+                * Solange nachgelegt werden darf, bleibt die Reihe stehen — dann eben nur mit dem
+                * gestrichelten Kasten darin.
+                */}
+              {m.fotos && (m.fotos.length > 0 || (marke === "lakatosbandi" && !busy && !seite)) && (
                 /* ── WISCHBAR STATT ZEILENUMBRUCH (Owner 14.09.2026: „hier kann man nicht sliden
                    die Bilder") ─────────────────────────────────────────────────────────────────
                    Vorher ein `grid-cols-5`, das bei mehr als fünf Werken in eine zweite Reihe
@@ -1543,20 +1596,61 @@ export default function AgentChat({ S: SQuelle, lang, gewaehlt, auftrag, lead = 
                      * stehen zu lassen. Bis dahin ist es nur seine Auswahl, und die darf er
                      * ändern, ohne von vorn anzufangen.
                      */
-                    const offen = marke === "lakatosbandi" && !busy
-                      && verlauf[verlauf.length - 1]?.analyse === true;
+                    /**
+                     * ── LÖSCHEN UND NACHLEGEN, BIS DIE SEITE STEHT (Owner 18.09.2026: „ich kann
+                     * das Bild nicht löschen oder tauschen oder noch eins hinzufügen hier") ─────
+                     *
+                     * HIER STAND `verlauf[verlauf.length - 1]?.analyse === true` — die Knöpfe gab
+                     * es also nur in dem einen Augenblick, in dem der Agent auf „Analizează acum"
+                     * wartete. Sobald er geantwortet hatte, waren sie weg, und der Künstler stand
+                     * vor seinen Werken ohne jede Möglichkeit, eines wegzunehmen oder eines
+                     * nachzulegen. Er musste von vorn anfangen.
+                     *
+                     * JETZT: bis die Seite wirklich existiert (`seite`). Danach hat es keinen
+                     * Sinn mehr — die Bilder liegen dann im Lager, und was hier steht, ist nur
+                     * noch das Protokoll des Gesprächs. Ab da ändert er sie im Dashboard.
+                     *
+                     * WAS DIE ALTE SPERRE VERHINDERN SOLLTE, bleibt bedacht: Nach der Analyse
+                     * hängt an EINEM Bild der Spruch. Wer es wegnimmt, verschiebt `analyseWahl`
+                     * (siehe unten) — der Satz wandert also nicht unter ein fremdes Werk.
+                     */
+                    const offen = marke === "lakatosbandi" && !busy && !seite;
                     const dran = n === analyseWahl;
                     if (!offen) {
                       /* eslint-disable-next-line @next/next/no-img-element */
-                      return <img key={n} src={f} alt="" className="aspect-square w-14 shrink-0 snap-start rounded-lg object-cover" />;
+                      /* ── JEDES WERK IN SEINEM EIGENEN VERHÄLTNIS (Owner 18.09.2026: „mach die
+                         Bilder original — ich meine die Verhältnisse") ────────────────────────
+                         Das Quadrat war eine Erfindung der Kachel: Ein hochkantes Gemälde wurde
+                         darin beschnitten oder stand in grauen Balken. Feste HÖHE, Breite nach
+                         Verhältnis — dann sieht die Reihe aus wie seine Werke und nicht wie ein
+                         Raster. */
+                      return <img key={n} src={f} alt="" className="block h-16 w-auto shrink-0 snap-start" />;
                     }
                     return (
-                      <div key={n} className="relative w-14 shrink-0 snap-start">
+                      <div key={n} className="relative h-16 shrink-0 snap-start">
                         <button type="button" onClick={() => setAnalyseWahl(n)}
                           aria-pressed={dran}
-                          className={`block w-full overflow-hidden rounded-lg transition ${dran ? "ring-[3px] ring-[#111]" : "opacity-60 hover:opacity-100"}`}>
+                          /**
+                           * ── DIE WAHL WECHSELT DIE FARBE, NICHT DEN RAHMEN (Owner 18.09.2026:
+                           * „der schwarze Rand war nicht ok") ───────────────────────────────────
+                           *
+                           * Vorher trug nur das GEWÄHLTE Bild einen drei Pixel dicken schwarzen
+                           * Ring — das gewählte Werk wurde damit grösser als seine Nachbarn und
+                           * die Reihe sprang beim Antippen. Genau das verbietet die Hausregel
+                           * (Skill `ci-design`): „Auswahl verschiebt NIE."
+                           *
+                           * Jetzt tragen BEIDE Zustände denselben Ring, und zwar nach innen
+                           * (`ring-inset`) — ein Ring nach aussen würde in dieser Wischfläche am
+                           * Rand abgeschnitten. Es wechselt nur die Farbe.
+                           */
+                          className={`block w-full overflow-hidden ring-2 ring-inset transition ${dran ? "ring-[#1d6fd0]" : "ring-transparent opacity-60 hover:opacity-100"}`}>
                           {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img src={f} alt="" className="block aspect-square w-full object-cover" />
+                          {/* ── DAS GANZE WERK, NICHT EIN AUSSCHNITT (Owner 18.09.2026: „es stimmt
+                              die Positionierung nicht im Rahmen des Bildes") ──────────────────────
+                              `object-cover` füllt das Quadrat und schneidet dafür ab, was nicht
+                              hineinpasst — bei einem hochkanten Gemälde also oben und unten. Wer
+                              auswählt, welches Werk analysiert wird, muss es ganz sehen. */}
+                          <img src={f} alt="" className="block h-16 w-auto" />
                         </button>
                         <button
                           type="button"
@@ -1588,13 +1682,13 @@ export default function AgentChat({ S: SQuelle, lang, gewaehlt, auftrag, lead = 
                     * Der Zähler sagt, wie viel noch geht — sonst tippt er ein elftes Bild an und
                     * es passiert nichts.
                     */}
-                  {marke === "lakatosbandi" && !busy
-                    && verlauf[verlauf.length - 1]?.analyse === true
+                  {/* Derselbe Zeitraum wie beim Löschen: bis die Seite steht (Owner 18.09.2026). */}
+                  {marke === "lakatosbandi" && !busy && !seite
                     && verlauf.flatMap(x => x.fotos ?? []).length < WERKE_TRICHTER && (
                     <button
                       type="button"
                       onClick={() => { nachlegenZiel.current = i; nachlegenDatei.current?.click(); }}
-                      className="grid aspect-square w-14 shrink-0 snap-start place-items-center rounded-lg border-[1.5px] border-dashed border-[#c9ced3] text-[#8b959d] transition hover:border-[#111] hover:text-[#111]"
+                      className="grid h-16 w-16 shrink-0 snap-start place-items-center border-[1.5px] border-dashed border-[#c9ced3] text-[#8b959d] transition hover:border-[#111] hover:text-[#111]"
                     >
                       <span className="text-[20px] font-light leading-none">+</span>
                     </button>
@@ -2154,7 +2248,7 @@ export default function AgentChat({ S: SQuelle, lang, gewaehlt, auftrag, lead = 
                     <div className="w-full max-w-[340px] rounded-2xl border border-[#dfe4e9] bg-white p-4">
                       {/* Die Felder nur, wenn wirklich etwas fehlt — wer sie schon genannt hat,
                           sieht gleich die Rückfrage darunter. */}
-                      {!kontaktDa && (
+                      {(!kontaktDa || korrigieren) && (
                         <>
                       <p className="m-0 text-[14.5px] leading-[1.45] text-[#14181c]">{S.behaltenFrage}</p>
                       <label className="mt-3 block">
@@ -2169,6 +2263,11 @@ export default function AgentChat({ S: SQuelle, lang, gewaehlt, auftrag, lead = 
                           onChange={e => { const w = e.target.value; setKontakt(k => ({ ...k, mail: w })); }}
                           className="mt-1 block w-full rounded-xl border border-[#dfe4e9] px-3 py-2 text-[16px] outline-none focus:border-[#111]" />
                       </label>
+                      {/* Die Absage steht AM FELD, nicht unten am Eingabefeld des Chats — dorthin
+                          schaut niemand, der gerade in dieser Karte tippt. */}
+                      {fehler ? (
+                        <p className="m-0 mt-2 text-[13px] font-bold leading-[1.4] text-[#b3261e]">{fehler}</p>
+                      ) : null}
                         </>
                       )}
                       <label className="mt-3.5 flex cursor-pointer items-start gap-2 text-[12.5px] leading-[1.5] text-[#8b959d]">
@@ -2195,7 +2294,7 @@ export default function AgentChat({ S: SQuelle, lang, gewaehlt, auftrag, lead = 
                               className="rounded-full bg-[#111] px-4 py-2 text-[14.5px] font-bold text-white transition hover:bg-[#333] active:scale-95">
                               {S.mailRichtigJa}
                             </button>
-                            <button type="button" onClick={() => setMailPruefen(false)}
+                            <button type="button" onClick={() => { setMailPruefen(false); setKorrigieren(true); }}
                               className="rounded-full border-[1.5px] border-[#dfe4e9] bg-white px-3.5 py-2 text-[14.5px] font-semibold text-[#14181c] transition hover:border-[#111] hover:text-[#111]">
                               {S.mailRichtigNein}
                             </button>
@@ -2203,11 +2302,19 @@ export default function AgentChat({ S: SQuelle, lang, gewaehlt, auftrag, lead = 
                         </div>
                       ) : (
                         <button type="button" onClick={() => setMailPruefen(true)}
-                          disabled={!rechte || !kontakt.name.trim() || !MAIL_MUSTER.test(kontakt.mail.trim())}
+                          disabled={!bilderDa || !rechte || !kontakt.name.trim() || !MAIL_MUSTER.test(kontakt.mail.trim())}
                           className="mt-3 w-full rounded-full bg-[#111] px-4 py-2.5 text-[15px] font-bold text-white transition hover:bg-[#333] active:scale-95 disabled:opacity-40">
                           {S.publizierenJa}
                         </button>
                       )}
+                      {/* ── DIE ABSAGE STEHT AM KNOPF (Owner 18.09.2026: „Fehlermeldung fehlt beim
+                          Senden") ──────────────────────────────────────────────────────────────
+                          Ein grauer Knopf ohne Satz ist keine Auskunft: Der Künstler sucht dann
+                          bei Name, Adresse oder Häkchen, wo nichts fehlt. Rot, direkt darunter,
+                          nur solange der Grund besteht ([[sichtbare-fehler-keine-formularfelder]]). */}
+                      {!bilderDa ? (
+                        <p className="m-0 mt-2 text-[13px] font-bold leading-[1.4] text-[#b3261e]">{S.bildFehlt}</p>
+                      ) : null}
                     </div>
                   )}
                 </div>
@@ -2303,7 +2410,7 @@ export default function AgentChat({ S: SQuelle, lang, gewaehlt, auftrag, lead = 
                       DIE SPERRE UNTEN BLEIBT: Sie liest dieselbe Zustimmung (`rechte`), die dann
                       längst gesetzt ist — und greift weiter, falls jemand doch ohne hierher kommt. */}
                   <button type="button"
-                    disabled={!rechte || !kontakt.name.trim() || !MAIL_MUSTER.test(kontakt.mail.trim())}
+                    disabled={!bilderDa || !rechte || !kontakt.name.trim() || !MAIL_MUSTER.test(kontakt.mail.trim())}
                     onClick={() => { setEingabe(""); void schicken([`${S.feldKuenstlername}: ${kontakt.name.trim()}`, `${S.feldEmail}: ${kontakt.mail.trim()}`].join("\n")); }}
                     className="mt-4 w-full rounded-full bg-[#111] px-4 py-2.5 text-[15px] font-bold text-white transition hover:bg-[#333] active:scale-95 disabled:opacity-40">
                     {S.kontaktSenden}
@@ -2355,7 +2462,7 @@ export default function AgentChat({ S: SQuelle, lang, gewaehlt, auftrag, lead = 
                    * kam (`kontaktDa`), sieht die Felder nicht noch einmal — aber das Häkchen
                    * bleibt für alle Pflicht, das ist keine Adressfrage, sondern eine Rechtsfrage.
                    */}
-                  {!kontaktDa && (
+                  {(!kontaktDa || korrigieren) && (
                     <>
                       <label className="block">
                         <span className="block text-[13px] font-bold text-[#5b666f]">{S.feldKuenstlername}</span>
@@ -2396,12 +2503,12 @@ export default function AgentChat({ S: SQuelle, lang, gewaehlt, auftrag, lead = 
                       <div className="mt-3 flex flex-wrap gap-2">
                         <button type="button"
                           onClick={() => { setMailPruefen(false); void behalten(); }}
-                          disabled={behaltenStatus === "sende"}
+                          disabled={!bilderDa || behaltenStatus === "sende"}
                           className="rounded-full bg-[#111] px-4 py-2 text-[14.5px] font-bold text-white transition hover:bg-[#333] active:scale-95 disabled:opacity-40">
                           {S.mailRichtigJa}
                         </button>
                         <button type="button"
-                          onClick={() => setMailPruefen(false)}
+                          onClick={() => { setMailPruefen(false); setKorrigieren(true); }}
                           className="rounded-full border-[1.5px] border-[#dfe4e9] bg-white px-3.5 py-2 text-[14.5px] font-semibold text-[#14181c] transition hover:border-[#111] hover:text-[#111]">
                           {S.mailRichtigNein}
                         </button>
@@ -2409,14 +2516,26 @@ export default function AgentChat({ S: SQuelle, lang, gewaehlt, auftrag, lead = 
                     </div>
                   ) : (
                     <button type="button"
-                      /* Liegen die Daten vor, entfällt auch die Adress-Rückfrage: Er hat sie
-                         vorhin selbst eingetippt und gesehen. Ein Klick, fertig. */
-                      onClick={() => { setBehaltenStatus(""); if (kontaktDa) { void behalten(); } else { setMailPruefen(true); } }}
-                      disabled={behaltenStatus === "sende" || !rechte || !kontakt.name.trim() || !MAIL_MUSTER.test(kontakt.mail.trim())}
+                      /**
+                       * ── DIE RÜCKFRAGE ENTFÄLLT NIE MEHR (Owner 18.09.2026) ──────────────────
+                       *
+                       * HIER STAND: „Liegen die Daten vor, entfällt auch die Adress-Rückfrage —
+                       * ein Klick, fertig." Das war der Weg, auf dem eine falsche Adresse ohne
+                       * jede Nachfrage durchging: Wer aus dem Mail-Link kam, sah sie nie und
+                       * konnte sie nicht mehr ändern.
+                       *
+                       * Ein Klick mehr gegen einen Künstler, der nie in sein Profil kommt — das
+                       * ist kein Tausch, über den man lange nachdenkt.
+                       */
+                      onClick={() => { setBehaltenStatus(""); setMailPruefen(true); }}
+                      disabled={!bilderDa || behaltenStatus === "sende" || !rechte || !kontakt.name.trim() || !MAIL_MUSTER.test(kontakt.mail.trim())}
                       className="mt-4 w-full rounded-full bg-[#111] px-4 py-2.5 text-[15px] font-bold text-white transition hover:bg-[#333] active:scale-95 disabled:opacity-40">
                       {S.behaltenKnopf}
                     </button>
                   )}
+                  {!bilderDa ? (
+                    <p className="m-0 mt-2 text-[13px] font-bold leading-[1.4] text-[#b3261e]">{S.bildFehlt}</p>
+                  ) : null}
                   <p className="m-0 mt-2 text-[12.5px] leading-[1.5] text-[#8b959d]">{S.behaltenHinweis}</p>
                 </div>
               )}

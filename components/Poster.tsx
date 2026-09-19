@@ -118,7 +118,15 @@ export default function Poster({ bildHoch, nameBreit, qrEcke, qrLink, bildKnopf,
             das Blatt wirkt ruhig statt oben gedrängt. */}
         {/* Der Kopf steht oben am Blatt, nicht in der Mitte eines Feldes — dadurch bleibt
             mehr Höhe für das Werk (Owner 16.09.2026). */}
-        <div className="flex flex-1 flex-col justify-start">
+        {/* ── `min-h-0` AUCH HIER, SONST SCHRUMPFT NICHTS (Owner 18.09.2026, Startseite:
+            „text klebt am unteren rand immer noch") ────────────────────────────────────────
+            GEMESSEN auf /portal bei 179 px Blattbreite: Ein liegendes Werk sass 14,7 px über
+            der Kante, ein STEHENDES 1,4 px — der Streifen hing 13,3 px unter dem Blatt und
+            wurde abgeschnitten. Der Grund liegt nicht am Streifen, sondern an dieser Hülle:
+            Ein Flex-Element hat von Haus aus `min-height: auto`, also mindestens die Höhe
+            seines Inhalts. Das Bildfeld darunter durfte schrumpfen (`min-h-0`), diese Hülle
+            nicht — und gab die Bildhöhe ungebremst nach unten weiter. */}
+        <div className="flex min-h-0 flex-1 flex-col justify-start">
           {kopf ? (
             <p className="m-0 font-serif" style={{
               fontSize: `${P.kopf.breit}cqw`, letterSpacing: `${P.kopf.sperre}em`,
@@ -141,8 +149,57 @@ export default function Poster({ bildHoch, nameBreit, qrEcke, qrLink, bildKnopf,
           {/* Rand oben, links und rechts (Owner 17.09.2026: „jetzt brauche ich rand oben und
               rechts und links") — das Werk liegt wieder im Passepartout des Blattes, nicht
               randlos darüber. Die Breite nutzt es innerhalb dieses Randes voll aus. */}
-          <div className="relative flex shrink-0 items-start justify-center overflow-hidden"
-            style={{ height: `${((bildHoch ?? P.bild.hoch) * POSTER_VERHAELTNIS).toFixed(2)}cqw` }}>
+          {/* ── UND MITTIG IM FELD (Owner 18.09.2026: „die Querbilder müssen zentriert sein
+              zwischen Schrift und Rahmen" · „eigentlich alle") ──────────────────────────────
+              Ein stehendes Werk füllt das Feld und merkt davon nichts. Ein LIEGENDES ist nur
+              halb so hoch: Es klebte oben am Rand, und darunter stand eine handbreite Leere bis
+              zur Schrift — das Blatt sah aus, als fehle etwas. Zentriert teilt sich die Luft auf
+              beide Seiten, und jedes Format sitzt gleich. */}
+          {/* ── WAS NICHT PASST, FÄLLT UNTEN WEG (Owner 19.09.2026: „die Bilder oben nicht
+              abschneiden habe ich gesagt") ─────────────────────────────────────────────────────
+              Hier stand `items-center`. Das Feld hat eine Höchsthöhe und schneidet ab; mittig
+              ausgerichtet nahm es oben und unten GLEICH VIEL — und oben sitzt bei einem Porträt
+              der Kopf. GEMESSEN am 19.09.: Feld 484 px, Werk 540 px, also 48 px weg von der
+              Stirn.
+              `items-start` ändert nur, WO der Überhang liegt: Die Oberkante steht fest, gekürzt
+              wird unten. Die Regel vom 17.09. („jedes Werk nimmt die Breite") bleibt unberührt,
+              und die Druckdatei rechnet ohnehin mit `Math.min` — dort fällt gar nichts weg. */}
+          {/* `randSeite` negativ: Das Werk greift über den Schriftrand hinaus (Owner 19.09.2026
+              „das Bild ist 5 Prozent zu klein oder 10"). Dieselbe Zahl benutzen die Druckdatei
+              und das Blattbild für die Feldbreite. */}
+          <div className="relative flex min-h-0 flex-1 items-start justify-center overflow-hidden"
+            style={{
+              /**
+               * ── DAS WERK WEICHT, DER SATZ WIRD NICHT ABGESCHNITTEN (Owner 18.09.2026, mit
+               * Bild der Startseite: „der untere Text ist nicht auf dem Rahmen") ──────────────
+               *
+               * HIER STAND EINE FESTE HÖHE MIT `shrink-0`. Das Blatt hat ein festes
+               * Seitenverhältnis; was das Werk beansprucht, fehlt dem Textblock. Bei einer
+               * Beschreibung über zwei Zeilen — Klimt, Munch — lief der Satz unten aus dem Blatt
+               * und wurde an der Rahmenkante abgeschnitten, mitten im Wort.
+               *
+               * DIE DRUCKDATEI MACHT ES SEIT JE RICHTIG: Dort ist die Bildhöhe das MINIMUM aus
+               * Wunschhöhe und dem, was nach dem Textblock übrig bleibt
+               * (`lib/lakatosbandi-druckdatei.ts`). Der Schirm rechnete andersherum — und damit
+               * sahen Vorschau und gedrucktes Blatt verschieden aus.
+               *
+               * JETZT IST DIE ZAHL EINE OBERGRENZE: Bei kurzem Text ändert sich nichts, bei
+               * langem wird das Werk ein paar Millimeter kleiner. Lieber ein etwas kleineres
+               * Werk als ein angeschnittener Satz.
+               */
+              maxHeight: `${((bildHoch ?? P.bild.hoch) * POSTER_VERHAELTNIS).toFixed(2)}cqw`,
+              /* ── GLEICH VIEL LUFT OBEN WIE UNTEN (Owner 18.09.2026) ────────────────────────
+                 Oben steht der Blattrand (`randOben`), unten stand nichts — ein stehendes Werk
+                 klebte an der Schrift, ein liegendes hing schief im Feld. Derselbe Rand unten
+                 macht das Feld symmetrisch: Das Werk sitzt danach in JEDEM Format mittig
+                 zwischen Rahmenkante und Schrift, ohne dass irgendwo eine Zahl geraten wird. */
+              /* Der Abstand zur Schrift darunter — kleiner als der Blattrand, sonst steht die
+                 Schrift wie abgehängt (Owner 19.09.2026: „zu weit unten"). */
+              paddingBottom: `${P.bild.luftSchrift}cqw`,
+              /* Negativ = das Werk greift über den Schriftrand hinaus (siehe `bild.randSeite`). */
+              marginLeft: `${P.bild.randSeite}cqw`,
+              marginRight: `${P.bild.randSeite}cqw`,
+            }}>
             {bild}
             {bildEcke}
 
@@ -214,7 +271,25 @@ export default function Poster({ bildHoch, nameBreit, qrEcke, qrLink, bildKnopf,
             marginLeft: `-${P.rand}cqw`, marginRight: `-${P.rand}cqw`,
             marginBottom: `-${P.randUnten}cqw`,
             paddingLeft: `${P.rand}cqw`, paddingRight: `${P.rand}cqw`,
-            paddingTop: `${P.luft * 0.6}cqw`, paddingBottom: `${P.randUnten}cqw`,
+            paddingTop: `${P.luft * 0.6}cqw`,
+            /**
+             * ── DOPPELT, WEIL DER NEGATIVE RAND EINE HÄLFTE FRISST (Owner 18.09.2026: „Text
+             * klebt am unteren Rand immer noch") ──────────────────────────────────────────────
+             *
+             * Der Streifen wird mit `marginBottom: -randUnten` bis an die Blattkante gezogen,
+             * damit das Papier durchläuft. Damit rutscht sein Kasten um genau diesen Betrag nach
+             * unten — und eine einfache Polsterung von `randUnten` endet folglich AUF der Kante.
+             *
+             * DIE RECHNUNG, GEMESSEN statt geraten: Der Streifen hängt am Ende einer Spalte
+             * mit FESTER Blatthöhe. Wächst seine Polsterung, schrumpft das Werk darüber und die
+             * Schrift bleibt, wo sie war — der doppelte Wert brachte deshalb nichts ausser einem
+             * Streifen, der 31 px unter der Blattkante hing.
+             *
+             * Was den Abstand wirklich bestimmt: Polsterung MINUS Rahmenstärke. Der Rahmen
+             * (4,5 px bei 324 px Blattbreite, also rund 0,9 cqw) frisst genau die Differenz.
+             * Deshalb steht er hier als Summand — und nicht als geratener Faktor.
+             */
+            paddingBottom: `${P.randUnten + 0.9}cqw`,
             background: f.papier,
           }}>
           {/* Der Künstlername steht nur noch da, wo er bestellt wird (Owner 17.09.2026: „Gerry
@@ -249,6 +324,8 @@ export default function Poster({ bildHoch, nameBreit, qrEcke, qrLink, bildKnopf,
             <p className="relative m-0 font-serif italic" style={{
               marginTop: `${P.luft}cqw`, fontSize: `${P.titel.breit}cqw`, color: f.tinte,
               lineHeight: 1.1,
+              /* Der Titel allein rückt ans Werk; der Satz darunter bleibt stehen. */
+              marginBottom: `${P.titel.luftUnten - P.luft}cqw`,
             }}>{titel}</p>
           ) : null}
 
@@ -335,11 +412,31 @@ export default function Poster({ bildHoch, nameBreit, qrEcke, qrLink, bildKnopf,
               gap: `${P.qr.luft * 0.5}cqw`,
             }}>
               {qr && qrEcke ? (
+                /**
+                 * ── EIN LINK IM LINK IST UNGÜLTIGES HTML (18.09.2026, Konsole der Startseite) ──
+                 *
+                 * Auf der Künstlerseite ist das Blatt kein Link, und der Code darf einer sein —
+                 * er führt ins QR-Fenster („der Link sitzt im Poster selbst", 17.09.2026).
+                 *
+                 * AUF DER STARTSEITE IST DIE GANZE KACHEL EIN LINK. Ein zweites `<a>` darin ist
+                 * nach HTML verboten, React bricht deshalb die Hydration ab und baut die Seite
+                 * im Browser neu auf — unsichtbar, aber es kostet bei jedem Aufruf Zeit, und
+                 * jeder Klick landete zufällig auf einem der beiden Ziele.
+                 *
+                 * Ohne `qrLink` steht der Code hier als Bild. Er verliert nichts: Die Kachel
+                 * führt ohnehin zum Künstler, und gedruckt ist er sowieso nur ein Bild.
+                 */
+                qrLink ? (
                 <a href={qrLink} className="block shrink-0"
                   style={{ width: `${P.qr.klein}cqw`, height: `${P.qr.klein}cqw` }}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={qr} alt="" loading="lazy" className="block h-full w-full" />
                 </a>
+                ) : (
+                  /* eslint-disable-next-line @next/next/no-img-element */
+                  <img src={qr} alt="" loading="lazy" className="block shrink-0"
+                    style={{ width: `${P.qr.klein}cqw`, height: `${P.qr.klein}cqw` }} />
+                )
               ) : null}
               {recht}
 

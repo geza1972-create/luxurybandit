@@ -45,7 +45,19 @@ export async function loginLinkSchicken(mailRoh: string, sprache?: string): Prom
       + mailFein(T.fein);
     const res = await sendEmail({
       konto: "versusforge", to: mail,
-      subject: `${T.betreff} · ${m.name}`, html: mailHuelle(inhalt),
+      /**
+       * ── DER BRIEFKOPF GEHÖRT DEM PORTAL (Owner 19.09.2026: „warum kommt die E-Mail von
+       * VersusForge?") ────────────────────────────────────────────────────────────────────────
+       *
+       * Hier fehlte die Marke, also stand die Vorgabe darüber: „VersusForge · MARKETING ENGINE".
+       * Der Künstler kennt VersusForge nicht — er ist auf lakatosbandi.com gelandet, hat dort
+       * seine Seite, und bekommt nun Post von einem fremden Namen mit dem Wort „Marketing" im
+       * Kopf. Das liest sich wie Werbung, nicht wie sein Zugang; der Link darin ist aber das
+       * Einzige, womit er an sein Dashboard kommt.
+       *
+       * Die Hülle kann beides seit dem Umbau der Einladungsmail — hier wurde es nur vergessen.
+       */
+      subject: `${T.betreff} · ${m.name}`, html: mailHuelle(inhalt, undefined, undefined, "lakatosbandi"),
     });
     if (res.ok) einer = true;
     else console.error("[kuenstler-login-post] Versand fehlgeschlagen:", res.error);

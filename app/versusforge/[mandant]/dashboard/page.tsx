@@ -7,6 +7,7 @@ import Link from "next/link";
 import { LayoutDashboard, Settings, Phone, Mail, ChevronRight, Lock, Image as ImageIcon, Pencil } from "lucide-react";
 import { mandantLesen } from "@/lib/versusforge-mandanten";
 import { leadsLesen, type LeadEintrag } from "@/lib/versusforge-lead";
+import { kaeufeLesen } from "@/lib/lakatosbandi-kaeufe";
 import { trichterZaehlen, type Trichterzahl } from "@/lib/versusforge-schritt";
 import { dashboardGesehenLesen, dashboardGesehenMerken } from "@/lib/versusforge-gesehen";
 import { eur, VERSUSFORGE_ABO_CENTS, VERSUSFORGE_START_CENTS } from "@/lib/pricing";
@@ -167,6 +168,18 @@ export default async function MandantDashboard({ params, searchParams }: {
      auf die Übersicht. Beim allerersten Mal ist alles neu. */
   const gesehen = await dashboardGesehenLesen(mandant);
   const [anfragen, messung] = await Promise.all([leadsLesen(mandant, 200), trichterZaehlen(mandant, 30, 1000, gesehen)]);
+  /**
+   * ── SEINE VERKAUFTEN BLÄTTER (Owner 19.09.2026: „eigentlich müssen sie auch auf dem Dashboard
+   * stehen des Künstlers") ────────────────────────────────────────────────────────────────────
+   *
+   * Die Übersicht über ALLE Generatoren bleibt beim Owner (`/portal/freigabe`, Reiter „Käufe").
+   * Hier steht nur, was aus SEINEN Blättern verkauft wurde — dieselbe Quelle, damit beide Seiten
+   * nie verschiedene Zahlen zeigen.
+   *
+   * Nur bei Generatoren: Bei einem gewöhnlichen Künstler kann gar kein Blatt erzeugt werden, und
+   * eine leere Liste mit einer Überschrift wäre ein Versprechen ins Leere.
+   */
+  const kaeufe = m.kunstAn ? await kaeufeLesen(mandant, 200) : [];
   const seitGesehen = Date.parse(gesehen) || 0;
   const neueAnfragen = anfragen.filter(a => !a.eigen && (Date.parse(a.zeit) || 0) > seitGesehen).length;
   const neueBesucher = messung.neu;
@@ -448,6 +461,30 @@ export default async function MandantDashboard({ params, searchParams }: {
 
               {/* ── WO SIE ABSPRINGEN ── */}
               <Leiter leiter={messung.leiter} besucher={messung.besucher} T={T} />
+
+              {/* ── VERKAUFT (Owner 19.09.2026) ── */}
+              {kaeufe.length > 0 && (
+                <section className={`${KARTE} mt-5 p-6 md:p-7`}>
+                  <h2 className="m-0 text-[19px] font-extrabold tracking-[-0.02em]">
+                    {kaeufe.length === 1 ? T.posterVerkauft1 : T.posterVerkauftN.replace("{n}", String(kaeufe.length))}
+                  </h2>
+                  <ul className="mt-4 grid list-none grid-cols-2 gap-4 p-0 sm:grid-cols-3">
+                    {/* `kauf`, nicht `k` — `k` ist der Schlüssel dieser Seite. */}
+                    {kaeufe.slice(0, 12).map(kauf => (
+                      <li key={kauf.id}>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={`/api/portal-kauf?m=${encodeURIComponent(mandant)}&k=${encodeURIComponent(k)}&bild=${encodeURIComponent(kauf.id)}`}
+                          alt="" loading="lazy" className="block aspect-[3/4] w-full bg-[#f1f3f5] object-cover" />
+                        <p className="m-0 mt-1.5 truncate text-[14px] font-semibold text-[#14181c]">{kauf.titel || "—"}</p>
+                        <p className="m-0 text-[13.5px] text-[#5b666f]">
+                          {/* Sein Datum in SEINER Sprache — das ganze Dashboard steht in `m.sprache`. */}
+                          {kauf.am ? new Date(kauf.am).toLocaleDateString(m.sprache || "de") : ""}
+                        </p>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              )}
 
               <section className={`${KARTE} mt-5 p-6 md:p-7`}>
                 <h2 className="m-0 text-[19px] font-extrabold tracking-[-0.02em]">

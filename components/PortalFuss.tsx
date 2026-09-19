@@ -1,4 +1,5 @@
 import { headers } from "next/headers";
+import { SPUR } from "@/components/PortalSpur";
 import { imPortal } from "@/lib/lakatosbandi-adressen";
 
 /**
@@ -38,7 +39,7 @@ export default async function PortalFuss({ lang }: { lang: string }) {
   ];
   return (
     <footer className="border-t border-[#e5e5e5] px-5 pb-28 pt-8 md:pb-10">
-      <div className="mx-auto flex w-full max-w-[1120px] flex-wrap items-center justify-between gap-4 text-[14px] text-[#666]">
+      <div className={`${SPUR} flex flex-wrap items-center justify-between gap-4 text-[14px] text-[#666]`}>
         <span>© {new Date().getFullYear()} lakatosbandi.com · powered by VersusForge</span>
         <nav className="flex flex-wrap gap-x-5 gap-y-2">
           {links.map(([href, wort]) => (

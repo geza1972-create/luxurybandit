@@ -78,6 +78,26 @@ export async function POST(request: Request) {
       i: Math.round(Number(x.i)),
       spruch: zeile(x.spruch, 280),
       info: {
+        /**
+         * ── WAS DER SERVER GESCHRIEBEN HAT, BLEIBT STEHEN (Owner 19.09.2026: „ich habe gerade ein
+         * neues Profil freigegeben, der erscheint nirgendwo") ────────────────────────────────────
+         *
+         * HIER STAND NUR DIE WEISSE LISTE aus dem Formular — und damit war jedes Speichern im
+         * Dashboard ein Löschvorgang für alles, was NICHT im Formular steht. `WerkInfo` trägt
+         * dreizehn solcher Felder, jedes von einer anderen Stelle im Haus geschrieben:
+         * `freiAm` (wann der Owner freigegeben hat), `film`/`sprecher`/`stimme` samt Datum,
+         * `youtube`, `quer` (das Bildformat), `produkt`, `preisZeigen`, `kunstAbsage`/`kunstAbsagen`.
+         *
+         * GEMESSEN am 19.09.2026: Ein frisch freigegebenes Werk verlor sein `freiAm`, sobald der
+         * Künstler danach einmal speicherte — und stand auf der Startseite wieder ganz hinten,
+         * als wäre es alt. Die Sortierung „die Neusten oben" lief damit gegen eine Uhr, die bei
+         * jedem Speichern stehen blieb.
+         *
+         * DIE WEISSE LISTE BLEIBT EINE: Was der Browser schickt, steht UNTEN und überschreibt nur
+         * seine eigenen Felder. Ein Browser, der `freiAm` oder `kunst` mitschickt, ändert weiter
+         * nichts — genau wie vorher.
+         */
+        ...(m.werkInfo?.[Math.round(Number(x.i)) < 0 ? "standard" : String(Math.round(Number(x.i)))] ?? {}),
         titel: zeile(x.titel, 120), technik: zeile(x.technik, 120), groesse: zeile(x.groesse, 60), jahr: zeile(x.jahr, 12),
         /* Seine Geschichte zum Werk — Stoff für seinen Agenten (Owner 11.09.2026). */
         geschichte: str(x.geschichte, 800).trim(),
@@ -93,12 +113,10 @@ export async function POST(request: Request) {
         /* Welche Werke er als Poster viu anbietet (Owner 16.09.2026: „auch bei jedem bild") —
            dieselbe Whitelist-Regel wie bei `vertritt`: nicht mitgeführt hiesse gelöscht. */
         poster: x.poster === true,
-        /* ── „YOU AS A PICTURE" SCHALTET NICHT DER KÜNSTLER (Owner 17.09.2026: „die künstler
-           können das gar nicht einschalten. das ist ein premium feature") ───────────────────
-           Deshalb kommt der Wert NICHT aus dem Formular, sondern aus dem Datensatz: Was hier
-           steht, hat das Haus gesetzt. Ein Browser, der `kunst: true` mitschickt, ändert nichts
-           — dieselbe Regel wie beim Betrag an der Kasse (Skill `bezahlung`, Regel 3). */
-        kunst: m.werkInfo?.[Math.round(Number(x.i)) < 0 ? "standard" : String(Math.round(Number(x.i)))]?.kunst,
+        /* „YOU AS A PICTURE" SCHALTET NICHT DER KÜNSTLER (Owner 17.09.2026: „die künstler können
+           das gar nicht einschalten. das ist ein premium feature") — `kunst` steht deshalb nicht
+           in dieser Liste, sondern kommt aus dem Spread oben, also aus dem Datensatz. Ein
+           Browser, der `kunst: true` mitschickt, ändert nichts (Skill `bezahlung`, Regel 3). */
         /* „Nur die Stimme zeigen" (Owner 17.09.2026) — dieselbe Whitelist-Regel wie oben. */
         nurStimme: x.nurStimme === true,
       } as WerkInfo,

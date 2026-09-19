@@ -200,6 +200,13 @@ export async function createTryonCheckout(opts: {
 
 // One-time credit-pack checkout (the $8 → 4 videos pack). Ties the buyer's email so
 // checkout-status can grant the credits on return.
+/**
+ * Der Gutschein, der die Kasse beim Prüfen auf 0,00 € stellt — nie in der Produktion.
+ * Siehe `createPackCheckout`.
+ */
+const pruefGutschein = (): string =>
+  process.env.NODE_ENV === "production" ? "" : (process.env.LB_KASSE_GUTSCHEIN?.trim() ?? "");
+
 export async function createPackCheckout(opts: {
   priceId?: string;        // a Stripe Price id — preferred; overrides amount/currency/productName
   amount?: number;         // minor units (cents) — used only when priceId is not given
@@ -212,6 +219,19 @@ export async function createPackCheckout(opts: {
   metadata: Record<string, string>;
   /** Kasse IN der Seite statt Seitenwechsel — siehe `createTryonCheckout` (15.08.2026). */
   eingebettet?: boolean;
+  /**
+   * ── EINE KASSE OHNE SEITENWECHSEL GIBT ES NICHT MEHR (19.09.2026 an Stripe gemessen) ──────
+   *
+   * Der Versuch: `ui_mode: "embedded"` mit `redirect_on_completion: "never"` — die Kasse bliebe
+   * in der Seite stehen, und das Foto des Kunden (das nur im Browser lebt) überlebte die
+   * Zahlung. Stripe antwortet darauf:
+   *
+   *   400 · The ui_mode value `embedded` is no longer supported. Use `embedded_page` instead.
+   *
+   * `embedded_page` schickt den Browser IMMER auf `return_url`. Ein bezahlter Auftrag muss also
+   * den Seitenwechsel überleben — er gehört vor der Zahlung auf den Server
+   * ([[paid-jobs-must-survive-the-browser]]). Nicht in diese Datei, sondern in den Trichter.
+   */
   /** Sprache der SEITE, nicht des Browsers — siehe `createTryonCheckout` (15.08.2026). */
   sprache?: string;
   /**
@@ -247,7 +267,25 @@ export async function createPackCheckout(opts: {
       : { success_url: opts.successUrl, cancel_url: opts.cancelUrl }),
     ...(opts.email ? { customer_email: opts.email, client_reference_id: opts.email } : (opts.clientReferenceId ? { client_reference_id: opts.clientReferenceId } : {})),
     line_items,
-    allow_promotion_codes: true,
+    /**
+     * ── DIE KASSE ZUM PRÜFEN AUF NULL (Owner 19.09.2026: „nein, du umgehst die Zahlung jetzt")
+     *
+     * `LB_KASSE_GUTSCHEIN` trägt die Kennung eines Stripe-Gutscheins über 100 %. Steht sie da,
+     * wird er automatisch eingesetzt: Die Kasse geht auf, zeigt 0,00 €, fragt nach keiner Karte
+     * — und der Webhook läuft danach GENAU wie bei einem echten Kauf. Das ist der Unterschied zu
+     * einem Schalter, der die Kasse überspringt: Dort bliebe der Weg ungeprüft, der im Betrieb
+     * das Geld bucht und die Mail auslöst.
+     *
+     * NUR AUSSERHALB DER PRODUKTION. Auf einem echten Server ist die Zeile wirkungslos, selbst
+     * wenn die Umgebungsvariable dorthin geriete — sonst wäre das der teuerste Tippfehler des
+     * Hauses.
+     *
+     * Stripe nimmt `discounts` und `allow_promotion_codes` nicht zusammen an, deshalb das
+     * Entweder-oder (dieselbe Regel wie bei `createSubscriptionCheckout` darunter).
+     */
+    ...(pruefGutschein()
+      ? { discounts: [{ coupon: pruefGutschein() }] }
+      : { allow_promotion_codes: true }),
     ...(opts.versandLaender?.length ? { shipping_address_collection: { allowed_countries: opts.versandLaender } } : {}),
     ...(opts.versandCents
       ? { shipping_options: [{ shipping_rate_data: { type: "fixed_amount", fixed_amount: { amount: opts.versandCents, currency: opts.currency ?? WAEHRUNG }, display_name: "Livrare" } }] }
