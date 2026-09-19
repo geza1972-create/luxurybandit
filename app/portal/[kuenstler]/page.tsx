@@ -950,19 +950,6 @@ export default async function PortalKuenstler({ params, searchParams }: Props) {
                         /* Kein Künstleranteil bei Reproduktionen UND bei den eigenen Generatoren
                            (Owner 19.09.2026) — verbindlich gerechnet wird in `api/druck-kasse`. */
                         material={w?.produkt ?? "posterramaneagra"} sprache={L} anteil={!m.reproduktion && !m.kunstAn} adminS={admin ? adminS : ""}
-                        /**
-                         * ── AUF SEINEN GENERATOREN GIBT ES KEINEN DRUCKVERSAND (Owner 19.09.2026:
-                         * „sie sollen den Print-Button nicht sehen" · „hier auf dieser Seite
-                         * Print-Button raus") ──────────────────────────────────────────────────
-                         *
-                         * Erst galt es nur für Besucher, der Inhaber sah den Chip weiter. Das war
-                         * eine Ausnahme ohne Zweck: Seinen eigenen Druck holt er sich im Vollbild
-                         * als Datei und geht damit zum Fotodienst — er bestellt bei sich selbst
-                         * keinen Versand. Der Chip stand also nur im Weg.
-                         *
-                         * Bei echten Künstlern bleibt der Druck, was er ist: ihr Verdienst.
-                         */
-                        ohnePrint={m.kunstAn === true}
                         texte={{ kaufen: T.kaufKaufen, korb: T.kaufKorb, groesse: T.kaufGroesse, fehler: T.korbFehler,
                           ohneRahmen: T.druckOhneRahmen, ohneRahmenWahl: T.ohneRahmenWahl, mitRahmen: T.druckMitRahmen, mitRahmenWahl: T.mitRahmenWahl, versand: T.druckVersandDrin, rahmenSchwarz: T.druckRahmenSchwarz }}
                         /* Die Datei steckt im selben Block (Owner 17.09.2026) — nur beim Poster,

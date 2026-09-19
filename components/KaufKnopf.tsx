@@ -25,7 +25,7 @@ import { eur } from "@/lib/pricing";
  * DER ANGEZEIGTE BETRAG IST NUR DAS SCHILD. Verbindlich ist der, den `api/druck-kasse` aus
  * derselben Tabelle liest (Skill `bezahlung`, Regel 3) — der Browser schickt nur die Wahl.
  */
-export default function KaufKnopf({ mandant, werk, material, sprache, anteil = false, adminS = "", ohnePrint = false, texte, datei }: {
+export default function KaufKnopf({ mandant, werk, material, sprache, anteil = false, adminS = "", texte, datei }: {
   mandant: string;
   /** „standard" oder die Kachelnummer. */
   werk: string;
@@ -40,21 +40,6 @@ export default function KaufKnopf({ mandant, werk, material, sprache, anteil = f
   anteil?: boolean;
   /** Der Admin-Schlüssel der Seite — damit der Owner einen Testkauf ohne Versand machen kann. */
   adminS?: string;
-  /**
-   * ── OHNE GEDRUCKTEN VERSAND (Owner 19.09.2026: „sie sollen den Print-Button nicht sehen" ·
-   * „nur für meine Generatoren") ─────────────────────────────────────────────────────────────
-   *
-   * Auf seinen Generatoren bleibt für Besucher nur die Datei. Der Druck ist ein Versandgeschäft
-   * mit Lieferzeit und Adresse — bei einem Werkzeug, dessen ganzer Sinn „in zehn Minuten in der
-   * Hand" ist, führt er vom Produkt weg statt hin.
-   *
-   * Dann entfällt die Wahl zwischen beiden: Es gibt nur noch einen Weg, also braucht es keine
-   * Frage. Auch Rahmen und Grössen fallen weg — sie gehören zum gedruckten Blatt.
-   *
-   * DER INHABER SIEHT WEITERHIN BEIDES (`?s=`), sonst könnte er nicht prüfen, was ein Käufer
-   * bekommt.
-   */
-  ohnePrint?: boolean;
   texte: { kaufen: string; korb: string; groesse: string; fehler: string;
     ohneRahmen: string; ohneRahmenWahl: string; mitRahmenWahl: string; mitRahmen: string; rahmenSchwarz: string;
     /** „Auf Bestellung gedruckt. Lieferung nach Rumänien {versand}." */
@@ -105,21 +90,25 @@ export default function KaufKnopf({ mandant, werk, material, sprache, anteil = f
    * und man druckt selbst. Diese Frage steht deshalb ganz oben, die zwei Möglichkeiten
    * nebeneinander, und erst darunter die Einzelheiten der gewählten.
    */
-  const [istDateiRoh, setIstDatei] = useState(false);
-  /* Ohne Druck gibt es nur die Datei — die Wahl ist dann keine. */
-  const istDatei = ohnePrint || istDateiRoh;
+  /**
+   * ── HIER STAND EIN SCHALTER „OHNE DRUCK" — UND ER WAR FALSCH (Owner 19.09.2026: „wo ist die
+   * Bestellung eines eingerahmten Posters?") ────────────────────────────────────────────────
+   *
+   * Aus „den Print-Button rausnehmen" hatte ich „es gibt keinen Druck" gemacht. Damit fiel auf
+   * seinen Generatoren der ganze Weg zum GEDRUCKTEN, GERAHMTEN Poster weg — und das ist das
+   * Produkt, das Geld bringt. Die digitale Datei ist das, was der Generator SOFORT liefert; das
+   * gerahmte Poster ist, was man danach bestellt. Beides gehört nebeneinander, so wie vorher.
+   *
+   * Der Chip ist deshalb wieder die Frage: gedruckt oder als Datei.
+   */
+  const [istDatei, setIstDatei] = useState(false);
   /* Welche Holzfarbe zuletzt gewählt war — damit „ohne Rahmen" und zurück nicht auf Schwarz
      zurückspringt, wenn er Hell gewählt hatte. */
   const [farbe, setFarbe] = useState("2");
   const echtesMaterial = istDatei && rahmenBar ? "fisier"
     : rahmenBar ? (rahmen === "1" ? "posterrama" : rahmen === "2" ? "posterramaneagra" : "poster")
     : material;
-  /* ── GRÖSSEN GEHÖREN ZUM BLATT, NICHT ZUM VERSAND (Owner 19.09.2026: „nur Print") ────────
-     `echtesMaterial` ist ohne Druckweg „fisier", und die Datei kennt nur die eine Fassung „fara".
-     Die Datei kommt aber sehr wohl in A3, A2 und A1 — also kommen die Masse vom Blattmaterial. */
-  const groessen = druckGroessenFuer(ohnePrint
-    ? (material === "posterrama" ? "posterrama" : material === "poster" ? "poster" : "posterramaneagra")
-    : echtesMaterial);
+  const groessen = druckGroessenFuer(echtesMaterial);
   const [groesse, setGroesse] = useState(druckGroessenFuer(material === "posterrama" ? "posterrama" : material === "poster" ? "poster" : "posterramaneagra")[0] ?? "");
   /* Die Datei hat nur eine Fassung: ohne Rahmen (Owner 17.09.2026). In der Preistabelle heisst
      sie weiterhin „fara" — dort ist die „Grösse" die Fassung. */
@@ -256,8 +245,8 @@ export default function KaufKnopf({ mandant, werk, material, sprache, anteil = f
       u.searchParams.set("i", werk);
       /* Seine Wahl, nicht eine feste Zahl — Grösse und Rahmen stehen an den Chips darüber. */
       u.searchParams.set("format", ["A3", "A2", "A1"].includes(groesse) ? groesse : "A3");
-      if (ohnePrint && rahmen === "1") u.searchParams.set("rahmen", "holz");
-      if (ohnePrint && rahmen === "2") u.searchParams.set("rahmen", "schwarz");
+      if (rahmen === "1") u.searchParams.set("rahmen", "holz");
+      if (rahmen === "2") u.searchParams.set("rahmen", "schwarz");
       if (fassung !== "fara") u.searchParams.set("rahmen", fassung);
       /* Ein Wechsel der Adresse startet den Download und lässt die Seite stehen — kein neues
          Fenster, das der Blocker abfängt. */
@@ -334,7 +323,7 @@ export default function KaufKnopf({ mandant, werk, material, sprache, anteil = f
 
   return (
     <div className="mt-3">
-      {rahmenBar && datei && !ohnePrint ? (
+      {rahmenBar && datei ? (
         /* Die eine Frage, zwei Antworten, nebeneinander. */
         <div className="flex flex-wrap items-center justify-center gap-2">
           {/* Das Zeichen sagt in einem Blick, was der Chip liefert: gedrucktes Papier oder eine
@@ -358,7 +347,7 @@ export default function KaufKnopf({ mandant, werk, material, sprache, anteil = f
           gehören aber nicht dem Druck, sondern dem BLATT: Die Datei kommt in A3, A2 oder A1 und
           wahlweise mit gedrucktem Rahmen (`api/kunst-datei?format=…&rahmen=…`). Nur bestellen
           kann man auf einem Generator nichts. */}
-      {rahmenBar && (!istDatei || ohnePrint) ? (
+      {rahmenBar && !istDatei ? (
         /* `lb-rahmen-wahl`: Daran hängt die CSS-Regel, die im Poster darüber den Rahmen zeichnet
            (globals.css, Owner 15.09.2026: „wenn ich einen rahmen auswähle soll auch der rahmen
            erscheinen beim kachel"). */
@@ -381,7 +370,7 @@ export default function KaufKnopf({ mandant, werk, material, sprache, anteil = f
         </div>
       ) : null}
 
-      {rahmenBar && (!istDatei || ohnePrint) && rahmen !== "0" ? (
+      {rahmenBar && !istDatei && rahmen !== "0" ? (
         /* Die Farbe des Holzes — nur wenn überhaupt gerahmt wird.
 
            `lb-rahmen-wahl` MUSS an DIESER Reihe hängen (17.09.2026: „schalter holzfarben geht
@@ -409,7 +398,7 @@ export default function KaufKnopf({ mandant, werk, material, sprache, anteil = f
       ) : null}
 
       <div className="mt-2 flex flex-wrap items-center justify-center gap-2">
-        {istDatei && !ohnePrint ? (
+        {istDatei ? (
           /* ── DIE DATEI GIBT ES NUR OHNE RAHMEN (Owner 17.09.2026: „und datei gibts nur ohne
              rahmen fertig") ──────────────────────────────────────────────────────────────────
              Ein gedruckter Rahmen IN einer Datei ist ein Bild von einem Rahmen: Wer sie selbst
@@ -424,9 +413,7 @@ export default function KaufKnopf({ mandant, werk, material, sprache, anteil = f
               <label key={g} className={schalter(groesse === g)}>
                 <input type="radio" name={`g-${mandant}-${werk}`} value={g} checked={groesse === g}
                   onChange={() => setGroesse(g)} className="sr-only" />
-                {/* Ohne Druckweg steht nur das Mass: Ein Druckpreis an einer Datei wäre eine
-                    Zahl, die niemand verlangt (Owner 19.09.2026). */}
-                {ohnePrint || p === null ? druckMass(g)
+                {p === null ? druckMass(g)
                   : `${druckMass(g)} · ${eur(p - (bildArt === "kunst" ? druckAbzugCents(echtesMaterial, g, p) : 0), sprache)}`}
               </label>
             );
