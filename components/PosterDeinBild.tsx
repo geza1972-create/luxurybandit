@@ -212,8 +212,12 @@ export default function PosterDeinBild({ children, knopf, erzeugen, texteKnopf, 
   useEffect(() => { setGezeichnet(!!bildId); }, [bildId, setGezeichnet]);
   /* Dasselbe Bild hängt im Slider an der Wand (Owner 18.09.2026: „auch das Bild muss dann an die
      Wand gesehen werden") — das hochgeladene wie das erzeugte. */
-  const { setBild } = useContext(WandBildContext);
+  const { setBild, setZeilen: setWandZeilen } = useContext(WandBildContext);
   useEffect(() => { setBild(foto); }, [foto, setBild]);
+  /* Und was er geschrieben hat — sonst hängt an der Wand „Numele tău", während auf dem Blatt
+     daneben sein Name steht (Owner 19.09.2026: „der Name ist nicht an der Wand"). */
+  useEffect(() => { setWandZeilen({ titel: zeilen.titel, satz: zeilen.satz }); },
+    [zeilen.titel, zeilen.satz, setWandZeilen]);
   /* Und dem Preisschild sagen, was jetzt im Blatt steht (siehe `POSTER_BILD_EREIGNIS`). */
   useEffect(() => {
     /**

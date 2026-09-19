@@ -36,7 +36,7 @@ import PortalReiter from "@/components/PortalReiter";
 import PosterZurueckSprung from "@/components/PosterZurueckSprung";
 import PosterRaeume from "@/components/PosterRaeume";
 import PosterLizenzSatz from "@/components/PosterLizenzSatz";
-import { PosterWandFoto } from "@/components/PosterWandBild";
+import { PosterWandFoto, PosterWandZeile } from "@/components/PosterWandBild";
 import { MessageCircle } from "lucide-react";
 import PortalKuenstlerReihe from "@/components/PortalKuenstlerReihe";
 
@@ -662,9 +662,14 @@ export default async function PortalKuenstler({ params, searchParams }: Props) {
 
                   <Poster
                     klasse="lb-rahmen-fest"
-                    titel={blattZeilen(m.name, m.werkInfo?.[k.i < 0 ? "standard" : String(k.i)]).gross}
+                    /* Seine Zeilen hängen mit an der Wand (Owner 19.09.2026: „der Name ist nicht
+                       an der Wand") — sonst steht dort „Numele tău", während auf dem Blatt
+                       daneben sein Name steht. */
+                    titel={<PosterWandZeile art="titel"
+                      standard={blattZeilen(m.name, m.werkInfo?.[k.i < 0 ? "standard" : String(k.i)]).gross} />}
                     stil={blattZeilen(m.name, m.werkInfo?.[k.i < 0 ? "standard" : String(k.i)]).klein}
-                    text={posterAnriss(k.hook)}
+                    text={<PosterWandZeile art="satz"
+                      standard={m.kunstAn ? kunstBlattSatz(m.kunstStil) : posterAnriss(k.hook)} />}
                     qrEcke
                     qr="/api/portal-qr"
                     siegel={!m.reproduktion}

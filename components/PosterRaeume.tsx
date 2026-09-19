@@ -158,12 +158,14 @@ export default function PosterRaeume({ children, blatt, hoch = true, aus = false
      `PosterDeinBild` trägt hier ein, was gerade im Blatt steht; die Zimmer und die Miniaturen
      lesen es (siehe components/PosterWandBild.tsx). */
   const [wandBild, setWandBild] = useState<string | null>(null);
+  /* Und seine Zeilen — sie hängen an derselben Wand wie sein Bild (Owner 19.09.2026). */
+  const [wandZeilen, setWandZeilen] = useState({ titel: "", satz: "" });
   /* Gemessen wird je EIN Vertreter: alle Zimmer sind gleich breit, alle Miniaturen auch. */
   const [zimmerRef, zimmerBreite] = useBreite<HTMLDivElement>();
   const [miniRef, miniBreite] = useBreite<HTMLSpanElement>();
   const [mini0Ref, mini0Breite] = useBreite<HTMLSpanElement>();
   const [folieRef, folieBreite] = useBreite<HTMLDivElement>();
-  const wand = useMemo(() => ({ bild: wandBild, setBild: setWandBild }), [wandBild]);
+  const wand = useMemo(() => ({ bild: wandBild, setBild: setWandBild, zeilen: wandZeilen, setZeilen: setWandZeilen }), [wandBild, wandZeilen]);
   if (aus) return <WandBildContext.Provider value={wand}>{children}</WandBildContext.Provider>;
 
   return (
