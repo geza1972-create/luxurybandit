@@ -428,7 +428,7 @@ export default async function PortalStart({ searchParams }: { searchParams: Prom
           <Link href={P.kuenstler(m.kennung)} className="group block text-inherit no-underline">
             <div className="flex aspect-[4/5] items-start justify-end bg-[#f5f5f5]">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={P.werkBild(m.kennung, k.i)} alt={m.name} loading="lazy"
+              <img src={P.werkBild(m.kennung, k.i, 900)} alt={m.name} loading="lazy"
                 className="max-h-full max-w-full object-contain" />
             </div>
             {/**
@@ -504,7 +504,7 @@ export default async function PortalStart({ searchParams }: { searchParams: Prom
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 {/* `werkBild` nimmt eine Nummer; das Profilbild hat keine — deshalb hier die
                     Adresse direkt, wie sie auch die Künstlerseite baut. */}
-                <img src={m.profilBild ? `/api/portal-werk?m=${encodeURIComponent(m.kennung)}&i=profil` : (w[0] ? P.werkBild(m.kennung, w[0].i) : "")}
+                <img src={m.profilBild ? `/api/portal-werk?m=${encodeURIComponent(m.kennung)}&i=profil&w=220` : (w[0] ? P.werkBild(m.kennung, w[0].i, 220) : "")}
                   alt={m.name} loading="lazy" className="h-full w-full object-cover" />
               </div>
               <p className="mt-3 text-[14px] font-semibold leading-[1.3] group-hover:underline sm:text-[15px]">{m.name}</p>
@@ -606,7 +606,7 @@ export default async function PortalStart({ searchParams }: { searchParams: Prom
             <Link href={P.kuenstler(m.kennung)} className="group block text-inherit no-underline">
               <span className="relative block overflow-hidden bg-[#f5f5f5]">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={erstes ? P.werkBild(m.kennung, erstes.i) : ""} alt="" loading="lazy"
+                <img src={erstes ? P.werkBild(m.kennung, erstes.i, 700) : ""} alt="" loading="lazy"
                   className="block aspect-[4/5] w-full object-cover transition duration-500 group-hover:scale-[1.03]" />
                 {m.profilBild ? (
                   /* eslint-disable-next-line @next/next/no-img-element */
@@ -665,7 +665,7 @@ export default async function PortalStart({ searchParams }: { searchParams: Prom
                 recht={`lakatosbandi.com/${m.kennung}`}
                 bild={
                   /* eslint-disable-next-line @next/next/no-img-element */
-                  <img src={P.werkBild(m.kennung, k.i)} alt={m.name} loading="lazy"
+                  <img src={P.werkBild(m.kennung, k.i, 900)} alt={m.name} loading="lazy"
                     className={wi?.quer ? "block h-auto w-full" : "block h-full w-auto"} />
                 }
               />
@@ -739,11 +739,11 @@ export default async function PortalStart({ searchParams }: { searchParams: Prom
         kicker: T.rubrikKariKicker,
         titel: T.rubrikKariTitel, text: T.rubrikKariText, link: T.rubrikKariLink,
         href: P.kuenstler(kariKuenstler.kennung),
-        bild: P.werkBild(kariKuenstler.kennung, kariWerk.i),
+        bild: P.werkBild(kariKuenstler.kennung, kariWerk.i, 900),
       } : {
         titel: T.rubrikGrossTitel, text: T.rubrikGrossText, link: T.rubrikGrossLink,
         href: neuestesWerk ? P.kuenstler(neuestesWerk.m.kennung) : adr({ ansicht: "werke", s: 1 }),
-        bild: neuestesWerk ? P.werkBild(neuestesWerk.m.kennung, neuestesWerk.k.i) : "/lakatosbandi/raum1.jpg",
+        bild: neuestesWerk ? P.werkBild(neuestesWerk.m.kennung, neuestesWerk.k.i, 900) : "/lakatosbandi/raum1.jpg",
       }}
       kacheln={[
         {
@@ -768,7 +768,7 @@ export default async function PortalStart({ searchParams }: { searchParams: Prom
                 recht={`lakatosbandi.com/${neuestesPoster.m.kennung}`}
                 bild={
                   /* eslint-disable-next-line @next/next/no-img-element */
-                  <img src={P.werkBild(neuestesPoster.m.kennung, neuestesPoster.k.i)} alt="" loading="lazy"
+                  <img src={P.werkBild(neuestesPoster.m.kennung, neuestesPoster.k.i, 900)} alt="" loading="lazy"
                     className={wi?.quer ? "block h-auto w-full" : "block h-full w-auto"} />
                 }
               />

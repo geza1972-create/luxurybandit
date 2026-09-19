@@ -30,7 +30,16 @@ export function portalPfade(host?: string | null) {
     /* Das Gespräch mit Name und Telefon — heute der Trichter, später der Käufer-Agent. */
     kontakt: (name: string, h?: string) =>
       `${p ? `/${n(name)}/kontakt` : `/versusforge/${n(name)}`}${h ? `?h=${encodeURIComponent(h)}` : ""}`,
-    werkBild: (name: string, i: number) => `/api/portal-werk?m=${n(name)}&i=${i}`,
+    /**
+     * ── DIE BREITE GEHÖRT IN DIE ADRESSE (Owner 19.09.2026: „selbst die Bilder an der Wand laden
+     * auf dem Handy nicht") ──────────────────────────────────────────────────────────────────
+     *
+     * Ohne `w` liefert die Route die Originaldatei — bei van Gogh über ein Megabyte. Eine Kachel
+     * braucht davon einen Bruchteil, ein Zimmerbild noch weniger. Wer die Zahl weglässt, bekommt
+     * weiter das ganze Bild; das brauchen der Erzeugungsweg und die Druckdatei.
+     */
+    werkBild: (name: string, i: number, w?: number) =>
+      `/api/portal-werk?m=${n(name)}&i=${i}${w ? `&w=${Math.round(w)}` : ""}`,
     /* Das Journal — je Sprache eine eigene Adresse (für Google). */
     journal: (lang: string, slug?: string) => `${p ? "" : "/portal"}/journal/${lang}${slug ? `/${encodeURIComponent(slug)}` : ""}`,
   };

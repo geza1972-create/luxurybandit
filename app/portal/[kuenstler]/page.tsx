@@ -417,7 +417,7 @@ export default async function PortalKuenstler({ params, searchParams }: Props) {
       const vertreter = w.find(y => x.werkInfo?.[y.i < 0 ? "standard" : String(y.i)]?.vertritt) ?? w[0];
       const bild = x.profilBild
         ? `/api/portal-werk?m=${encodeURIComponent(x.kennung)}&i=profil`
-        : (vertreter ? P.werkBild(x.kennung, vertreter.i) : "");
+        : (vertreter ? P.werkBild(x.kennung, vertreter.i, 320) : "");
       const q = [
         ...(sp.ansicht === "poster" && !x.reproduktion ? ["ansicht=poster"] : []),
         ...(sp.lang ? [`lang=${encodeURIComponent(sp.lang)}`] : []),
@@ -672,7 +672,7 @@ export default async function PortalKuenstler({ params, searchParams }: Props) {
                     bild={
                       /* Sein Foto bzw. das erzeugte Bild, sobald eines im Blatt steht
                          (Owner 18.09.2026) — sonst das Werk des Künstlers. */
-                      <PosterWandFoto standard={mitAdmin(P.werkBild(kuenstler, k.i))}
+                      <PosterWandFoto standard={mitAdmin(P.werkBild(kuenstler, k.i, 1100))}
                         className={m.werkInfo?.[k.i < 0 ? "standard" : String(k.i)]?.quer ? "block h-auto w-full" : "block h-full w-auto"} />
                     }
                   />
@@ -840,7 +840,7 @@ export default async function PortalKuenstler({ params, searchParams }: Props) {
                         sprecherBild={m.werkInfo?.profil?.sprecher
                           ? `/api/portal-film?m=${encodeURIComponent(kuenstler)}&i=profil&art=sprecherbild&v=${encodeURIComponent(m.werkInfo?.profil?.sprecherAm ?? "1")}`
                           : undefined}
-                        bild={mitAdmin(P.werkBild(kuenstler, k.i))} alt={m.name}
+                        bild={mitAdmin(P.werkBild(kuenstler, k.i, 1100))} alt={m.name}
                         quer={!!m.werkInfo?.[k.i < 0 ? "standard" : String(k.i)]?.quer}
                         profil={m.profilBild ? mitAdmin(`/api/portal-werk?m=${encodeURIComponent(kuenstler)}&i=profil`) : undefined}
                         sofort={filmOffen === (k.i < 0 ? "standard" : String(k.i))}
@@ -866,7 +866,7 @@ export default async function PortalKuenstler({ params, searchParams }: Props) {
                   /* Ohne Posterlayout: das Werk allein, darunter steht die Zeile ausserhalb. */
                   <div className="flex items-center justify-center">
                     <PosterFilm fenster={false}
-                      bild={mitAdmin(P.werkBild(kuenstler, k.i))} alt={m.name}
+                      bild={mitAdmin(P.werkBild(kuenstler, k.i, 1100))} alt={m.name}
                       quer={!!m.werkInfo?.[k.i < 0 ? "standard" : String(k.i)]?.quer}
                       profil={m.profilBild ? mitAdmin(`/api/portal-werk?m=${encodeURIComponent(kuenstler)}&i=profil`) : undefined}
                       kuenstler={m.name} titel={(() => {
@@ -986,7 +986,7 @@ export default async function PortalKuenstler({ params, searchParams }: Props) {
                     <a href={werkLink(k.i)} className="block text-[#111] no-underline">
                       <div className="flex aspect-square items-center justify-center bg-[#f5f5f5]">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={mitAdmin(P.werkBild(kuenstler, k.i))} alt={wk?.titel || m.name} loading="lazy"
+                        <img src={mitAdmin(P.werkBild(kuenstler, k.i, 700))} alt={wk?.titel || m.name} loading="lazy"
                           className="max-h-full max-w-full object-contain" />
                       </div>
                       {wk?.titel ? <p className="mt-3 text-[14px] font-semibold leading-[1.35]">{wk.titel}</p> : null}
@@ -1031,7 +1031,7 @@ export default async function PortalKuenstler({ params, searchParams }: Props) {
           const spanne = druckSpanneCents(true);
           return {
             posterWahl: {
-              bild: mitAdmin(P.werkBild(kuenstler, nr === "standard" ? -1 : Number(nr))),
+              bild: mitAdmin(P.werkBild(kuenstler, nr === "standard" ? -1 : Number(nr), 900)),
               original: `${P.kuenstler(kuenstler)}/${nr}${L === "en" ? "" : `?lang=${L}`}`,
               poster: `${P.kuenstler(kuenstler)}?ansicht=poster${L === "en" ? "" : `&lang=${L}`}`,
               preisPoster: `${T.druckAb.replace("{preis}", eur(spanne.von, L))}`,
@@ -1046,7 +1046,7 @@ export default async function PortalKuenstler({ params, searchParams }: Props) {
                   klasse="lb-poster-block"
                   bild={
                     /* eslint-disable-next-line @next/next/no-img-element */
-                    <img src={mitAdmin(P.werkBild(kuenstler, nr === "standard" ? -1 : Number(nr)))}
+                    <img src={mitAdmin(P.werkBild(kuenstler, nr === "standard" ? -1 : Number(nr), 900))}
                       alt="" className={wi?.quer ? "block h-auto w-full" : "block h-full w-auto"} />
                   }
                 />
