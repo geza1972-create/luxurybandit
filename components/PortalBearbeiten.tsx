@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import StimmeAufnehmen from "@/components/StimmeAufnehmen";
+import WerkFilmHochladen from "@/components/WerkFilmHochladen";
 import { Camera, ImagePlus, LayoutDashboard, Sparkles, Undo2, Crop } from "lucide-react";
 
 /**
@@ -49,7 +50,9 @@ import { eur } from "@/lib/pricing";
  * BILDER GEHEN SOFORT HOCH (über `api/versusforge-bild`, mit der Inhaltsprüfung). Die Texte sammelt „Speichern".
  */
 
-type Kachel = { i: number; spruch: string; titel: string; technik: string; groesse: string; jahr: string; geschichte: string; preis: string; detalii: string; vertritt: boolean; poster: boolean; kunst: boolean; stimme?: boolean; stimmeAm?: string; sprecher?: boolean; nurStimme?: boolean; youtube?: string };
+type Kachel = { i: number; spruch: string; titel: string; technik: string; groesse: string; jahr: string; geschichte: string; preis: string; detalii: string; vertritt: boolean; poster: boolean; kunst: boolean; stimme?: boolean; stimmeAm?: string; sprecher?: boolean; nurStimme?: boolean; youtube?: string;
+  /* Ob an diesem Werk schon ein Film hängt (Owner 20.09.2026) — die Geschichte und „an die Wand". */
+  film?: boolean; filmAm?: string; wandFilm?: boolean; wandFilmAm?: string };
 
 async function verkleinern(f: File): Promise<string> {
   const bitmap = await createImageBitmap(f);
@@ -1152,6 +1155,28 @@ export default function PortalBearbeiten({ mandant, k, T, lang, aufbau = false, 
                 Zehn Werke hiessen zehn Aufnahmen — die macht niemand, und wer eine machte, hatte
                 sie bei neun Werken trotzdem nicht. EINE Aufnahme im Profil erscheint jetzt in
                 jedem Fenster. Sie steht weiter oben, bei seinen Angaben. */}
+            {/* ── EIN FILM JE POSTER, SELBST HOCHGELADEN (Owner 20.09.2026: „und bei jedem Poster in
+                der Edit-Seite soll man ein Video hochladen können") ───────────────────────────
+                Das ist NICHT die Aufnahme, die am 18.09. von hier ins Profil gewandert ist (die
+                spricht über seine Kunst im Ganzen und läuft in jedem Fenster). Dies ist der Film
+                zu DIESEM einen Werk: seine Geschichte, als eigene Folie am Poster und hinter dem
+                Code — und daneben, wer will, das Blatt an einer Wand.
+                Nur wo das Werk auch als Poster angeboten wird: Ohne Posterblatt gibt es keinen
+                Slider, in dem der Film erscheinen könnte. */}
+            {posterViu && kc.poster ? (
+              <>
+                <WerkFilmHochladen mandant={mandant} schluessel={k} i={kc.i} art="film"
+                  vorhanden={!!kc.film} stand={kc.filmAm}
+                  texte={{ titel: T.filmTitel, erklaerung: T.filmErklaerung, waehlen: T.filmWaehlen, ersetzen: T.filmErsetzen,
+                    speichern: T.filmSpeichern, abbrechen: T.filmAbbrechen, loeschen: T.filmLoeschen, laedt: T.filmLaedt,
+                    gespeichert: T.filmGespeichert, fehler: T.filmFehler, zuGross: T.filmZuGross, nurVideo: T.filmNurVideo }} />
+                <WerkFilmHochladen mandant={mandant} schluessel={k} i={kc.i} art="wand"
+                  vorhanden={!!kc.wandFilm} stand={kc.wandFilmAm}
+                  texte={{ titel: T.wandFilmTitel, erklaerung: T.wandFilmErklaerung, waehlen: T.filmWaehlen, ersetzen: T.filmErsetzen,
+                    speichern: T.filmSpeichern, abbrechen: T.filmAbbrechen, loeschen: T.filmLoeschen, laedt: T.filmLaedt,
+                    gespeichert: T.filmGespeichert, fehler: T.filmFehler, zuGross: T.filmZuGross, nurVideo: T.filmNurVideo }} />
+              </>
+            ) : null}
             <button type="button" onClick={() => void entfernen(kc.i)}
               className="mt-2 text-[13px] text-[#777] underline hover:text-[#b3261e]">{T.entfernen}</button>
           </li>

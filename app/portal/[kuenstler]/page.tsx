@@ -174,6 +174,10 @@ export default async function PortalKuenstler({ params, searchParams }: Props) {
           /* Ob zu diesem Werk schon ein Film liegt — er hat im Fenster Vorrang vor der Stimme. */
           sprecher: !!w.sprecher,
           youtube: w.youtube ?? "",
+          /* Ob schon ein Film am Werk hängt (Owner 20.09.2026) — sonst böte das Upload-Feld
+             „Video wählen" an, wo längst eines liegt, und der Löschknopf fehlte. */
+          film: !!w.film, filmAm: w.filmAm ?? "",
+          wandFilm: !!w.wandFilm, wandFilmAm: w.wandFilmAm ?? "",
         };
       });
       /**

@@ -811,7 +811,7 @@ export const ARTIKEL: Artikel[] = [
             "We do not do this behind anyone's back. Nothing of yours becomes a poster unless you ask for it.",
           ] },
           { h: "What you get for it", p: [
-            "20 € for every poster of yours that we sell. It is added on top of our price, not taken out of it — what the printing and our share cost stays our business.",
+            "10 € for every poster of yours that we sell. It is added on top of our price, not taken out of it — what the printing and our share cost stays our business.",
             "You decide which works may be printed, work by work, and you can take that back at any time.",
           ] },
           { h: "How to take part", p: [
@@ -843,7 +843,7 @@ export const ARTIKEL: Artikel[] = [
             "Nu facem asta pe la spatele nimănui. Nicio lucrare de-a ta nu devine poster dacă nu ceri tu.",
           ] },
           { h: "Ce primești", p: [
-            "20 € pentru fiecare poster al tău vândut. Se adaugă la prețul nostru, nu se scade din el — cât costă tiparul și cât rămâne la noi e treaba noastră.",
+            "10 € pentru fiecare poster al tău vândut. Se adaugă la prețul nostru, nu se scade din el — cât costă tiparul și cât rămâne la noi e treaba noastră.",
             "Tu alegi ce lucrări pot fi tipărite, lucrare cu lucrare, și poți renunța oricând.",
           ] },
           { h: "Cum participi", p: [
@@ -875,7 +875,7 @@ export const ARTIKEL: Artikel[] = [
             "Wir machen das hinter niemandes Rücken. Nichts von dir wird zum Poster, wenn du nicht darum bittest.",
           ] },
           { h: "Was du dafür bekommst", p: [
-            "20 € für jedes verkaufte Poster von dir. Es kommt oben auf unseren Preis, nicht davon herunter — was Druck und unser Anteil kosten, ist unsere Sache.",
+            "10 € für jedes verkaufte Poster von dir. Es kommt oben auf unseren Preis, nicht davon herunter — was Druck und unser Anteil kosten, ist unsere Sache.",
             "Du entscheidest Werk für Werk, was gedruckt werden darf, und kannst es jederzeit zurücknehmen.",
           ] },
           { h: "Wie du mitmachst", p: [
