@@ -81,6 +81,14 @@ const nextConfig = {
            Seiten, denn `/` und `/login` gibt es im Haus schon. Nur auf diesem Host. */
         { source: "/", has: [{ type: "host", value: "(www\\.)?lakatosbandi\\.com" }], destination: "/portal" },
         { source: "/login", has: [{ type: "host", value: "(www\\.)?lakatosbandi\\.com" }], destination: "/portal/login" },
+        /* ── DAS JOURNAL IST WIEDER ERREICHBAR (20.09.2026, auf der Live-Seite gemessen) ────────
+           Diese zwei Regeln standen hier seit dem 10.09. und sind am 18.09. mit dem Commit „Artist
+           Fair" herausgefallen. Seitdem fing die Hausregel `/[creator]/[[...project]]` jede
+           Adresse `lakatosbandi.com/journal/…` ab (`x-matched-path` sagte es) — jeder Artikel-Link
+           im Kopf, auf der Startseite, in Facebook-Posts und bei Google landete auf der falschen
+           Seite. Zuerst das Journal, sonst hielte `/:kuenstler` „journal" für einen Künstler. */
+        { source: "/journal", has: [{ type: "host", value: "(www\\.)?lakatosbandi\\.com" }], destination: "/portal/journal" },
+        { source: "/journal/:pfad*", has: [{ type: "host", value: "(www\\.)?lakatosbandi\\.com" }], destination: "/portal/journal/:pfad*" },
         /* DIE ANMELDUNG AUF LAKATOSBANDI.COM (Owner 11.09.2026: „du musst schauen, wo die Seite angelegt wird. Nicht auf
            VersusForge") — derselbe Chat wie /engine, VOR `/:kuenstler`, damit „start" kein Künstler ist. */
         { source: "/start", has: [{ type: "host", value: "(www\\.)?lakatosbandi\\.com" }], destination: "/engine" },
