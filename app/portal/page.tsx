@@ -313,6 +313,21 @@ export default async function PortalStart({ searchParams }: { searchParams: Prom
   };
 
   /**
+   * ── ZUM KÜNSTLER, IN DER SPRACHE DES BESUCHERS (Owner 20.09.2026: „Achtung, Link führt immer
+   * zur RO-Seite", auch von der englischen Startseite aus) ────────────────────────────────────
+   *
+   * Die Künstlerseite fällt OHNE `lang` auf die Sprache des KÜNSTLERS zurück (`m.sprache`) — das
+   * ist gewollt für Besucher, die von seiner Anzeige kommen. Von HIER kommt aber jemand, der
+   * seine Sprache schon gewählt hat. Die Links liessen `lang` weg (oder nur bei Englisch, in der
+   * Annahme, Englisch sei dort der Rückfall): Wer deutsch oder englisch las, landete beim
+   * Karikaturisten auf Rumänisch.
+   *
+   * Deshalb steht die Sprache IMMER in der Adresse, auch Englisch.
+   */
+  const zuKuenstler = (kennung: string, ansichtDort?: string) =>
+    `${P.kuenstler(kennung)}?${ansichtDort ? `ansicht=${ansichtDort}&` : ""}lang=${L}`;
+
+  /**
    * ── WER IN DIGITAL ART STEHT ──────────────────────────────────────────────────────────────
    *
    * Der Merker sitzt am KÜNSTLER (`digital`), nicht am Werk: Wer am Bildschirm arbeitet, tut das
@@ -426,7 +441,7 @@ export default async function PortalStart({ searchParams }: { searchParams: Prom
         /* EIN SCHLÜSSEL JE KACHEL, nicht je Künstler: `m.kennung` allein war bei jedem Künstler
            mit mehr als einem Werk doppelt vergeben — React verwechselt dabei Kacheln. */
         <li key={`${m.kennung}-${k.i}`} className={wand ? "" : KACHEL}>
-          <Link href={P.kuenstler(m.kennung)} className="group block text-inherit no-underline">
+          <Link href={zuKuenstler(m.kennung)} className="group block text-inherit no-underline">
             <div className="flex aspect-[4/5] items-start justify-end bg-[#f5f5f5]">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={P.werkBild(m.kennung, k.i, 900)} alt={m.name} loading="lazy"
@@ -495,7 +510,7 @@ export default async function PortalStart({ searchParams }: { searchParams: Prom
                 Auftritt, unverändert) und dieselben Werke als Poster. `?ansicht=poster` schaltet
                 um. Ein zweiter Datensatz mit denselben Bildern wäre dieselbe Sache doppelt
                 gepflegt — und eine davon wäre irgendwann veraltet. */}
-            <Link href={zuPostern && !m.reproduktion ? `${P.kuenstler(m.kennung)}?ansicht=poster` : P.kuenstler(m.kennung)}
+            <Link href={zuKuenstler(m.kennung, zuPostern && !m.reproduktion ? "poster" : undefined)}
               className="group block text-center text-inherit no-underline">
               {/* ── KREIS UND NAME (Owner 15.09.2026: „oder die portraitkreise und namen") ─────
                   Vorher stand hier ein grosses Werkbild je Künstler. Wer die Liste öffnet, will
@@ -604,7 +619,7 @@ export default async function PortalStart({ searchParams }: { searchParams: Prom
         const erstes = w[0];
         return (
           <li key={m.kennung} className={KACHEL}>
-            <Link href={P.kuenstler(m.kennung)} className="group block text-inherit no-underline">
+            <Link href={zuKuenstler(m.kennung)} className="group block text-inherit no-underline">
               <span className="relative block overflow-hidden bg-[#f5f5f5]">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={erstes ? P.werkBild(m.kennung, erstes.i, 700) : ""} alt="" loading="lazy"
@@ -645,7 +660,7 @@ export default async function PortalStart({ searchParams }: { searchParams: Prom
                 Wer im Schaufenster ein Blatt antippt, will Poster sehen — nicht seine Originale
                 mit Preisen auf Anfrage. `?ansicht=poster` öffnet bei ihm genau die Wand, aus der
                 diese Kachel stammt, samt Grösse, Rahmen und Kaufknopf. */}
-            <Link href={`${P.kuenstler(m.kennung)}?ansicht=poster${L === "en" ? "" : `&lang=${L}`}`}
+            <Link href={zuKuenstler(m.kennung, "poster")}
               className="block text-inherit no-underline">
               {/* ── DASSELBE BLATT WIE BEIM KÜNSTLER (Owner 18.09.2026: „die Poster auf der
                   Startseite stimmen nicht mehr. Das Design stimmt nicht mehr mit dem jetzigen
@@ -657,8 +672,8 @@ export default async function PortalStart({ searchParams }: { searchParams: Prom
                   viel — wer hier klickt, muss dasselbe wiederfinden. */}
               <Poster
                 klasse="lb-rahmen-fest"
-                titel={blattZeilen(m.name, wi).gross}
-                stil={blattZeilen(m.name, wi).klein}
+                titel={blattZeilen(m.name, wi, L).gross}
+                stil={blattZeilen(m.name, wi, L).klein}
                 text={posterAnriss(k.hook)}
                 qrEcke
                 qr="/api/portal-qr"
@@ -740,11 +755,11 @@ export default async function PortalStart({ searchParams }: { searchParams: Prom
       gross={kariKuenstler && kariWerk ? {
         kicker: T.rubrikKariKicker,
         titel: T.rubrikKariTitel, text: T.rubrikKariText, link: T.rubrikKariLink,
-        href: P.kuenstler(kariKuenstler.kennung),
+        href: zuKuenstler(kariKuenstler.kennung),
         bild: P.werkBild(kariKuenstler.kennung, kariWerk.i, 900),
       } : {
         titel: T.rubrikGrossTitel, text: T.rubrikGrossText, link: T.rubrikGrossLink,
-        href: neuestesWerk ? P.kuenstler(neuestesWerk.m.kennung) : adr({ ansicht: "werke", s: 1 }),
+        href: neuestesWerk ? zuKuenstler(neuestesWerk.m.kennung) : adr({ ansicht: "werke", s: 1 }),
         bild: neuestesWerk ? P.werkBild(neuestesWerk.m.kennung, neuestesWerk.k.i, 900) : "/lakatosbandi/raum1.jpg",
       }}
       kacheln={[
@@ -761,8 +776,8 @@ export default async function PortalStart({ searchParams }: { searchParams: Prom
             return (
               <Poster
                 klasse="lb-rahmen-fest"
-                titel={blattZeilen(neuestesPoster.m.name, wi).gross}
-                stil={blattZeilen(neuestesPoster.m.name, wi).klein}
+                titel={blattZeilen(neuestesPoster.m.name, wi, L).gross}
+                stil={blattZeilen(neuestesPoster.m.name, wi, L).klein}
                 text={posterAnriss(neuestesPoster.k.hook)}
                 qrEcke
                 qr="/api/portal-qr"

@@ -26,6 +26,8 @@ import { mandantLesen, type MandantAngaben } from "@/lib/versusforge-mandanten";
 
 /* Die reinen Adressen liegen in lib/lakatosbandi-adressen.ts (auch für Browser-Bausteine). */
 import { istKuenstler } from "@/lib/lakatosbandi-adressen";
+import { platzhalterName } from "@/lib/lakatosbandi-texte";
+import type { Lang } from "@/lib/lang";
 export { PORTAL_URL, imPortal, aufVersusforge, istKuenstler, kuenstlerUrl, kuenstlerDashboardUrl, portalPfade } from "@/lib/lakatosbandi-adressen";
 
 /**
@@ -55,8 +57,10 @@ export { PORTAL_URL, imPortal, aufVersusforge, istKuenstler, kuenstlerUrl, kuens
 export function blattZeilen(
   name: string,
   wi?: { titel?: string; jahr?: string } | null,
+  /** Die Sprache des Besuchers — nur für den Platzhalter „Dein Name" (`platzhalterName`). */
+  lang?: Lang,
 ): { gross: string; klein: string } {
-  const t = String(wi?.titel ?? "").trim();
+  const t = lang ? platzhalterName(wi?.titel, lang) : String(wi?.titel ?? "").trim();
   const j = String(wi?.jahr ?? "").trim();
   return t
     ? { gross: t, klein: [name, j].filter(Boolean).join(", ") }

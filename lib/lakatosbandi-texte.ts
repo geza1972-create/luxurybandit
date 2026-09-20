@@ -1136,4 +1136,22 @@ export function portalSprache(wunsch?: string | null, rueckfall = "en"): Lang {
   return isLang(r) && PORTAL_SPRACHEN.includes(r) ? r : "en";
 }
 
+/**
+ * ── DER PLATZHALTER „DEIN NAME" STEHT IN DER SPRACHE DES BESUCHERS (Owner 20.09.2026, mit Bild
+ * des englischen Blattes: „und das muss auch übersetzt sein") ──────────────────────────────────
+ *
+ * Beim Karikaturisten ist „Numele tău" als WERKTITEL gespeichert — ein Platzhalter, den der
+ * Kunde überschreibt. Ein Titel wird nicht übersetzt (die „Mona Lisa" heisst überall so), also
+ * stand er auch auf dem englischen und dem deutschen Blatt rumänisch.
+ *
+ * Erkannt wird er am Wortlaut: Ist der Titel GENAU der Platzhalter irgendeiner unserer Sprachen,
+ * kommt er in der gewünschten zurück. Jeder andere Titel bleibt, wie er ist.
+ */
+export function platzhalterName(titel: string | undefined | null, lang: Lang): string {
+  const t = String(titel ?? "").trim();
+  if (!t) return t;
+  const alle = Object.values(TEXTE as Record<string, { deinName?: string }>).map(x => x.deinName?.toLowerCase());
+  return alle.includes(t.toLowerCase()) ? portalTexte(lang).deinName : t;
+}
+
 export const portalTexte = (lang: Lang): PortalTexte => (TEXTE as Record<string, PortalTexte>)[lang] ?? TEXTE.en;

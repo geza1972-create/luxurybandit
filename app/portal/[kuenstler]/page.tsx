@@ -29,7 +29,7 @@ import { hausherrDarf } from "@/lib/lakatosbandi-hausherr";
 import { aboAktiv } from "@/lib/versusforge-abo";
 import { EIGENER_MANDANT } from "@/lib/versusforge-namen";
 import { istKuenstler, portalPfade, werkKacheln, kuenstlerUrl, posterAnriss, kuenstlerListe, imPortalSichtbar, blattZeilen } from "@/lib/lakatosbandi";
-import { portalSprache, portalTexte } from "@/lib/lakatosbandi-texte";
+import { portalSprache, portalTexte, platzhalterName } from "@/lib/lakatosbandi-texte";
 import PortalKopf from "@/components/PortalKopf";
 import PortalFuss from "@/components/PortalFuss";
 import PortalReiter from "@/components/PortalReiter";
@@ -666,8 +666,8 @@ export default async function PortalKuenstler({ params, searchParams }: Props) {
                        an der Wand") — sonst steht dort „Numele tău", während auf dem Blatt
                        daneben sein Name steht. */
                     titel={<PosterWandZeile art="titel"
-                      standard={blattZeilen(m.name, m.werkInfo?.[k.i < 0 ? "standard" : String(k.i)]).gross} />}
-                    stil={blattZeilen(m.name, m.werkInfo?.[k.i < 0 ? "standard" : String(k.i)]).klein}
+                      standard={blattZeilen(m.name, m.werkInfo?.[k.i < 0 ? "standard" : String(k.i)], L).gross} />}
+                    stil={blattZeilen(m.name, m.werkInfo?.[k.i < 0 ? "standard" : String(k.i)], L).klein}
                     text={<PosterWandZeile art="satz"
                       standard={m.kunstAn ? kunstBlattSatz(m.kunstStil) : posterAnriss(k.hook)} />}
                     qrEcke
@@ -731,7 +731,7 @@ export default async function PortalKuenstler({ params, searchParams }: Props) {
                          genau diese Zeile ist. Dann trägt sie seinen NAMEN: echte Angabe statt
                          erfundener Werktitel, und das Blatt sieht bei jedem Werk gleich aus. */
                       const wi = m.werkInfo?.[k.i < 0 ? "standard" : String(k.i)];
-                      const titel = wi ? [wi.titel, wi.jahr].filter(Boolean).join(", ") : "";
+                      const titel = wi ? [platzhalterName(wi.titel, L), wi.jahr].filter(Boolean).join(", ") : "";
                       /* ── DIE GROSSE ZEILE HEISST „YOUR NAME" (Owner 17.09.2026: „your name drin
                          stehen, dann verstehen es die leute") ──────────────────────────────────
                          Vorher stand dort der Werktitel oder der Künstlername — niemand sah, dass
@@ -751,7 +751,7 @@ export default async function PortalKuenstler({ params, searchParams }: Props) {
                          Die Regel samt Begründung steht in `blattZeilen` (lib/lakatosbandi.ts).
                          Hier kommt nur dazu, dass der KUNDE die grosse Zeile überschreiben darf —
                          dann tritt darunter „by …" hervor (`PosterStil`). */
-                      const zeilen = blattZeilen(m.name, m.werkInfo?.[k.i < 0 ? "standard" : String(k.i)]);
+                      const zeilen = blattZeilen(m.name, m.werkInfo?.[k.i < 0 ? "standard" : String(k.i)], L);
                       return {
                         titel: lebend ? <PosterDeinText satz={zeilen.gross} art="titel" /> : zeilen.gross,
                         stil: lebend ? <PosterStil name={zeilen.klein || m.name} /> : zeilen.klein,
@@ -877,7 +877,7 @@ export default async function PortalKuenstler({ params, searchParams }: Props) {
                         kuenstler={m.name} leben={m.leben}
                         titel={(() => {
                           const wi = m.werkInfo?.[k.i < 0 ? "standard" : String(k.i)];
-                          return wi ? [wi.titel, wi.jahr].filter(Boolean).join(", ") : "";
+                          return wi ? [platzhalterName(wi.titel, L), wi.jahr].filter(Boolean).join(", ") : "";
                         })()}
                         geschichte={k.hook} ueber={m.ueberMich} />
                       </PosterDeinBild>
@@ -892,7 +892,7 @@ export default async function PortalKuenstler({ params, searchParams }: Props) {
                       profil={m.profilBild ? mitAdmin(`/api/portal-werk?m=${encodeURIComponent(kuenstler)}&i=profil`) : undefined}
                       kuenstler={m.name} titel={(() => {
                         const wi = m.werkInfo?.[k.i < 0 ? "standard" : String(k.i)];
-                        return wi ? [wi.titel, wi.jahr].filter(Boolean).join(", ") : "";
+                        return wi ? [platzhalterName(wi.titel, L), wi.jahr].filter(Boolean).join(", ") : "";
                       })()}
                       geschichte={k.hook} ueber={m.ueberMich} />
                   </div>
@@ -1063,7 +1063,7 @@ export default async function PortalKuenstler({ params, searchParams }: Props) {
                   kopf={POSTER_TITEL}
                   profil={m.profilBild ? mitAdmin(`/api/portal-werk?m=${encodeURIComponent(kuenstler)}&i=profil`) : undefined}
                   name={m.name}
-                  titel={[wi?.titel, wi?.jahr].filter(Boolean).join(", ")}
+                  titel={[platzhalterName(wi?.titel, L), wi?.jahr].filter(Boolean).join(", ")}
                   klasse="lb-poster-block"
                   bild={
                     /* Meldet dem Blatt sein Format — dasselbe Blatt, also dieselbe Regel. */

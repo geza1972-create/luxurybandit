@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ShoppingBag, Check, Printer, Download } from "lucide-react";
-import { korbDazu } from "@/lib/lakatosbandi-korb";
+import { Printer, Download } from "lucide-react";
 import { kundenbildSichern, POSTER_BILD_EREIGNIS, POSTER_RAHMEN_EREIGNIS, type PosterBildArt, type PosterBildNachricht, type PosterRahmenNachricht } from "@/components/PosterDeinBild";
 import { druckGroessenFuer, druckPreisCents, druckMass, druckVersandCents, druckAbzugCents } from "@/lib/lakatosbandi-druck";
 import { eur } from "@/lib/pricing";
@@ -124,7 +123,6 @@ export default function KaufKnopf({ mandant, werk, material, sprache, anteil = f
    * nur, in welchem Mass die Datei gebaut wird (`api/kunst-datei?format=…`).
    */
   const wahl = istDatei ? fassung : groesse;
-  const [drin, setDrin] = useState(false);
   /* Was gerade im Blatt steht — das Blatt sagt es an (`POSTER_BILD_EREIGNIS`). */
   const [bildArt, setBildArt] = useState<PosterBildArt>("keins");
   useEffect(() => {
@@ -255,15 +253,6 @@ export default function KaufKnopf({ mandant, werk, material, sprache, anteil = f
          ([[immer-close-einbauen]]). */
       window.setTimeout(() => setLaeuft(false), 4000);
     } catch { setFehler(true); setLaeuft(false); }
-  };
-
-  const dazu = async () => {
-    /* Auch im Korb hängt sein Bild am Posten — sonst kauft er drei Poster und bekommt dreimal
-       das Werk des Künstlers. */
-    const bild = await kundenbildSichern(mandant, werk);
-    korbDazu({ mandant, werk, material: echtesMaterial, groesse: wahl, anteil: anteilJetzt, ...(bild ? { bild } : {}) });
-    setDrin(true);
-    window.setTimeout(() => setDrin(false), 2200);
   };
 
   const kaufen = async () => {
@@ -459,13 +448,14 @@ export default function KaufKnopf({ mandant, werk, material, sprache, anteil = f
           * Deshalb: Sobald etwas von IHM im Blatt liegt (hochgeladen oder erzeugt), gibt es nur
           * noch „Kaufen". Auf dem blanken Werk eines Künstlers bleibt der Korb, wo er hingehört.
           */}
-        {dateiBezahlt || bildArt !== "keins" ? null : (
-        <button type="button" onClick={dazu}
-          className="inline-flex items-center gap-2 rounded-xl border border-[#111] px-4 py-2 text-[14px] font-semibold text-[#111] transition hover:bg-[#111] hover:text-white">
-          {drin ? <Check className="h-4 w-4" aria-hidden /> : <ShoppingBag className="h-4 w-4" aria-hidden />}
-          {texte.korb}
-        </button>
-        )}
+        {/**
+          * ── KEIN WARENKORB-KNOPF MEHR (Owner 20.09.2026, mit Bild des Knopfs: „das raus, es geht
+          * 100% nicht") ────────────────────────────────────────────────────────────────────────
+          *
+          * Am 19.09. fiel er schon weg, sobald ein eigenes Bild im Blatt lag. Jetzt ganz: Gekauft
+          * wird einzeln, über „Kaufen". Der Korb selbst (`lib/lakatosbandi-korb.ts`, die Kasse
+          * dahinter) bleibt liegen — hier fehlt nur der Weg hinein.
+          */}
       </div>
 
       {/* Was die Lieferung für DIESE Wahl kostet — vor dem Klick, nicht erst bei Stripe (Skill
