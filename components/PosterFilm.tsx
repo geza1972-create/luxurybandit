@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Maximize2, Minimize2, Pause, Play, Volume2, VolumeX, X } from "lucide-react";
+import { posterFormatMelden } from "@/lib/lakatosbandi-poster";
 
 /**
  * DAS WERK IN DER POSTER-KACHEL — UND DER FILM DARÜBER (Owner 15.09.2026: „video startet nicht
@@ -157,6 +158,11 @@ export default function PosterFilm({ quelle, sprecher, sprecherBild, youtube, to
   const [zeit, setZeit] = useState(0);
   const [dauer, setDauer] = useState(0);
   const [stumm, setStumm] = useState(false);
+  /* Das Werk sagt seinem Blatt, ob es stehend ist (Owner 20.09.2026: „18 Prozent grösser … bei
+     den Hochkant-Bildern"). `onLoad` allein reicht nicht: Ein Bild aus dem Zwischenspeicher ist
+     fertig, BEVOR React seine Ohren dran hat — deshalb fragt der Effekt einmal nach. */
+  const werkBild = useRef<HTMLImageElement>(null);
+  useEffect(() => { posterFormatMelden(werkBild.current); }, [bild]);
   const huelleRef = useRef<HTMLSpanElement>(null);
   /**
    * ── VOLLBILD WIRD GESETZT, NICHT ERHOFFT (Owner 17.09.2026: „es klebt immer noch links") ──
@@ -305,7 +311,18 @@ export default function PosterFilm({ quelle, sprecher, sprecherBild, youtube, to
   /* ── KEIN SCHATTEN AM WERK (Owner 17.09.2026: „schatten raus bei bild") ───────────────────
      Auf dem Blatt liegt das Werk flach auf dem Papier — ein Wurf darunter liess es schweben, und
      seit der Rahmen einen eigenen Zug nach innen hat, standen zwei Schatten übereinander. */
-  const huelle = `relative inline-block max-w-full overflow-hidden leading-[0] ${gross ? "max-h-full" : "w-full"}`;
+  /* ── DIE HÜLLE BRAUCHT EINE HÖHE, SONST GILT `max-h-full` NICHT (Owner 20.09.2026: „mach das
+     Bild auf dem Poster ganz drauf") ────────────────────────────────────────────────────────
+     GEMESSEN bei Leonardo: Feld 361 × 377 px, Werk 361 × 538 px — unten fehlten 161 px. Die
+     Hülle war `inline-block w-full` ohne Höhe; ein Prozentwert (`max-h-full`) gegen eine Höhe,
+     die es nicht gibt, zählt nicht, also nahm das Werk die volle Breite und lief unten aus dem
+     Feld. Die kleinen Blätter ohne Fenster hatten keine Hülle und sassen deshalb richtig.
+     Jetzt füllt die Hülle das Feld, und das Werk sitzt ganz und mittig darin. */
+  const huelle = gross
+    ? "relative inline-block max-h-full max-w-full overflow-hidden leading-[0]"
+    /* `flex`, nicht `grid`: Eine Rasterzeile ist `auto` und wächst mit dem Werk — dann misst
+       `max-h-full` wieder gegen das Werk selbst (gemessen: Zeile 847 px in 374 px Hülle). */
+    : "relative flex h-full w-full items-center justify-center overflow-hidden leading-[0]";
 
   /* ── DAS FENSTER GIBT ES AUCH OHNE FILM (Owner 16.09.2026: „bei Szidonia fehlt die QR-Seite
      … bei Van Gogh haben wir es") ───────────────────────────────────────────────────────────
@@ -318,7 +335,8 @@ export default function PosterFilm({ quelle, sprecher, sprecherBild, youtube, to
      Original ansieht, soll dorthin kommen, wo man danach fragt. */
   if (!fenster) {
     /* eslint-disable-next-line @next/next/no-img-element */
-    return <img src={bild} alt={alt} loading="lazy" className={`${rahmen} object-contain ${huelle}`} />;
+    /* Hier hängen die Klassen am Bild selbst — die alte Zeile bleibt, das sass schon richtig. */
+    return <img ref={werkBild} onLoad={e => posterFormatMelden(e.currentTarget)} src={bild} alt={alt} loading="lazy" className={`${rahmen} object-contain relative inline-block max-w-full overflow-hidden leading-[0] ${gross ? "max-h-full" : "w-full"}`} />;
   }
 
 
@@ -326,7 +344,7 @@ export default function PosterFilm({ quelle, sprecher, sprecherBild, youtube, to
     <>
       <span className={huelle}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={bild} alt={alt} loading="lazy" className={`${rahmen} object-contain`} />
+        <img ref={werkBild} onLoad={e => posterFormatMelden(e.currentTarget)} src={bild} alt={alt} loading="lazy" className={`${rahmen} object-contain`} />
         {/* ── KEIN PLAY-SYMBOL AUF DEM WERK (Owner 15.09.2026: „mich stört der play button. Raus")
             ────────────────────────────────────────────────────────────────────────────────────
             Ein Dreieck mitten auf einem Gemälde sieht aus wie ein Wasserzeichen. Das ganze Bild

@@ -2,9 +2,9 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { PDFDocument, rgb, type PDFFont, type PDFPage } from "pdf-lib";
 import fontkit from "@pdf-lib/fontkit";
-import { aufFeldSchneiden } from "@/lib/lakatosbandi-feldschnitt";
+import { werkMessen } from "@/lib/lakatosbandi-feldschnitt";
 import QRCode from "qrcode";
-import { POSTER, POSTER_VERHAELTNIS, POSTER_FORMATE } from "@/lib/lakatosbandi-poster";
+import { POSTER, POSTER_VERHAELTNIS, POSTER_FORMATE, POSTER_HOCHKANT, posterHochkant } from "@/lib/lakatosbandi-poster";
 
 /**
  * DIE DRUCKDATEI ENTSTEHT AUF DEM SERVER (Owner 16.09.2026: „das muss aber automatisch generiert
@@ -147,7 +147,7 @@ export async function druckdateiBauen(a: DruckAngaben): Promise<Uint8Array> {
   const mitte = B / 2;
   /* In PDF zählt y von UNTEN. Wir rechnen von oben und ziehen ab. */
   let obenY = H - leiste - cqw(P.randOben);
-  const untenY = leisteUnten + cqw(P.randUnten);
+  let untenY = leisteUnten + cqw(P.randUnten);
 
   /* ── KEIN KOPF ÜBER DEM WERK (Owner 17.09.2026: „raus") ────────────────────────────────
      Bis heute stand `POSTER_TITEL` hier oben auf dem Blatt. Auf dem Schirm ist die Zeile weg;
@@ -155,15 +155,15 @@ export async function druckdateiBauen(a: DruckAngaben): Promise<Uint8Array> {
      Käufer etwas anderes gedruckt, als er bestellt hat. */
 
   /* ── Der Textblock wird zuerst gemessen, damit er unten kleben kann ───────────────────── */
-  type Zeile = { art: "text" | "sperr" | "qr"; inhalt: string; font?: PDFFont; groesse: number; fill?: ReturnType<typeof rgb>; sperre: number; danach: number; satz?: boolean };
+  type Zeile = { art: "text" | "sperr" | "qr"; inhalt: string; font?: PDFFont; groesse: number; fill?: ReturnType<typeof rgb>; sperre: number; danach: number; satz?: boolean; rolle?: "titel" | "stil" | "recht" };
   const zeilen: Zeile[] = [];
   const qrSeite = a.qrZiel ? cqw(P.qr.breit) : 0;
   const nameGroesse = cqw(P.name.breit);
   const nameText = a.leben ? `${a.name ?? ""}   ${a.leben}` : (a.name ?? "");
   /* Der Künstlername steht nur noch in der Rechtezeile (Owner 17.09.2026: „Gerry Louisett
      raus") — wird er nicht übergeben, fällt die Zeile hier genauso weg wie auf dem Schirm. */
-  if (a.name) zeilen.push({ art: "sperr", inhalt: nameText, font: serif, groesse: nameGroesse, fill: farbe(f.tinte), sperre: nameGroesse * P.name.sperre, danach: cqw(P.luft) });
-  if (a.titel) zeilen.push({ art: "text", inhalt: a.titel, font: kursiv, groesse: cqw(P.titel.breit), fill: farbe(f.tinte), sperre: 0, danach: cqw(P.titel.luftUnten) });
+  if (a.name) zeilen.push({ art: "sperr", inhalt: nameText, font: serif, groesse: nameGroesse, fill: farbe(f.tinte), sperre: nameGroesse * P.name.sperre, danach: cqw(P.luft), rolle: "stil" });
+  if (a.titel) zeilen.push({ art: "text", inhalt: a.titel, font: kursiv, groesse: cqw(P.titel.breit), fill: farbe(f.tinte), sperre: 0, danach: cqw(P.titel.luftUnten), rolle: "titel" });
   /* Seit der Code unten neben der Adresse steht (Owner 17.09.2026: „dieser qr code stört, muss
      klein sein neben lakatosbandi.com"), hält der Satz keinen Platz mehr für ihn frei — er hat
      die ganze Breite, genau wie auf dem Schirm. */
@@ -192,8 +192,8 @@ export async function druckdateiBauen(a: DruckAngaben): Promise<Uint8Array> {
      Hier steht er neben dem Satz — wie auf dem Schirm (`qrEcke`) bleibt sie deshalb weg. */
   /* Der Code gehört zu dieser Zeile: `qr` markiert sie, gezeichnet wird er beim Setzen links
      neben der Schrift (Owner 17.09.2026). */
-  if (a.recht) zeilen.push({ art: a.qrZiel ? "qr" : "text", inhalt: a.recht, font: serif, groesse: cqw(P.recht.breit), fill: farbe(f.leise), sperre: 0, danach: cqw(P.luft) * 0.4 });
-  if (a.nummer) zeilen.push({ art: "text", inhalt: `Licență ${a.nummer} · uz personal`, font: serif, groesse: cqw(P.recht.breit), fill: farbe(f.leise), sperre: 0, danach: 0 });
+  if (a.recht) zeilen.push({ art: a.qrZiel ? "qr" : "text", inhalt: a.recht, font: serif, groesse: cqw(P.recht.breit), fill: farbe(f.leise), sperre: 0, danach: cqw(P.luft) * 0.4, rolle: "recht" });
+  if (a.nummer) zeilen.push({ art: "text", inhalt: `Licență ${a.nummer} · uz personal`, font: serif, groesse: cqw(P.recht.breit), fill: farbe(f.leise), sperre: 0, danach: 0, rolle: "recht" });
 
 
   /**
@@ -213,23 +213,42 @@ export async function druckdateiBauen(a: DruckAngaben): Promise<Uint8Array> {
     if (i > 0) zeilen[i - 1].danach += ((2.2 - 1) / 2) * zeilen[i].groesse;
   }
 
+  /**
+   * ── EIN STEHENDES WERK: SCHRIFT KLEINER, FELD HÖHER (Owner 20.09.2026: „das Bild muss 18
+   * Prozent grösser werden … und die Schrift dann kleiner bei den Hochkant-Bildern") ──────────
+   *
+   * Dieselbe Regel wie auf dem Schirm (`POSTER_HOCHKANT`, `components/Poster.tsx`): Jede Zeile
+   * schrumpft mit der Zahl ihrer Rolle — der Titel am meisten, die kleinen Zeilen weniger (Owner
+   * 20.09.2026: „die kleine Schrift ist zu klein"). Ohne Rolle ist es der Satz. Umgebrochen wurde
+   * oben in voller Grösse und voller Breite; auf dem Schirm schrumpft die Breite des Blocks mit
+   * dem Satz, er bricht also an derselben Stelle um.
+   */
+  const masse = await werkMessen(a.bild);
+  const hochkant = posterHochkant(masse.breit, masse.hoch);
+  if (hochkant) for (const z of zeilen) {
+    const k = POSTER_HOCHKANT[z.rolle ?? "satz"];
+    z.groesse *= k; z.sperre *= k; z.danach *= k;
+  }
+  /* Und der Block rückt näher an die Unterkante — dieselbe Zahl wie auf dem Schirm. */
+  if (hochkant) untenY -= cqw(POSTER_HOCHKANT.untenWeg);
+
   const blockHoehe = zeilen.reduce((s, z) => s + z.groesse + z.danach, 0);
 
   /* ── Das Werk: was zwischen Kopf und Textblock frei bleibt, höchstens das Rasterfeld ──── */
   const bildEinbetten = a.bildTyp === "png" ? pdf.embedPng.bind(pdf) : pdf.embedJpg.bind(pdf);
   /* Derselbe Rand unten wie oben (Owner 18.09.2026, siehe components/Poster.tsx) — sonst sitzt
      das Werk im Druck anders als auf dem Schirm, und genau das darf nicht passieren. */
-  const feldHoehe = Math.min(cqw(P.bild.hoch * POSTER_VERHAELTNIS) - cqw(P.randOben), Math.max(1, obenY - (untenY + blockHoehe + cqw(P.bild.luftSchrift))));
+  const feldHoehe = Math.min(cqw((hochkant ? POSTER_HOCHKANT.bildHoch : P.bild.hoch) * POSTER_VERHAELTNIS) - cqw(P.randOben), Math.max(1, obenY - (untenY + blockHoehe + cqw(P.bild.luftSchrift))));
   const feldBreite = innen - 2 * cqw(P.bild.randSeite);
-  /* Wie auf dem Schirm: Das Werk füllt die Breite, der Überhang fällt unten weg
-     (`lib/lakatosbandi-feldschnitt.ts`). */
-  const geschnitten = await aufFeldSchneiden(a.bild, feldBreite, feldHoehe);
-  const werk = await bildEinbetten(geschnitten.bild);
+  /* Wie auf dem Schirm: Das Werk passt GANZ ins Feld, nichts fällt weg
+     (`lib/lakatosbandi-feldschnitt.ts` erzählt, warum hier einmal geschnitten wurde). */
+  const werk = await bildEinbetten(a.bild);
   const skala = Math.min(feldBreite / werk.width, feldHoehe / werk.height);
   const bw = werk.width * skala;
   const bh = werk.height * skala;
-  /* Oberkante am Feldrand — unten bleibt, was der Textblock braucht. */
-  seite.drawImage(werk, { x: mitte - bw / 2, y: obenY - bh, width: bw, height: bh });
+  /* Mittig im Feld, wie auf dem Schirm (`items-center`, Owner 18.09.2026: „die Querbilder müssen
+     zentriert sein zwischen Schrift und Rahmen") — ein stehendes Werk füllt die Höhe ohnehin. */
+  seite.drawImage(werk, { x: mitte - bw / 2, y: obenY - (feldHoehe - bh) / 2 - bh, width: bw, height: bh });
 
   /* ── Der Textblock, von unten nach oben gesetzt ───────────────────────────────────────── */
   const qrBild = a.qrZiel

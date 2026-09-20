@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import PortalRubrik from "@/components/PortalRubrik";
 import PortalReihe from "@/components/PortalReihe";
 import PortalMehr from "@/components/PortalMehr";
+import { PosterWandFoto } from "@/components/PosterWandBild";
 import { SPUR, KACHEL } from "@/components/PortalSpur";
 import Link from "next/link";
 import { headers } from "next/headers";
@@ -664,8 +665,9 @@ export default async function PortalStart({ searchParams }: { searchParams: Prom
                 siegel={!m.reproduktion}
                 recht={`lakatosbandi.com/${m.kennung}`}
                 bild={
-                  /* eslint-disable-next-line @next/next/no-img-element */
-                  <img src={P.werkBild(m.kennung, k.i, 900)} alt={m.name} loading="lazy"
+                  /* `PosterWandFoto` statt `<img>`: Es meldet dem Blatt, ob das Werk stehend ist —
+                     dann wird es hier genauso grösser wie auf der Künstlerseite (Owner 20.09.2026). */
+                  <PosterWandFoto standard={P.werkBild(m.kennung, k.i, 900)} alt={m.name}
                     className={wi?.quer ? "block h-auto w-full" : "block h-full w-auto"} />
                 }
               />
@@ -767,8 +769,7 @@ export default async function PortalStart({ searchParams }: { searchParams: Prom
                 siegel={!neuestesPoster.m.reproduktion}
                 recht={`lakatosbandi.com/${neuestesPoster.m.kennung}`}
                 bild={
-                  /* eslint-disable-next-line @next/next/no-img-element */
-                  <img src={P.werkBild(neuestesPoster.m.kennung, neuestesPoster.k.i, 900)} alt="" loading="lazy"
+                  <PosterWandFoto standard={P.werkBild(neuestesPoster.m.kennung, neuestesPoster.k.i, 900)}
                     className={wi?.quer ? "block h-auto w-full" : "block h-full w-auto"} />
                 }
               />

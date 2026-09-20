@@ -1,6 +1,7 @@
 "use client";
 
-import { createContext, useContext } from "react";
+import { createContext, useContext, useEffect, useRef } from "react";
+import { posterFormatMelden } from "@/lib/lakatosbandi-poster";
 
 /**
  * WAS AUF DEM BLATT AN DER WAND STEHT (Owner 18.09.2026: „auch das Bild muss dann an die Wand
@@ -33,14 +34,21 @@ export const WandBildContext = createContext<{
   setZeilen: (z: { titel: string; satz: string }) => void;
 }>({ bild: null, setBild: () => {}, zeilen: { titel: "", satz: "" }, setZeilen: () => {} });
 
-export function PosterWandFoto({ standard, className }: {
+export function PosterWandFoto({ standard, className, alt = "" }: {
   /** Das Werk des Künstlers — solange der Kunde nichts eingesetzt hat. */
   standard: string;
   className?: string;
+  /** Auf der Startseite steht das Blatt ohne Slider — dort trägt das Bild den Namen des Künstlers. */
+  alt?: string;
 }) {
   const { bild } = useContext(WandBildContext);
+  /* Das Blatt an der Wand ist dasselbe Blatt (Owner 20.09.2026: stehendes Werk grösser, Schrift
+     kleiner) — also meldet auch dieses Bild sein Format, sonst hinge an der Wand ein anderes
+     Poster als auf Folie 0. Der Effekt fängt Bilder, die schon aus dem Zwischenspeicher da sind. */
+  const ref = useRef<HTMLImageElement>(null);
+  useEffect(() => { posterFormatMelden(ref.current); }, [bild, standard]);
   /* eslint-disable-next-line @next/next/no-img-element */
-  return <img src={bild || standard} alt="" loading="lazy" className={className} />;
+  return <img ref={ref} onLoad={e => posterFormatMelden(e.currentTarget)} src={bild || standard} alt={alt} loading="lazy" className={className} />;
 }
 
 /**

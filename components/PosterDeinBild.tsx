@@ -11,7 +11,7 @@ import { Scheibe } from "@/components/CI";
 import { EigenesContext } from "@/components/PosterGross";
 import { WandBildContext } from "@/components/PosterWandBild";
 import ImageCropper from "@/components/ImageCropper";
-import { POSTER, POSTER_VERHAELTNIS } from "@/lib/lakatosbandi-poster";
+import { POSTER, POSTER_VERHAELTNIS, posterFormatMelden } from "@/lib/lakatosbandi-poster";
 
 /**
  * DER KUNDE IM POSTER — SCHRITT 1: SEIN FOTO (Owner 17.09.2026: „zuerst ‚your picture‘ ersetzt
@@ -655,7 +655,9 @@ export default function PosterDeinBild({ children, knopf, erzeugen, texteKnopf, 
            * Blatt, das aus der Druckdatei kommt.
            */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={foto} alt="" className="block max-h-full max-w-full object-contain" />
+          {/* Auch das Foto des Kunden meldet sein Format — es kann liegend sein, wo das Werk
+              stehend war, und dann gehört dem Blatt wieder die grosse Schrift. */}
+          <img src={foto} alt="" onLoad={e => posterFormatMelden(e.currentTarget)} className="block max-h-full max-w-full object-contain" />
           {original && foto !== original ? (
             /* eslint-disable-next-line @next/next/no-img-element */
             <img src={original} alt="" aria-hidden

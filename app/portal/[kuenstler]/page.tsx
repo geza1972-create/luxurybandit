@@ -1066,9 +1066,9 @@ export default async function PortalKuenstler({ params, searchParams }: Props) {
                   titel={[wi?.titel, wi?.jahr].filter(Boolean).join(", ")}
                   klasse="lb-poster-block"
                   bild={
-                    /* eslint-disable-next-line @next/next/no-img-element */
-                    <img src={mitAdmin(P.werkBild(kuenstler, nr === "standard" ? -1 : Number(nr), 900))}
-                      alt="" className={wi?.quer ? "block h-auto w-full" : "block h-full w-auto"} />
+                    /* Meldet dem Blatt sein Format — dasselbe Blatt, also dieselbe Regel. */
+                    <PosterWandFoto standard={mitAdmin(P.werkBild(kuenstler, nr === "standard" ? -1 : Number(nr), 900))}
+                      className={wi?.quer ? "block h-auto w-full" : "block h-full w-auto"} />
                   }
                 />
               ),

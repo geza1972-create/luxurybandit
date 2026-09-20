@@ -3,7 +3,7 @@ import ArtistFair from "@/components/ArtistFair";
 
 /** Das Aussehen der Stilzeile („BY ADRIAN ROȘU") — EINE Quelle für Blatt und `PosterStil`. */
 export const posterStilStil: React.CSSProperties = {
-  marginTop: `${POSTER.luft * 0.4}cqw`, fontSize: `${POSTER.name.breit}cqw`,
+  marginTop: `${POSTER.luft * 0.4}cqw`, fontSize: `calc(${POSTER.name.breit}cqw * var(--lb-f-stil, 1))`,
   letterSpacing: `${POSTER.name.sperre}em`, textTransform: "uppercase", color: POSTER.farben.grau,
 };
 
@@ -192,7 +192,10 @@ export default function Poster({ bildHoch, nameBreit, qrEcke, qrLink, bildKnopf,
                * langem wird das Werk ein paar Millimeter kleiner. Lieber ein etwas kleineres
                * Werk als ein angeschnittener Satz.
                */
-              maxHeight: `${((bildHoch ?? P.bild.hoch) * POSTER_VERHAELTNIS).toFixed(2)}cqw`,
+              /* `--lb-bild-hoch` setzt das geladene Werk selbst, wenn es stehend ist
+                 (`posterFormatMelden`, Owner 20.09.2026: „18 Prozent grösser") — dann darf das
+                 Feld höher werden, und der Schriftblock darunter macht ihm Platz. */
+              maxHeight: `calc(var(--lb-bild-hoch, ${bildHoch ?? P.bild.hoch}) * ${POSTER_VERHAELTNIS}cqw)`,
               /* ── GLEICH VIEL LUFT OBEN WIE UNTEN (Owner 18.09.2026) ────────────────────────
                  Oben steht der Blattrand (`randOben`), unten stand nichts — ein stehendes Werk
                  klebte an der Schrift, ein liegendes hing schief im Feld. Derselbe Rand unten
@@ -272,11 +275,12 @@ export default function Poster({ bildHoch, nameBreit, qrEcke, qrLink, bildKnopf,
           style={{
             /* Die Schrift sitzt höher (Owner 17.09.2026: „text höher") — der Streifen beginnt
                direkt unter dem Werk, statt erst nach einem Band Papier. */
-            marginTop: `${P.bild.luftUnten * 0.4}cqw`,
+            /* Auch die Luft über der Schrift folgt dem Massstab des Blocks (`--lb-schrift`) —
+               unter einem stehenden Werk gehört jeder Millimeter dem Werk. */
+            marginTop: `calc(${P.bild.luftUnten * 0.4}cqw * var(--lb-luft-oben, 1))`,
             marginLeft: `-${P.rand}cqw`, marginRight: `-${P.rand}cqw`,
             marginBottom: `-${P.randUnten}cqw`,
-            paddingLeft: `${P.rand}cqw`, paddingRight: `${P.rand}cqw`,
-            paddingTop: `${P.luft * 0.6}cqw`,
+            paddingTop: `calc(${(P.luft * 0.6).toFixed(2)}cqw * var(--lb-luft-oben, 1))`,
             /**
              * ── DOPPELT, WEIL DER NEGATIVE RAND EINE HÄLFTE FRISST (Owner 18.09.2026: „Text
              * klebt am unteren Rand immer noch") ──────────────────────────────────────────────
@@ -294,9 +298,21 @@ export default function Poster({ bildHoch, nameBreit, qrEcke, qrLink, bildKnopf,
              * (4,5 px bei 324 px Blattbreite, also rund 0,9 cqw) frisst genau die Differenz.
              * Deshalb steht er hier als Summand — und nicht als geratener Faktor.
              */
-            paddingBottom: `${P.randUnten + 0.9}cqw`,
+            /* Unter einem stehenden Werk rückt der Block näher an die Kante (`untenWeg`). */
+            paddingBottom: `calc(${P.randUnten + 0.9}cqw - var(--lb-unten-weg, 0cqw))`,
             background: f.papier,
           }}>
+          {/* ── DER SCHRIFTBLOCK HAT SEINEN EIGENEN MASSSTAB (Owner 20.09.2026: „die Schrift dann
+              kleiner bei den Hochkant-Bildern") ───────────────────────────────────────────────
+              Alles im Block ist in `cqw` gesetzt — Titel, Satz, Adresse, Code, jeder Abstand,
+              auch was `PosterDeinText` von aussen mitbringt. Statt jede Zahl einzeln zu
+              verkleinern, wird der MASSSTAB kleiner: Diese Hülle ist selbst ein Container und
+              `--lb-schrift` mal so breit wie das Blatt; ein `cqw` darin ist entsprechend
+              kleiner. Bei 1 (liegendes Werk, oder Bild noch nicht geladen) ändert sich nichts.
+              Der Seitenrand steht eine Ebene tiefer, weil `cqw` am Container selbst noch nach
+              dem ÄUSSEREN Massstab rechnet. */}
+          <div className="mx-auto" style={{ containerType: "inline-size", width: "calc(100% * var(--lb-schrift, 1))" }}>
+          <div style={{ paddingLeft: `${P.rand}cqw`, paddingRight: `${P.rand}cqw` }}>
           {/* Der Künstlername steht nur noch da, wo er bestellt wird (Owner 17.09.2026: „Gerry
               Louisett raus") — auf dem Blatt trägt der TITEL des Werks die Zeile; der Name
               bleibt in der Rechtezeile am Fuss. Ohne `name` fällt die Zeile ganz weg. */}
@@ -309,7 +325,7 @@ export default function Poster({ bildHoch, nameBreit, qrEcke, qrLink, bildKnopf,
                   style={{ width: `${P.name.kreis}cqw`, height: `${P.name.kreis}cqw` }} />
               ) : null}
               <span className="font-serif" style={{
-                fontSize: `${nameBreit ?? P.name.breit}cqw`, letterSpacing: `${P.name.sperre}em`,
+                fontSize: `calc(${nameBreit ?? P.name.breit}cqw * var(--lb-f-stil, 1))`, letterSpacing: `${P.name.sperre}em`,
                 textTransform: "uppercase", color: f.tinte,
               }}>
                 {name}
@@ -327,10 +343,13 @@ export default function Poster({ bildHoch, nameBreit, qrEcke, qrLink, bildKnopf,
             /* `relative`, weil der Stift des Kunden rechts daneben hängt (`PosterDeinText`
                mit art="titel") — dieselbe Stelle wie beim Satz darunter. */
             <p className="relative m-0 font-serif italic" style={{
-              marginTop: `${P.luft}cqw`, fontSize: `${P.titel.breit}cqw`, color: f.tinte,
+              /* `--lb-f-titel`: Unter einem stehenden Werk gibt der Titel mehr ab als die kleinen
+                 Zeilen (Owner 20.09.2026: „die kleine Schrift ist zu klein"). Auch sein Abstand
+                 nach unten folgt ihm. */
+              marginTop: `${P.luft}cqw`, fontSize: `calc(${P.titel.breit}cqw * var(--lb-f-titel, 1))`, color: f.tinte,
               lineHeight: 1.1,
               /* Der Titel allein rückt ans Werk; der Satz darunter bleibt stehen. */
-              marginBottom: `${P.titel.luftUnten - P.luft}cqw`,
+              marginBottom: `calc(${(P.titel.luftUnten - P.luft).toFixed(3)}cqw * var(--lb-f-titel, 1))`,
             }}>{titel}</p>
           ) : null}
 
@@ -376,7 +395,11 @@ export default function Poster({ bildHoch, nameBreit, qrEcke, qrLink, bildKnopf,
             /* eslint-disable-next-line @next/next/no-img-element */
             <img src={qr} alt="" loading="lazy" className="absolute"
               style={{
-                left: `${P.rand}cqw`, bottom: `${P.randUnten}cqw`,
+                /* Die Hülle darüber ist ein Container und damit der Bezug für `absolute`; sie
+                   endet ÜBER der Polsterung des Streifens (`randUnten + 0.9`). Der Code steht
+                   damit, wo er stand: `randUnten` über der Streifenkante (unter einem stehenden
+                   Werk rückt er mit dem Block hinunter). */
+                left: `${P.rand}cqw`, bottom: "-0.9cqw",
                 width: `${P.qr.breit}cqw`, height: `${P.qr.breit}cqw`,
               }} />
           ) : null}
@@ -413,7 +436,7 @@ export default function Poster({ bildHoch, nameBreit, qrEcke, qrLink, bildKnopf,
               gross wie der Code. In der Mitte der Fusszeile hätte er ausgesehen wie ein Wort. */}
           {recht ? (
             <p className="m-0 flex items-center justify-center font-serif" style={{
-              marginTop: `${P.luft * 0.5}cqw`, fontSize: `${P.recht.breit}cqw`, color: f.leise,
+              marginTop: `${P.luft * 0.5}cqw`, fontSize: `calc(${P.recht.breit}cqw * var(--lb-f-recht, 1))`, color: f.leise,
               gap: `${P.qr.luft * 0.5}cqw`,
             }}>
               {qr && qrEcke ? (
@@ -447,6 +470,8 @@ export default function Poster({ bildHoch, nameBreit, qrEcke, qrLink, bildKnopf,
 
             </p>
           ) : null}
+          </div>
+          </div>
         </div>
       </div>
     </div>

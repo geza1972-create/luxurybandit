@@ -160,7 +160,9 @@ export default function PosterDeinText({ satz, art = "satz", qrEcke = false }: {
         }}
         className={`lb-poster-feld m-0 block w-full whitespace-pre-line text-center outline-none ${istTitel ? "italic" : ""}${offen ? " lb-poster-feld-offen" : ""}${bearbeitbar ? " lb-poster-feld-kann" : ""}`}
         style={{
-          fontSize: `${breit.toFixed(2)}cqw`,
+          /* Der Titel folgt `--lb-f-titel` (stehendes Werk, siehe `POSTER_HOCHKANT`); der Satz
+             IST der Massstab des Blocks und braucht keine eigene Zahl. */
+          fontSize: istTitel ? `calc(${breit.toFixed(2)}cqw * var(--lb-f-titel, 1))` : `${breit.toFixed(2)}cqw`,
           lineHeight: istTitel ? 1.1 : POSTER.text.zeile,
           color: POSTER.farben.tinte,
         }}>{/**

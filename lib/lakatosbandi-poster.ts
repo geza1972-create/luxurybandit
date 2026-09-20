@@ -228,6 +228,79 @@ export const POSTER = {
 export type PosterRaster = typeof POSTER;
 
 /**
+ * ── EIN STEHENDES WERK BEKOMMT MEHR BLATT, DIE SCHRIFT WENIGER (Owner 20.09.2026: „das Bild muss
+ * noch grösser werden und die Schrift dann kleiner bei den Hochkant-Bildern. Das Bild muss
+ * 18 Prozent grösser werden") ──────────────────────────────────────────────────────────────────
+ *
+ * Seit das Werk GANZ aufs Blatt passt, stösst ein stehendes oben und unten an sein Feld und lässt
+ * seitlich Papier — es ist an der HÖHE begrenzt, und die Höhe gehört zur Hälfte der Schrift.
+ * GEMESSEN an der Mona Lisa (Blatt 388 px breit): Feld 377 px, Schriftblock 131 px. Für 18 % mehr
+ * Werk braucht das Feld 444 px; dem Schriftblock bleiben 64 px, also knapp die Hälfte.
+ *
+ * ── DIE KLEINEN ZEILEN SCHRUMPFEN WENIGER ALS DER TITEL (Owner 20.09.2026, nach dem ersten
+ * Probedruck: „ja die kleine Schrift ist zu klein") ─────────────────────────────────────────────
+ *
+ * Erst schrumpfte der ganze Block mit EINER Zahl (0,47). Das hielt die Verhältnisse, aber der
+ * Satz fiel auf 1,6 % der Blattbreite und die Adresse auf 1,0 % — unter der Grenze, die der Owner
+ * am 17.09. selbst gezogen hat („zu klein, kann keiner lesen").
+ *
+ * Der Platz ist fest (18 % mehr Werk), also wird er anders VERTEILT: Der Titel ist gross genug,
+ * um mehr abzugeben; Satz, Stilzeile und Adresse bekommen es. Dazu rückt der Block etwas näher
+ * an die Unterkante (`untenWeg`), wie schon am 19.09. („die Texte müssen weiter runter, um Platz
+ * zu schaffen").
+ *
+ * `satz` ist zugleich der MASSSTAB des Blocks auf dem Schirm (Breite und Abstände) — so bricht
+ * der Satz an derselben Stelle um wie in voller Grösse. Die anderen Zahlen sind wie `satz`
+ * Anteile der vollen Grösse: Titel 8,6 → 3,6 · Satz 3,45 → 2,0 · Stil 2,4 → 1,5 · Adresse 2,1 → 1,4.
+ *
+ * `ab`: Ab wann ein Werk „stehend" ist — Höhe mindestens 15 % über der Breite. Ein fast
+ * quadratisches Werk ist an der BREITE begrenzt; ihm die Schrift zu nehmen brächte ihm nichts.
+ * `bildHoch`: die Höchsthöhe des Feldes für diese Blätter (sonst `bild.hoch`).
+ *
+ * SCHIRM, BLATTBILD UND DRUCKDATEI LESEN DIESE ZAHLEN — das gedruckte Blatt sieht aus wie die
+ * Vorschau.
+ */
+export const POSTER_HOCHKANT = {
+  ab: 1.15, bildHoch: 88,
+  titel: 0.42, satz: 0.58, stil: 0.62, recht: 0.66,
+  /** Die Luft zwischen Werk und Schriftblock, als Anteil der vollen. */
+  luftOben: 0.3,
+  /** So viel rückt der Block näher an die Unterkante — Anteil der Blattbreite wie `randUnten`. */
+  untenWeg: 1.2,
+} as const;
+
+/** Ist das Werk stehend genug, dass ihm die grössere Höhe etwas bringt? */
+export function posterHochkant(breite: number, hoehe: number): boolean {
+  return breite > 0 && hoehe >= breite * POSTER_HOCHKANT.ab;
+}
+
+/**
+ * Auf dem Schirm kennt erst der Browser das Format des Werks (der Server misst beim Rendern keine
+ * Bilder). Das geladene Bild sagt es seinem Blatt: CSS-Variablen an `.lb-poster-karte`, die
+ * `components/Poster.tsx` liest. Ein liegendes Werk räumt sie wieder ab — dasselbe Blatt kann
+ * nacheinander das Werk und das Foto des Kunden tragen.
+ */
+export function posterFormatMelden(img: HTMLImageElement | null): void {
+  if (!img || !img.naturalWidth) return;
+  const karte = img.closest<HTMLElement>(".lb-poster-karte");
+  if (!karte) return;
+  if (posterHochkant(img.naturalWidth, img.naturalHeight)) {
+    const h = POSTER_HOCHKANT;
+    /* `--lb-schrift` ist der Massstab des Blocks (= Satz). Titel, Stil und Adresse stehen IM
+       Block, ihre Zahl ist deshalb das Verhältnis zum Satz. */
+    karte.style.setProperty("--lb-schrift", String(h.satz));
+    karte.style.setProperty("--lb-f-titel", (h.titel / h.satz).toFixed(4));
+    karte.style.setProperty("--lb-f-stil", (h.stil / h.satz).toFixed(4));
+    karte.style.setProperty("--lb-f-recht", (h.recht / h.satz).toFixed(4));
+    karte.style.setProperty("--lb-luft-oben", String(h.luftOben));
+    karte.style.setProperty("--lb-unten-weg", `${h.untenWeg}cqw`);
+    karte.style.setProperty("--lb-bild-hoch", String(h.bildHoch));
+  } else {
+    for (const v of ["--lb-schrift", "--lb-f-titel", "--lb-f-stil", "--lb-f-recht", "--lb-luft-oben", "--lb-unten-weg", "--lb-bild-hoch"]) karte.style.removeProperty(v);
+  }
+}
+
+/**
  * ── DER SATZ HAT EINE FLÄCHE, KEINE LÄNGE (Owner 17.09.2026: „text block ist begrenzt. egal was
  * der user schreibt dann wird der text kleiner") ─────────────────────────────────────────────
  *
