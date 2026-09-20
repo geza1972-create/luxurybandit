@@ -65,6 +65,13 @@ export type WerkInfo = {
   wandFilm?: boolean;
   wandFilmAm?: string;
   /**
+   * DIE KENNUNGEN DER BEIDEN FILME AUF YOUTUBE (Owner 20.09.2026: „du musst die zwei Videos auf
+   * YouTube hochladen und einbinden"). Steht eine da, spielt die Folie von dort; fehlt sie, spielt
+   * unsere eigene Datei. Nur die Kennung, nie eine ganze Adresse.
+   */
+  filmYoutube?: string;
+  wandFilmYoutube?: string;
+  /**
    * ZU DIESEM WERK SPRICHT DER KÜNSTLER (Owner 17.09.2026). Derselbe Merker wie `film`, für den
    * zweiten Film: Ohne ihn müsste die Seite bei jedem Werk in der Ablage nachsehen, ob eine
    * Datei existiert — zehn Abfragen, bevor eine Zeile gezeichnet werden darf.

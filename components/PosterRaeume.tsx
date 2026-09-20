@@ -214,8 +214,27 @@ function useBreite<T extends HTMLElement>() {
  * bewusste Entscheidung — wischen bis hierher heisst, den Film sehen zu wollen. Stumm startet
  * er trotzdem (das lässt jeder Browser zu), der Lautsprecher-Knopf macht ihn auf Wunsch laut.
  */
-export function FilmFolie({ quelle, poster, bild, alt, intro = "The story behind the picture", musikAn = true }: {
+export function FilmFolie({ quelle, poster, bild, alt, intro = "The story behind the picture", musikAn = true, youtube }: {
   quelle: string; poster: string; bild: string; alt: string;
+  /**
+   * ── DER FILM KOMMT VON YOUTUBE, WENN ER DORT LIEGT (Owner 20.09.2026: „du musst die zwei Videos
+   * auf YouTube hochladen und einbinden. Niemand sieht die Videos, die werden nicht geladen") ──
+   *
+   * GEMESSEN am selben Tag: Unsere Film-Route liefert die Datei am Stück, ohne Teilabrufe
+   * (`Range`). Das iPhone spielt ein Video ohne Teilabrufe gar nicht ab, und zehn Megabyte am
+   * Stück sind über Mobilfunk auch sonst kein Film, sondern ein Download. YouTube liefert in
+   * Stücken, in der passenden Grösse, von einem Rechner in der Nähe.
+   *
+   * WAS VON UNS BLEIBT: das Standbild aus dem Film, die Zeile darüber und der Play-Knopf — der
+   * Player selbst lädt erst auf den Druck (sonst zählt YouTube jeden Seitenaufruf als Abruf, und
+   * die Seite lädt einen Player, den niemand wollte). Pause, Zeitleiste, Ton und Vollbild
+   * bringt der YouTube-Player mit. Die Musik ist in die Datei gemischt; eine zweite Spur von uns
+   * liefe sonst weiter, wenn er im Player auf Pause drückt.
+   *
+   * OHNE KENNUNG bleibt es bei unserer Datei (`quelle`) — ein Film, den ein Künstler gerade erst
+   * selbst hochgeladen hat, ist sofort zu sehen und nicht erst nach einem Umzug.
+   */
+  youtube?: string;
   /**
    * Die Zeile über dem Standbild. „The story behind the picture" gehört zu den Filmen, in denen
    * ein Künstler über sein Werk spricht; ein Film ohne Geschichte (etwa: ein Poster wird
@@ -278,6 +297,11 @@ export function FilmFolie({ quelle, poster, bild, alt, intro = "The story behind
    */
   const [standbild, setStandbild] = useState(poster);
   useEffect(() => setStandbild(poster), [poster]);
+  /* Breite durch Höhe des FILMS — abgelesen am Standbild, das aus ihm geschnitten ist. Der
+     YouTube-Rahmen bekommt genau diese Form; sonst malt der Player links und rechts Schwarz
+     hinein (Owner 20.09.2026: „schwarzer bg links rechts"), und das lässt sich von aussen nicht
+     mehr wegnehmen. 9:16 ist der Rückfall, bis das Bild da ist. */
+  const [form, setForm] = useState(9 / 16);
   return (
     <div className="absolute inset-0 overflow-hidden rounded-xl bg-black"
       onClick={e => e.stopPropagation()}>
@@ -302,7 +326,8 @@ export function FilmFolie({ quelle, poster, bild, alt, intro = "The story behind
           }}
           className="absolute inset-0">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={standbild} alt="" className="absolute inset-0 h-full w-full object-cover" />
+          <img src={standbild} alt="" className="absolute inset-0 h-full w-full object-cover"
+            onLoad={e => { const b = e.currentTarget; if (b.naturalWidth && b.naturalHeight) setForm(b.naturalWidth / b.naturalHeight); }} />
           {/* ── DAS INTRO (Owner 20.09.2026: „ich brauche einen Intro. 'The story behind the
               picture' … am besten übers Video. Das bei allen Videos" · „nein nicht so, über das
               ganze Bild ganz fett") ───────────────────────────────────────────────────────────
@@ -331,6 +356,19 @@ export function FilmFolie({ quelle, poster, bild, alt, intro = "The story behind
             </span>
           </span>
         </button>
+      ) : youtube ? (
+        /* Der Rahmen hat die Form des Films und liegt mittig; was die Folie daneben übrig hat,
+           füllt das weichgezeichnete Standbild — nie Schwarz. `container-type: size` macht die
+           Folie zum Mass (`cqw`/`cqh`), damit der Rahmen in JEDER Folie ganz hineinpasst. */
+        <div className="absolute inset-0 grid place-items-center overflow-hidden" style={{ containerType: "size" }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={standbild} alt="" aria-hidden className="absolute inset-0 h-full w-full scale-110 object-cover blur-2xl brightness-75" />
+          <iframe
+            src={`https://www.youtube-nocookie.com/embed/${encodeURIComponent(youtube)}?autoplay=1&rel=0&modestbranding=1&playsinline=1`}
+            title={alt} allow="autoplay; encrypted-media; fullscreen; picture-in-picture" allowFullScreen
+            className="relative block border-0"
+            style={{ width: `min(100cqw, calc(100cqh * ${form.toFixed(4)}))`, height: `min(100cqh, calc(100cqw / ${form.toFixed(4)}))` }} />
+        </div>
       ) : (
         /* eslint-disable-next-line jsx-a11y/media-has-caption */
         /* `ref={video}`, KEINE Funktion (20.09.2026, „ich kann das Video nicht stoppen"): Eine
@@ -354,11 +392,11 @@ export function FilmFolie({ quelle, poster, bild, alt, intro = "The story behind
           className="absolute inset-0 h-full w-full object-cover" />
       )}
       {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
-      {musikAn ? <audio ref={musik} src="/lakatosbandi/stimme-musik.mp3" loop preload="none" /> : null}
+      {musikAn && !youtube ? <audio ref={musik} src="/lakatosbandi/stimme-musik.mp3" loop preload="none" /> : null}
       {/* ── LADEBALKEN (Owner 20.09.2026) ────────────────────────────────────────────────────
           Bis das erste Bild da ist, steht das Standbild (`poster=`); der Balken sagt „es
           kommt", statt dass die Folie einfach schwarz und tot aussieht. */}
-      {gestartet && laedt ? (
+      {gestartet && laedt && !youtube ? (
         <div className="absolute inset-x-0 bottom-0 flex justify-center pb-3">
           <div className="h-[3px] w-[100px] overflow-hidden rounded-full bg-white/25">
             <div className="h-full w-1/3 animate-[lbLauf_1.1s_ease-in-out_infinite] rounded-full bg-white/85" />
@@ -368,7 +406,7 @@ export function FilmFolie({ quelle, poster, bild, alt, intro = "The story behind
       {/* ── DIE TIMELINE (Owner 20.09.2026) ──────────────────────────────────────────────────
           Play/Pause, Regler, Lautsprecher — dieselben drei wie im QR-Fenster
           ([[luxurybandit-video-qr-fenster]]), nur schmaler, weil die Folie es ist. */}
-      {gestartet && !laedt ? (
+      {gestartet && !laedt && !youtube ? (
         <div className="absolute inset-x-0 bottom-0 flex items-center gap-2 bg-gradient-to-t from-black/70 to-transparent p-2.5"
           onPointerDown={e => e.stopPropagation()}>
           <button type="button" aria-label={laeuft ? "Pauză" : "Play"}
@@ -414,7 +452,7 @@ export default function PosterRaeume({ children, blatt, hoch = true, aus = false
    * ist der Name in der Adresse (`?slide=wand`, `?slide=video`) und auf der Miniatur. Die
    * Geschichte des Künstlers steht weiter an LETZTER Stelle; der Aufrufer sortiert.
    */
-  filme?: { schluessel: string; quelle: string; poster: string; bild: string; alt: string; intro?: string | null; musikAn?: boolean }[];
+  filme?: { schluessel: string; quelle: string; poster: string; bild: string; alt: string; intro?: string | null; musikAn?: boolean; youtube?: string }[];
   /**
    * ── JEDE FOLIE HAT IHRE ADRESSE (Owner 20.09.2026: „jeder Slider soll eine eigene URL haben")
    *
@@ -484,7 +522,7 @@ export default function PosterRaeume({ children, blatt, hoch = true, aus = false
         {/* Die Film-Folie — nur eingehängt, solange sie aktiv ist (Owner 20.09.2026). */}
         {filme.map((f, n) => (i === RAEUME.length + 1 + n ? (
           <FilmFolie key={f.schluessel} quelle={f.quelle} poster={f.poster} bild={f.bild} alt={f.alt}
-            intro={f.intro === undefined ? "The story behind the picture" : f.intro} musikAn={f.musikAn !== false} />
+            intro={f.intro === undefined ? "The story behind the picture" : f.intro} musikAn={f.musikAn !== false} youtube={f.youtube} />
         ) : null))}
 
         {RAEUME.map((datei, k) => (

@@ -169,7 +169,7 @@ export default async function JournalArtikel({ params }: Props) {
             {(a.clips ?? []).filter(c => c.nachTeil === i).map(c => (
               <div key={c.datei} className="relative mx-auto mt-7 w-full max-w-[420px]" style={{ aspectRatio: `${c.breit} / ${c.hoch}` }}>
                 <FilmFolie quelle={`/lakatosbandi/journal/${c.datei}`} poster={`/lakatosbandi/journal/${c.standbild}`}
-                  bild={`/lakatosbandi/journal/${c.standbild}`} alt={teil.h} intro={null} musikAn={false} />
+                  bild={`/lakatosbandi/journal/${c.standbild}`} alt={teil.h} intro={null} musikAn={false} youtube={c.youtube} />
               </div>
             ))}
           </section>

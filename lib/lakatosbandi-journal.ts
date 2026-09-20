@@ -67,7 +67,8 @@ export type ArtikelVideo = { mandant: string; werk: string };
  * Journals (`public/lakatosbandi/journal/`), samt Standbild AUS dem Film. `nachTeil` ist die
  * Nummer des Abschnitts (ab 0), unter dem er steht. Die Musik ist in die Datei eingemischt.
  */
-export type ArtikelClip = { nachTeil: number; datei: string; standbild: string; breit: number; hoch: number };
+export type ArtikelClip = { nachTeil: number; datei: string; standbild: string; breit: number; hoch: number;
+  /** Die Kennung auf YouTube — dann spielt er von dort, `datei` bleibt der Rückfall. */ youtube?: string };
 
 export type Artikel = { slug: string; datum: string; ziel?: ArtikelZiel; video?: ArtikelVideo; clips?: ArtikelClip[]; texte: Record<JournalSprache, ArtikelText> };
 
@@ -100,7 +101,7 @@ export const ARTIKEL: Artikel[] = [
     datum: "2026-09-20",
     video: { mandant: "gerrylouisett", werk: "standard" },
     /* Unter „Biete das Werk als Poster an" (Abschnitt 6): auspacken, tragen, aufhängen, ansehen. */
-    clips: [{ nachTeil: 6, datei: "poster-an-die-wand.mp4", standbild: "poster-an-die-wand-standbild.jpg", breit: 768, hoch: 1024 }],
+    clips: [{ nachTeil: 6, datei: "poster-an-die-wand.mp4", standbild: "poster-an-die-wand-standbild.jpg", breit: 768, hoch: 1024, youtube: "u67KZ8hSZsw" }],
     texte: {
       en: {
         titel: "The story behind the picture — how to present an artwork so people stop",

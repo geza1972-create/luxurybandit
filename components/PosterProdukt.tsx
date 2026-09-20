@@ -134,12 +134,14 @@ export default function PosterProdukt({
             /* Hier erzählt niemand — kein „The story behind the picture", und die Musik liegt
                schon in der Datei. */
             intro: null, musikAn: false,
+            youtube: String(wi?.wandFilmYoutube ?? "").trim() || undefined,
           }] : []),
           ...(wi?.film ? [{
             schluessel: "video",
             quelle: `/api/portal-film?m=${encodeURIComponent(kuenstler)}&i=${nr}&v=${encodeURIComponent(wi?.filmAm ?? "1")}`,
             poster: `/api/portal-film?m=${encodeURIComponent(kuenstler)}&i=${nr}&art=filmposter&v=${encodeURIComponent(wi?.filmAm ?? "1")}`,
             bild: mitAdmin(werkBild(kuenstler, k.i, 1100)), alt: m.name,
+            youtube: String(wi?.filmYoutube ?? "").trim() || undefined,
           }] : []),
         ]}
         blatt={
@@ -331,7 +333,10 @@ export default function PosterProdukt({
                    (Owner 17.09.2026: „so müsste jedes Poster präsentiert werden"). */
                 /* Liegt sein Film auf YouTube, spielt das Fenster von dort (Owner
                    17.09.2026) — ausser er will nur gehört werden. */
-                youtube={!m.werkInfo?.profil?.nurStimme ? m.werkInfo?.profil?.youtube : undefined}
+                /* Liegt der Film DIESES Werks auf YouTube, spielt das Fenster ihn von dort (Owner
+                   20.09.2026) — er hat Vorrang vor der einen Aufnahme aus dem Profil. */
+                youtube={String(wi?.filmYoutube ?? "").trim()
+                  || (!m.werkInfo?.profil?.nurStimme ? m.werkInfo?.profil?.youtube : undefined)}
                 /* Häkchen „nur die Stimme": Der Film bleibt liegen, aber das Fenster
                    zeigt das Werk und spielt nur seine Tonspur (Owner 17.09.2026). */
                 sprecher={wi?.sprecher && !wi?.nurStimme
@@ -345,7 +350,10 @@ export default function PosterProdukt({
                 ton={(m.werkInfo?.profil?.stimme || (m.werkInfo?.profil?.sprecher && m.werkInfo?.profil?.nurStimme))
                   ? `/api/portal-film?m=${encodeURIComponent(kuenstler)}&i=profil&art=${m.werkInfo?.profil?.stimme ? "stimme" : "sprecher"}&v=${encodeURIComponent(m.werkInfo?.profil?.stimmeAm ?? m.werkInfo?.profil?.sprecherAm ?? "1")}`
                   : undefined}
-                sprecherBild={m.werkInfo?.profil?.sprecher
+                /* Das Standbild vor dem Druck auf Play — beim Film dieses Werks sein eigenes. */
+                sprecherBild={String(wi?.filmYoutube ?? "").trim()
+                  ? `/api/portal-film?m=${encodeURIComponent(kuenstler)}&i=${nr}&art=filmposter&v=${encodeURIComponent(wi?.filmAm ?? "1")}`
+                  : m.werkInfo?.profil?.sprecher
                   ? `/api/portal-film?m=${encodeURIComponent(kuenstler)}&i=profil&art=sprecherbild&v=${encodeURIComponent(m.werkInfo?.profil?.sprecherAm ?? "1")}`
                   : undefined}
                 bild={mitAdmin(werkBild(kuenstler, k.i, 1100))} alt={m.name}
