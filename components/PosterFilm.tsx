@@ -578,12 +578,100 @@ export default function PosterFilm({ quelle, sprecher, sprecherBild, youtube, to
                   className={vollbild ? "max-h-full max-w-full object-contain" : "max-h-[44svh] max-w-full object-contain"} />
               </span>
             ) : (
-            /* eslint-disable-next-line jsx-a11y/media-has-caption */
-            <video
-              ref={el => { video.current = el; tonStarten(el); }}
-              src={quelle} loop playsInline preload="auto" poster={bild}
-              onCanPlay={() => setLaedt(false)}
-              className="max-h-[44svh] max-w-full" />
+              /**
+               * ── AUCH DER ZOOM BRAUCHT EINE LEISTE (Owner 20.09.2026: „beim Video fehlt wie
+               * immer die Videoleiste") ─────────────────────────────────────────────────────
+               *
+               * Hier stand nur der nackte `<video>`, ohne `controls` und ohne die Leiste, die
+               * der Sprecher-Film längst hat: Play/Pause, Zeit, Stumm, Vollbild. Wer den Film
+               * einmal pausieren oder vorspulen wollte, konnte es nicht — kein Regler, kein
+               * Knopf, nur das bewegte Bild.
+               *
+               * DIESELBE HÜLLE, DIESELBE LEISTE WIE BEIM SPRECHER: `huelleRef` trägt das
+               * Vollbild (bisher nur dort verdrahtet), die Leiste darunter ist dieselbe Zeile
+               * für Zeile — zwei Filme im selben Fenster sollen sich gleich bedienen lassen.
+               */
+              <span ref={huelleRef}
+                className={vollbild
+                  ? "lb-film-huelle relative flex h-full w-full flex-col items-center justify-center gap-2 bg-black p-3 leading-[0]"
+                  /* ── KEIN SCHWARZ LINKS UND RECHTS (Owner 20.09.2026: „schwarzer bg links
+                     rechts") ────────────────────────────────────────────────────────────────
+                     Hier stand `inline-block max-w-full`: Der Film richtete sich nach seiner
+                     HÖHE (`max-h-[44svh]`), und ein stehendes Video ist dabei schmaler als die
+                     Spalte — links und rechts blieb der schwarze Grund des Fensters stehen. Jetzt
+                     nimmt der Film die volle Spaltenbreite; was er an Höhe braucht, holt er sich
+                     (das Fenster scrollt ohnehin, `overflow-y-auto`). */
+                  : "lb-film-huelle relative block w-full leading-[0]"}
+                onClick={e => e.stopPropagation()}>
+                {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+                <video
+                  /* ── NUR EINMAL STARTEN (20.09.2026: „ich kann das Video nicht stoppen mit
+                     Klick auf Pause" · „immer wieder der gleiche Fehler") ─────────────────────
+                     Diese Funktion läuft bei JEDEM Neuzeichnen — und seit die Leiste die Zeit
+                     mitschreibt (`setZeit`), zeichnet das Fenster mehrmals je Sekunde neu. Jedes
+                     Mal rief sie `tonStarten`, also `play()`: Pause hielt einen Wimpernschlag.
+                     `startVersucht` merkt sich, dass DIESES Fenster seinen Film schon gestartet
+                     hat (der Öffnen-Knopf setzt es zurück) — dieselbe Sperre wie beim Sprecher. */
+                  ref={el => {
+                    video.current = el;
+                    if (el && !startVersucht.current) { startVersucht.current = true; tonStarten(el); }
+                  }}
+                  src={quelle} loop playsInline preload="auto" poster={bild}
+                  onTimeUpdate={e => setZeit(e.currentTarget.currentTime)}
+                  onLoadedMetadata={e => setDauer(e.currentTarget.duration)}
+                  onVolumeChange={e => setStumm(e.currentTarget.muted)}
+                  onCanPlay={() => setLaedt(false)}
+                  onPlaying={() => { setLaedt(false); setLaeuft(true); }}
+                  onPause={() => setLaeuft(false)}
+                  onEnded={() => setLaeuft(false)}
+                  className={vollbild
+                    ? "max-h-[calc(100%-64px)] max-w-full rounded-[10px]"
+                    : "block h-auto w-full"} />
+                <div className={`flex items-center gap-2.5 rounded-xl bg-white/12 px-2.5 py-2 ${vollbild ? "w-[min(560px,92%)]" : "mt-2"}`}>
+                  <button type="button" aria-label={laeuft ? "Pauză" : "Play"}
+                    onClick={e => {
+                      e.stopPropagation();
+                      const v = video.current;
+                      if (!v) return;
+                      if (v.paused) { v.muted = false; void v.play().catch(() => {}); } else v.pause();
+                    }}
+                    className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white text-[#111]">
+                    {laeuft ? <Pause className="h-4 w-4" aria-hidden /> : <Play className="ml-[2px] h-4 w-4" aria-hidden />}
+                  </button>
+                  <input type="range" min={0} max={Math.max(dauer, 0.1)} step={0.1} value={zeit}
+                    aria-label="Poziție"
+                    onChange={e => { const v = video.current; if (v) { v.currentTime = Number(e.target.value); setZeit(Number(e.target.value)); } }}
+                    className="h-1 w-full cursor-pointer accent-white" />
+                  <span className="shrink-0 font-serif text-[13px] tabular-nums text-white/80">
+                    {`${Math.floor(zeit / 60)}:${String(Math.floor(zeit % 60)).padStart(2, "0")}`}
+                  </span>
+                  <button type="button" aria-label={stumm ? "Sunet" : "Fără sunet"}
+                    onClick={e => { e.stopPropagation(); const v = video.current; if (v) { v.muted = !v.muted; setStumm(v.muted); } }}
+                    className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-white/90 hover:bg-white/15">
+                    {stumm ? <VolumeX className="h-[18px] w-[18px]" aria-hidden /> : <Volume2 className="h-[18px] w-[18px]" aria-hidden />}
+                  </button>
+                  <button type="button" aria-label="Ecran complet"
+                    onClick={e => {
+                      e.stopPropagation();
+                      const v = video.current as (HTMLVideoElement & { webkitEnterFullscreen?: () => void }) | null;
+                      if (huelleRef.current?.requestFullscreen) vollbildUmschalten(huelleRef.current);
+                      else if (document.fullscreenElement) void document.exitFullscreen().catch(() => {});
+                      else v?.webkitEnterFullscreen?.();
+                    }}
+                    className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-white/90 hover:bg-white/15">
+                    {vollbild
+                      ? <Minimize2 className="h-[17px] w-[17px]" aria-hidden />
+                      : <Maximize2 className="h-[17px] w-[17px]" aria-hidden />}
+                  </button>
+                </div>
+                {vollbild ? (
+                  <button type="button" aria-label="Închide"
+                    onClick={e => { e.stopPropagation(); void document.exitFullscreen().catch(() => {}); }}
+                    className="absolute right-4 top-4 grid h-16 w-16 place-items-center rounded-full bg-white text-[#111] shadow-[0_4px_18px_rgba(0,0,0,.45)]">
+                    <X className="h-7 w-7" aria-hidden />
+                  </button>
+                ) : null}
+              </span>
             )}
             {/* Ein dünner, laufender Balken — kein Kreisel: Er sagt „es kommt gleich", ohne das
                 Werk zu überdecken. Er verschwindet mit dem ersten Bild des Films. */}

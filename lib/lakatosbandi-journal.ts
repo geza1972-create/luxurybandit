@@ -33,6 +33,8 @@ export type ArtikelText = {
    * `<slug>-<sprache>.jpg` heißt und 1200×630 misst — dieses hier steht im Text.
    */
   bild?: string;
+  /** Die Zeile auf dem Knopf unter dem Film im Artikel — nur wo der Artikel einen Film hat. */
+  videoKnopf?: string;
 };
 
 /**
@@ -45,7 +47,19 @@ export type ArtikelText = {
  */
 export type ArtikelZiel = "trichter" | "shop";
 
-export type Artikel = { slug: string; datum: string; ziel?: ArtikelZiel; texte: Record<JournalSprache, ArtikelText> };
+/**
+ * ── EIN FILM IM ARTIKEL (Owner 20.09.2026: „dann zeigst du mein Video und sagst: verbinde jedes
+ * Kunstwerk mit deinem Video") ──────────────────────────────────────────────────────────────
+ *
+ * Kein eingebetteter Fremdplayer und keine zweite Kopie der Datei: Der Artikel zeigt denselben
+ * Film, der am Werk hängt (`api/portal-film`), im selben Player wie die Film-Folie der
+ * Produktseite — Standbild aus dem Film, Play-Knopf, Ladebalken, Leiste, Musik. Darunter führt
+ * ein Knopf auf genau diese Folie (`/<künstler>/<werk>?slide=video`), damit der Leser sieht, wo
+ * so ein Film im Laden wohnt.
+ */
+export type ArtikelVideo = { mandant: string; werk: string };
+
+export type Artikel = { slug: string; datum: string; ziel?: ArtikelZiel; video?: ArtikelVideo; texte: Record<JournalSprache, ArtikelText> };
 
 export const JOURNAL_SPRACHEN: JournalSprache[] = ["en", "ro", "de"];
 
@@ -61,6 +75,152 @@ export const JOURNAL_UI: Record<JournalSprache, { titel: string; lead: string; l
 };
 
 export const ARTIKEL: Artikel[] = [
+  /* ── DIE GESCHICHTE HINTER DEM BILD (Owner 20.09.2026: „du machst jetzt einen Artikel dafür,
+     wie man seine Kunst richtig vermarkten soll. Storytelling ist alles. Dann zeigst du mein
+     Video und sagst: verbinde jedes Kunstwerk mit deinem Video") ─────────────────────────────
+     NUR, WAS STIMMT: Das Beispiel ist Gerry Louisett neben seinem Living Poster „Gina" (2015) —
+     der Film hängt wirklich an diesem Werk. WAS er darin sagt, wird nicht nacherzählt; der Leser
+     sieht es selbst. Keine Zahlen über „Videos verkaufen x % mehr" — wir haben keine.
+     POSTER-ABSCHNITT (Owner 20.09.2026: „man soll sein Kunstwerk als Poster anbieten, weil man das
+     mehrmals verkaufen kann und letztendlich mehr verdient. Wir helfen den Künstlern, ihre
+     Kunstwerke zu präsentieren"): 10 € je Poster ist `DRUCK_KUENSTLER_CENTS`. „Mehr" ist hier
+     keine Schätzung, sondern Rechnung — das Original bleibt verkäuflich, jedes Poster kommt dazu. */
+  {
+    slug: "story-behind-the-picture",
+    datum: "2026-09-20",
+    video: { mandant: "gerrylouisett", werk: "standard" },
+    texte: {
+      en: {
+        titel: "The story behind the picture — how to present an artwork so people stop",
+        beschreibung: "A picture alone asks to be looked at. A picture with its story asks to be remembered. How to present your work with one minute of video — and why every artwork should carry yours.",
+        lead: "Most artworks are presented the same way: a photo, a title, a size, a price. That is a label, not a presentation. What makes someone stop is the one thing only you can add — the story behind the picture.",
+        videoKnopf: "See it on the poster’s own page",
+        teile: [
+          { h: "A picture without a story is decoration", p: [
+            "Someone scrolling past your work decides in a second whether it is theirs. In that second they see colour and form — and nothing of what it cost you, where it happened, or why it looks the way it does.",
+            "Decoration is compared by price and by whether it fits the sofa. A work with a story is not compared at all, because there is only one of it.",
+          ] },
+          { h: "What a buyer actually takes home", p: [
+            "Think of the last time someone showed you a picture on their wall. They did not say “acrylic on canvas, 60 by 80”. They said where they found it, who made it, and what the artist told them.",
+            "That sentence is what they bought. The picture is how they keep it. If you do not give them the sentence, they have nothing to retell — and a work nobody talks about does not travel.",
+          ] },
+          { h: "Show it, do not write it", p: [
+            "You can write the story under the image, and you should. But a text is read by the few who were already interested. A face is watched by almost everyone.",
+            "Above you see Gerry Louisett next to his Living Poster “Gina”, from 2015. He stands beside the work, phone in his hand, and talks about it. No studio, no script on a screen, no editing. It is the artist and the picture in the same frame — and that is the whole idea.",
+          ] },
+          { h: "What to say in that minute", p: [
+            "One work, one story. Where were you when it started? What went wrong on the way? What should I look for that I would miss on my own? Pick one of these, not all three.",
+            "Leave out your CV, your exhibitions and the list of techniques. They belong on your profile. In front of the picture people want to hear the thing you would tell a friend who asks: “and this one?”",
+          ] },
+          { h: "How to film it", p: [
+            "Hold the phone upright. Stand next to the work, not in front of it, so both of you are in the picture. Use daylight from a window and turn off the music in the room.",
+            "Keep it under a minute and do it in one take. If you stumble, leave it in — a person who searches for a word is believed sooner than one who recites. Do three takes and keep the one where you forgot the camera.",
+          ] },
+          { h: "Connect every artwork with your video", p: [
+            "A video that lives only on your phone or somewhere in a feed is gone tomorrow. It has to hang on the work itself — so that whoever stands in front of the picture finds the story, today and in three years.",
+            "That is what a Living Poster does. The printed poster carries a QR code; scan it and the film starts, with music, next to the work. On lakatosbandi.com every poster also has its own page, and the film has its own address on it — one link you can send, post or put under an ad, and it opens exactly there.",
+            "Start with one work. Film the story, hang it on the picture, send the link to five people who know you. Then do the next one.",
+          ] },
+          { h: "Offer the work as a poster — you can sell it more than once", p: [
+            "An original can be sold exactly once. After that the work you put weeks into earns you nothing more, however many people would have loved it on their wall.",
+            "A poster of it can be sold again and again. For every poster of yours we sell, you get 10 € — added on top of our price, not taken out of yours. The original stays yours the whole time and can still be sold as what it is: the only one.",
+            "So it is not poster instead of original. It is the original, plus every poster that finds a wall. In the end that is more than the single sale — and many more people live with your picture than one buyer ever could.",
+          ] },
+          { h: "We help you present it", p: [
+            "You do not have to build any of this yourself. On lakatosbandi.com your work becomes a Living Poster: the sheet with your title and your sentence, the rooms it hangs in, the QR code, the page of its own that you can share — and your film on it.",
+            "You bring the work and the minute in front of the camera. We take care of how it is shown, printed and delivered. You decide work by work what may become a poster, and you can take it back at any time.",
+          ] },
+        ],
+        merksatz: "People forget a picture. They retell a story.",
+      },
+      ro: {
+        titel: "Povestea din spatele tabloului — cum prezinți o lucrare ca oamenii să se oprească",
+        beschreibung: "Un tablou singur cere să fie privit. Un tablou cu povestea lui cere să fie ținut minte. Cum îți prezinți lucrarea cu un minut de video — și de ce fiecare lucrare ar trebui să îl poarte pe al tău.",
+        lead: "Cele mai multe lucrări sunt prezentate la fel: o fotografie, un titlu, o dimensiune, un preț. Asta e o etichetă, nu o prezentare. Ce îl face pe cineva să se oprească este singurul lucru pe care doar tu îl poți adăuga — povestea din spatele tabloului.",
+        videoKnopf: "Vezi-l pe pagina posterului",
+        teile: [
+          { h: "Un tablou fără poveste este decor", p: [
+            "Cine trece cu degetul peste lucrarea ta hotărăște într-o secundă dacă e a lui. În secunda aceea vede culoare și formă — și nimic din ce te-a costat, unde s-a întâmplat sau de ce arată așa.",
+            "Decorul se compară după preț și după cum se potrivește cu canapeaua. O lucrare cu poveste nu se compară deloc, pentru că există una singură.",
+          ] },
+          { h: "Ce duce acasă, de fapt, un cumpărător", p: [
+            "Gândește-te la ultima dată când cineva ți-a arătat un tablou de pe peretele lui. Nu a spus „acril pe pânză, 60 pe 80”. A spus unde l-a găsit, cine l-a făcut și ce i-a povestit artistul.",
+            "Propoziția aceea este ce a cumpărat. Tabloul este felul în care o păstrează. Dacă nu îi dai propoziția, nu are ce povesti mai departe — iar o lucrare despre care nu vorbește nimeni nu ajunge nicăieri.",
+          ] },
+          { h: "Arată, nu scrie", p: [
+            "Poți scrie povestea sub imagine, și e bine să o faci. Dar un text îl citesc cei puțini care erau deja interesați. La un chip se uită aproape toată lumea.",
+            "Mai sus îl vezi pe Gerry Louisett lângă Living Posterul lui, „Gina”, din 2015. Stă lângă lucrare, cu telefonul în mână, și vorbește despre ea. Fără studio, fără text pe un ecran, fără montaj. Artistul și tabloul în același cadru — asta e toată ideea.",
+          ] },
+          { h: "Ce spui în minutul acela", p: [
+            "O lucrare, o poveste. Unde erai când a început? Ce a mers prost pe drum? La ce să mă uit, ca să nu-mi scape? Alege una dintre ele, nu pe toate trei.",
+            "Lasă deoparte CV-ul, expozițiile și lista de tehnici. Locul lor e în profil. În fața tabloului, oamenii vor să audă ce i-ai spune unui prieten care te întreabă: „și ăsta?”",
+          ] },
+          { h: "Cum filmezi", p: [
+            "Ține telefonul în picioare. Stai lângă lucrare, nu în fața ei, ca să fiți amândoi în cadru. Folosește lumina de la fereastră și oprește muzica din cameră.",
+            "Rămâi sub un minut și filmează dintr-o singură bucată. Dacă te încurci, lasă așa — un om care își caută cuvântul e crezut mai repede decât unul care recită. Fă trei duble și păstreaz-o pe cea în care ai uitat de cameră.",
+          ] },
+          { h: "Leagă fiecare lucrare de videoul tău", p: [
+            "Un video care trăiește doar în telefonul tău sau undeva într-un feed dispare până mâine. Trebuie să atârne de lucrarea însăși — ca oricine stă în fața tabloului să găsească povestea, azi și peste trei ani.",
+            "Asta face un Living Poster. Posterul tipărit poartă un cod QR; îl scanezi și pornește filmul, cu muzică, lângă lucrare. Pe lakatosbandi.com fiecare poster are și pagina lui, iar filmul are acolo adresa lui — un singur link pe care îl poți trimite, posta sau pune sub o reclamă, și se deschide exact acolo.",
+            "Începe cu o singură lucrare. Filmează povestea, leag-o de tablou, trimite linkul la cinci oameni care te cunosc. Apoi treci la următoarea.",
+          ] },
+          { h: "Oferă lucrarea ca poster — o poți vinde de mai multe ori", p: [
+            "Un original se vinde o singură dată. După aceea, lucrarea în care ai pus săptămâni nu îți mai aduce nimic, oricâți oameni ar fi vrut-o pe peretele lor.",
+            "Un poster după ea se poate vinde iar și iar. Pentru fiecare poster al tău vândut primești 10 € — adăugați la prețul nostru, nu scăzuți din partea ta. Originalul rămâne al tău tot timpul și se poate vinde în continuare drept ceea ce este: singurul.",
+            "Deci nu poster în loc de original. Este originalul, plus fiecare poster care își găsește un perete. La final înseamnă mai mult decât o singură vânzare — și mult mai mulți oameni trăiesc cu tabloul tău decât ar putea un singur cumpărător.",
+          ] },
+          { h: "Te ajutăm să o prezinți", p: [
+            "Nu trebuie să construiești nimic din toate acestea singur. Pe lakatosbandi.com lucrarea ta devine un Living Poster: foaia cu titlul și propoziția ta, camerele în care atârnă, codul QR, pagina ei proprie pe care o poți distribui — și filmul tău pe ea.",
+            "Tu aduci lucrarea și minutul din fața camerei. Noi ne ocupăm de cum este arătată, tipărită și livrată. Hotărăști lucrare cu lucrare ce poate deveni poster și poți retrage oricând acordul.",
+          ] },
+        ],
+        merksatz: "Un tablou se uită. O poveste se spune mai departe.",
+      },
+      de: {
+        titel: "Die Geschichte hinter dem Bild — wie du ein Werk so zeigst, dass man stehen bleibt",
+        beschreibung: "Ein Bild allein will angesehen werden. Ein Bild mit seiner Geschichte will behalten werden. Wie du dein Werk mit einer Minute Video zeigst — und warum jedes Werk deines tragen sollte.",
+        lead: "Die meisten Werke werden gleich gezeigt: ein Foto, ein Titel, ein Mass, ein Preis. Das ist ein Etikett, keine Präsentation. Stehen bleibt jemand wegen der einen Sache, die nur du dazugeben kannst — der Geschichte hinter dem Bild.",
+        videoKnopf: "Auf der Seite des Posters ansehen",
+        teile: [
+          { h: "Ein Bild ohne Geschichte ist Dekoration", p: [
+            "Wer an deinem Werk vorbeiwischt, entscheidet in einer Sekunde, ob es seines ist. In dieser Sekunde sieht er Farbe und Form — und nichts davon, was es dich gekostet hat, wo es passiert ist oder warum es so aussieht.",
+            "Dekoration wird nach dem Preis verglichen und danach, ob sie zum Sofa passt. Ein Werk mit Geschichte wird gar nicht verglichen, weil es davon nur eines gibt.",
+          ] },
+          { h: "Was ein Käufer wirklich mit nach Hause nimmt", p: [
+            "Denk an das letzte Mal, als dir jemand ein Bild an seiner Wand gezeigt hat. Er hat nicht gesagt: „Acryl auf Leinwand, 60 mal 80.“ Er hat erzählt, wo er es gefunden hat, wer es gemacht hat und was der Künstler ihm dazu gesagt hat.",
+            "Diesen Satz hat er gekauft. Das Bild ist die Form, in der er ihn aufbewahrt. Gibst du ihm den Satz nicht, hat er nichts weiterzuerzählen — und ein Werk, über das niemand spricht, kommt nirgendwohin.",
+          ] },
+          { h: "Zeig es, schreib es nicht nur", p: [
+            "Du kannst die Geschichte unter das Bild schreiben, und das sollst du auch. Aber einen Text lesen die wenigen, die sich ohnehin schon interessiert haben. Einem Gesicht sieht fast jeder zu.",
+            "Oben siehst du Gerry Louisett neben seinem Living Poster „Gina“ von 2015. Er steht neben dem Werk, das Telefon in der Hand, und spricht darüber. Kein Studio, kein Text vom Bildschirm, kein Schnitt. Der Künstler und das Bild im selben Bild — das ist die ganze Idee.",
+          ] },
+          { h: "Was du in dieser Minute sagst", p: [
+            "Ein Werk, eine Geschichte. Wo warst du, als es anfing? Was ist unterwegs schiefgegangen? Worauf soll ich achten, was mir allein entginge? Nimm eines davon, nicht alle drei.",
+            "Lass deinen Lebenslauf, deine Ausstellungen und die Liste der Techniken weg. Sie gehören ins Profil. Vor dem Bild wollen die Leute hören, was du einem Freund sagst, der fragt: „Und das hier?“",
+          ] },
+          { h: "Wie du es filmst", p: [
+            "Halte das Telefon hochkant. Stell dich neben das Werk, nicht davor, damit ihr beide im Bild seid. Nimm Tageslicht vom Fenster und mach die Musik im Raum aus.",
+            "Bleib unter einer Minute und dreh in einem Stück. Wenn du dich verhaspelst, lass es drin — einem Menschen, der nach einem Wort sucht, glaubt man eher als einem, der aufsagt. Mach drei Anläufe und nimm den, bei dem du die Kamera vergessen hast.",
+          ] },
+          { h: "Verbinde jedes Werk mit deinem Video", p: [
+            "Ein Video, das nur auf deinem Telefon liegt oder irgendwo in einem Feed, ist morgen weg. Es muss am Werk selbst hängen — damit jeder, der vor dem Bild steht, die Geschichte findet, heute und in drei Jahren.",
+            "Genau das macht ein Living Poster. Das gedruckte Poster trägt einen QR-Code; man scannt ihn, und der Film startet, mit Musik, neben dem Werk. Auf lakatosbandi.com hat jedes Poster ausserdem seine eigene Seite, und der Film hat dort seine eigene Adresse — ein Link, den du verschicken, posten oder unter eine Anzeige setzen kannst, und er öffnet sich genau dort.",
+            "Fang mit einem Werk an. Film die Geschichte, häng sie ans Bild, schick den Link an fünf Leute, die dich kennen. Dann kommt das nächste.",
+          ] },
+          { h: "Biete das Werk als Poster an — du kannst es mehrmals verkaufen", p: [
+            "Ein Original lässt sich genau einmal verkaufen. Danach bringt dir das Werk, in dem Wochen stecken, nichts mehr ein — egal, wie viele es gern an ihrer Wand gehabt hätten.",
+            "Ein Poster davon lässt sich immer wieder verkaufen. Für jedes verkaufte Poster von dir bekommst du 10 € — oben auf unseren Preis gelegt, nicht von deinem abgezogen. Das Original bleibt die ganze Zeit deins und lässt sich weiter als das verkaufen, was es ist: das einzige.",
+            "Es heisst also nicht Poster statt Original. Es ist das Original, plus jedes Poster, das eine Wand findet. Am Ende ist das mehr als der eine Verkauf — und es leben viel mehr Menschen mit deinem Bild, als ein einzelner Käufer es je könnte.",
+          ] },
+          { h: "Wir helfen dir, es zu zeigen", p: [
+            "Du musst nichts davon selbst bauen. Auf lakatosbandi.com wird dein Werk ein Living Poster: das Blatt mit deinem Titel und deinem Satz, die Zimmer, in denen es hängt, der QR-Code, die eigene Seite, die du teilen kannst — und dein Film darauf.",
+            "Du bringst das Werk und die Minute vor der Kamera. Wir kümmern uns darum, wie es gezeigt, gedruckt und geliefert wird. Du entscheidest Werk für Werk, was ein Poster werden darf, und kannst es jederzeit zurücknehmen.",
+          ] },
+        ],
+        merksatz: "Ein Bild vergisst man. Eine Geschichte erzählt man weiter.",
+      },
+    },
+  },
   /* ── 1 · DER STEMPEL — STEHT VORN (Owner 18.09.2026: erster Artikel auf der Startseite) (Owner 18.09.2026: „wir machen einen Artikel zu dem Stempel und posten das
      auf FB") ─────────────────────────────────────────────────────────────────────────────── */
   {

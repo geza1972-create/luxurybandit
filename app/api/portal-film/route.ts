@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { str } from "@/lib/agent-modell";
 import { supabaseFetch, BUCKET, encodeStoragePath } from "@/lib/try-this-look-store";
-import { filmPfad, sprecherPfad, sprecherWebmPfad, sprecherBildPfad, sprecherTonPfad } from "@/lib/lakatosbandi-film";
+import { filmPfad, filmPosterPfad, sprecherPfad, sprecherWebmPfad, sprecherBildPfad, sprecherTonPfad } from "@/lib/lakatosbandi-film";
 
 /**
  * DER FILM ZU EINEM WERK (Owner 15.09.2026: „der qr code führt nur zu einem video full seite").
@@ -47,13 +47,18 @@ export async function GET(request: Request) {
     : art === "sprecherbild" ? sprecherBildPfad(mandant, nr)
     /* Seine vorgelesene Stimme — dieselbe Auslieferung, nur ein anderer Typ (Owner 17.09.2026). */
     : art === "stimme" ? sprecherTonPfad(mandant, nr)
+    /* ── DAS STANDBILD DES HAUPTFILMS (Owner 20.09.2026: „Poster für Video muss aus dem Video
+       kommen") ─────────────────────────────────────────────────────────────────────────────
+       Ein Bild aus dem Film selbst, nicht das Werk daneben — wer eine eigene Folie fürs Video
+       ansieht, soll vom Video einen Vorgeschmack sehen (`components/PosterRaeume.tsx`). */
+    : art === "filmposter" ? filmPosterPfad(mandant, nr)
     : filmPfad(mandant, nr);
   const res = await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(pfad)}`);
   if (!res.ok) return new NextResponse(null, { status: 404 });
 
   return new NextResponse(await res.arrayBuffer(), {
     headers: {
-      "Content-Type": art === "sprecherbild" ? "image/jpeg"
+      "Content-Type": art === "sprecherbild" || art === "filmposter" ? "image/jpeg"
         : art === "stimme" ? "audio/webm"
         : "video/mp4",
       "Cache-Control": "public, max-age=31536000, immutable",

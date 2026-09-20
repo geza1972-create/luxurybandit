@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { WandBildContext } from "@/components/PosterWandBild";
+import { Pause, Play, Volume2, VolumeX } from "lucide-react";
 
 /**
  * DAS BLATT UND SEINE ZIMMER — EIN SLIDER (Owner 18.09.2026: „nicht als Extrabild sondern nach
@@ -179,7 +180,181 @@ function useBreite<T extends HTMLElement>() {
   return [setzen, breite] as const;
 }
 
-export default function PosterRaeume({ children, blatt, hoch = true, aus = false }: {
+/**
+ * ── DIE FILM-FOLIE (Owner 20.09.2026: „du machst das Video als extra Slide" · „Poster,
+ * Ladebalken, Timeline") ─────────────────────────────────────────────────────────────────────
+ *
+ * Eine eigene kleine Komponente, weil sie ihre eigene Uhr braucht (`zeit`, `dauer`, `laedt`) —
+ * anders als die Zimmer, die nur ein `<img>` sind. Sie wird nur gebaut, solange ihre Folie
+ * aktiv ist (`PosterRaeume` hängt sie sonst gar nicht erst ein): Wischt man weiter, hält der
+ * Film an, statt im Hintergrund weiterzulaufen und Daten zu verbrauchen.
+ *
+ * TON AUS, ABER ANFASSBAR: Anders als auf Folie 0 (dort lief kein Ton) ist diese Folie eine
+ * bewusste Entscheidung — wischen bis hierher heisst, den Film sehen zu wollen. Stumm startet
+ * er trotzdem (das lässt jeder Browser zu), der Lautsprecher-Knopf macht ihn auf Wunsch laut.
+ */
+function FilmFolie({ quelle, poster, bild, alt }: { quelle: string; poster: string; bild: string; alt: string }) {
+  const video = useRef<HTMLVideoElement>(null);
+  /**
+   * ── MUSIK IM HINTERGRUND (Owner 20.09.2026) ──────────────────────────────────────────────
+   *
+   * Das Versprechen des Living Poster ist genau das: „Atunci pornește muzica" — scannen, und
+   * die Musik geht an. Dieselbe Datei und derselbe Pegel wie beim Sprecher-Ton im QR-Fenster
+   * (`components/PosterFilm.tsx`, `musik`), leise unter dem Film, nicht darüber.
+   */
+  const musik = useRef<HTMLAudioElement>(null);
+  const [laedt, setLaedt] = useState(true);
+  const [laeuft, setLaeuft] = useState(false);
+  /**
+   * ── MIT TON, NICHT STUMM (Owner 20.09.2026: „Video soll mit Sound starten nicht mute") ────
+   *
+   * Solange der Film von selbst anlief (`autoPlay`), musste er stumm bleiben — kein Browser
+   * erlaubt Ton ohne Berührung. Jetzt startet er erst durch den Druck auf den Play-Knopf, und
+   * das IST die Berührung: Ton ist von Anfang an erlaubt, also auch von Anfang an an.
+   */
+  const [stumm, setStumm] = useState(false);
+  const [zeit, setZeit] = useState(0);
+  const [dauer, setDauer] = useState(0);
+  /**
+   * ── ERST DER KNOPF, DANN DER FILM (Owner 20.09.2026: „Video startet nicht automatisch,
+   * sondern mit Playbutton") ────────────────────────────────────────────────────────────────
+   *
+   * Bis heute lief der Film von selbst an, sobald die Folie aktiv wurde (`autoPlay`, stumm).
+   * Jetzt steht erst das Standbild, mit einem Kreis zum Antippen — wie beim Sprecher-Film im
+   * QR-Fenster ([[luxurybandit-video-qr-fenster]]). Erst der Druck lädt und startet den Film;
+   * bis dahin liegt nichts im Hintergrund, das Daten verbraucht.
+   */
+  const [gestartet, setGestartet] = useState(false);
+  /* Einmal starten, mit Ton — der Druck auf den Play-Knopf war die Berührung, die das erlaubt. */
+  useEffect(() => {
+    if (!gestartet) return;
+    const v = video.current;
+    if (!v) return;
+    v.muted = false;
+    void v.play().catch(() => {});
+  }, [gestartet]);
+  /**
+   * ── DAS STANDBILD KOMMT AUS DEM FILM (Owner 20.09.2026: „Poster für Video muss aus dem Video
+   * kommen") ─────────────────────────────────────────────────────────────────────────────────
+   *
+   * `poster` ist ein Bild AUS DEM FILM (`api/portal-film?art=filmposter`) — bisher von Hand
+   * herausgeschnitten, für Werke ohne eigenes noch nicht vorhanden. Fehlt die Datei (404),
+   * fällt die Folie auf das Werkbild zurück, statt gar kein Standbild zu zeigen.
+   */
+  const [standbild, setStandbild] = useState(poster);
+  useEffect(() => setStandbild(poster), [poster]);
+  return (
+    <div className="absolute inset-0 overflow-hidden rounded-xl bg-black"
+      onClick={e => e.stopPropagation()}>
+      {/* Nur zum Prüfen, ob es das Standbild aus dem Film gibt — unsichtbar, lädt aus dem
+          Zwischenspeicher, sobald das Standbild gleich danach als `<img>` oder `poster=`
+          dieselbe Adresse anfragt. */}
+      {standbild === poster ? (
+        /* eslint-disable-next-line @next/next/no-img-element */
+        <img src={poster} alt="" hidden aria-hidden onError={() => setStandbild(bild)} />
+      ) : null}
+      {!gestartet ? (
+        <button type="button" aria-label="Play"
+          /* ── MUSIK STARTET MIT DEM DRUCK, NICHT ERST MIT DEM FILM (Owner 20.09.2026: „Musik
+             soll starten mit Playbutton auch") ────────────────────────────────────────────────
+             Bisher hing die Musik am `onPlaying` des Videos — bis der Film wirklich lief (laden,
+             Puffer), blieb es stumm. Der Knopf selbst ist eine Berührung: Genau hier darf auch
+             die Musik los, ohne auf das Video zu warten. */
+          onClick={() => {
+            setGestartet(true);
+            const m = musik.current;
+            if (m) { m.volume = 0.2; void m.play().catch(() => {}); }
+          }}
+          className="absolute inset-0">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={standbild} alt="" className="absolute inset-0 h-full w-full object-cover" />
+          {/* ── DAS INTRO (Owner 20.09.2026: „ich brauche einen Intro. 'The story behind the
+              picture' … am besten übers Video. Das bei allen Videos" · „nein nicht so, über das
+              ganze Bild ganz fett") ───────────────────────────────────────────────────────────
+              Erst stand hier eine kleine, kursive Zeile oben — zu leise für ein Intro. Jetzt
+              liegt der Satz GROSS und FETT über der Mitte des ganzen Bildes, wie ein Titel, den
+              man vom Poster kennt (Owner 15.09.2026, drop-shadow statt Verlaufsstreifen: das
+              Standbild soll unter der Schrift sichtbar bleiben, nicht dahinter verschwinden).
+              Steht auf JEDER Film-Folie, nicht nur hier. Verschwindet mit dem Standbild selbst,
+              sobald der Film läuft: dann erzählt er es selbst. Englisch, absichtlich nicht
+              übersetzt — wie „LIVING POSTER" ein Markenwort, keine Beschreibung (`POSTER_TITEL`
+              in lib/lakatosbandi-poster.ts). */}
+          <span className="absolute inset-0 flex flex-col items-center justify-center gap-6 bg-black/20 px-6 text-center">
+            {/* Owner 20.09.2026: 32px → „500%" (160px) → „jetzt 200% kleiner" (72px) — die Grösse
+                ist bewusst in Schritten gesucht, nicht berechnet: jeder Wert ist die Antwort auf
+                den vorigen. */}
+            <span className="font-sans text-[72px] font-black uppercase leading-[0.98] tracking-tight text-white [text-shadow:0_3px_20px_rgba(0,0,0,.7)]">
+              The story behind the picture
+            </span>
+            {/* Owner 20.09.2026: „Playbutton fehlt" — er war da, aber halb durchsichtig auf
+                heller Wand kaum zu sehen. Jetzt ganz weiss, mit einem Ring, der ihn von JEDEM
+                Untergrund abhebt, nicht nur von einem dunklen Bild. */}
+            <span className="grid h-[72px] w-[72px] shrink-0 place-items-center rounded-full bg-white shadow-[0_6px_24px_rgba(0,0,0,.5)] ring-2 ring-black/10">
+              <Play className="ml-[3px] h-7 w-7 text-[#111]" aria-hidden />
+            </span>
+          </span>
+        </button>
+      ) : (
+        /* eslint-disable-next-line jsx-a11y/media-has-caption */
+        /* `ref={video}`, KEINE Funktion (20.09.2026, „ich kann das Video nicht stoppen"): Eine
+           Funktion an `ref` ist bei jedem Neuzeichnen eine NEUE — React ruft sie dann wieder auf.
+           Stand darin `play()`, lief der Film nach jedem Pause-Druck sofort weiter: Pause →
+           `onPause` setzt den Zustand → neu zeichnen → `play()`. Gestartet wird jetzt EINMAL,
+           im Effekt unten, wenn der Knopf gedrückt wurde. */
+        <video ref={video}
+          src={quelle} poster={standbild} loop playsInline preload="auto"
+          aria-label={alt}
+          onTimeUpdate={e => setZeit(e.currentTarget.currentTime)}
+          onLoadedMetadata={e => setDauer(e.currentTarget.duration)}
+          onCanPlay={() => setLaedt(false)}
+          onPlaying={() => {
+            setLaedt(false); setLaeuft(true);
+            const m = musik.current;
+            if (m) { m.volume = 0.2; void m.play().catch(() => {}); }
+          }}
+          onPause={() => { setLaeuft(false); musik.current?.pause(); }}
+          onEnded={() => { const m = musik.current; if (m) { m.pause(); m.currentTime = 0; } }}
+          className="absolute inset-0 h-full w-full object-cover" />
+      )}
+      {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+      <audio ref={musik} src="/lakatosbandi/stimme-musik.mp3" loop preload="none" />
+      {/* ── LADEBALKEN (Owner 20.09.2026) ────────────────────────────────────────────────────
+          Bis das erste Bild da ist, steht das Standbild (`poster=`); der Balken sagt „es
+          kommt", statt dass die Folie einfach schwarz und tot aussieht. */}
+      {gestartet && laedt ? (
+        <div className="absolute inset-x-0 bottom-0 flex justify-center pb-3">
+          <div className="h-[3px] w-[100px] overflow-hidden rounded-full bg-white/25">
+            <div className="h-full w-1/3 animate-[lbLauf_1.1s_ease-in-out_infinite] rounded-full bg-white/85" />
+          </div>
+        </div>
+      ) : null}
+      {/* ── DIE TIMELINE (Owner 20.09.2026) ──────────────────────────────────────────────────
+          Play/Pause, Regler, Lautsprecher — dieselben drei wie im QR-Fenster
+          ([[luxurybandit-video-qr-fenster]]), nur schmaler, weil die Folie es ist. */}
+      {gestartet && !laedt ? (
+        <div className="absolute inset-x-0 bottom-0 flex items-center gap-2 bg-gradient-to-t from-black/70 to-transparent p-2.5"
+          onPointerDown={e => e.stopPropagation()}>
+          <button type="button" aria-label={laeuft ? "Pauză" : "Play"}
+            onClick={() => { const v = video.current; if (!v) return; if (v.paused) void v.play().catch(() => {}); else v.pause(); }}
+            className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-white/90 text-[#111]">
+            {laeuft ? <Pause className="h-3.5 w-3.5" aria-hidden /> : <Play className="ml-[1px] h-3.5 w-3.5" aria-hidden />}
+          </button>
+          <input type="range" min={0} max={Math.max(dauer, 0.1)} step={0.1} value={zeit}
+            aria-label="Poziție"
+            onChange={e => { const v = video.current; const t = Number(e.target.value); if (v) v.currentTime = t; setZeit(t); }}
+            className="h-1 w-full cursor-pointer accent-white" />
+          <button type="button" aria-label={stumm ? "Sunet" : "Fără sunet"}
+            onClick={() => { const v = video.current; if (v) { v.muted = !v.muted; setStumm(v.muted); } }}
+            className="grid h-7 w-7 shrink-0 place-items-center rounded-full text-white/90">
+            {stumm ? <VolumeX className="h-4 w-4" aria-hidden /> : <Volume2 className="h-4 w-4" aria-hidden />}
+          </button>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+export default function PosterRaeume({ children, blatt, hoch = true, aus = false, film, adresse }: {
   /** Folie 0: das Werk mit allem Werkzeug. */
   children: React.ReactNode;
   /** Dasselbe Blatt ohne Werkzeug — das hängt an der Wand. */
@@ -188,8 +363,51 @@ export default function PosterRaeume({ children, blatt, hoch = true, aus = false
   hoch?: boolean;
   /** Ohne Postershop (Originale, Kleidung) gibt es nichts zu hängen: nur das Werk. */
   aus?: boolean;
+  /**
+   * ── DER FILM IST EINE EIGENE FOLIE, KEIN ERSATZ FÜR DAS BLATT (Owner 20.09.2026: „du machst
+   * das Video als extra Slide" — nach dem ersten Versuch, ihn IN Folie 0 laufen zu lassen) ────
+   *
+   * Folie 0 bleibt, was sie war: das Werk, still, mit allem Werkzeug. Hat das Werk einen Film,
+   * hängt er DAHINTER als eigenes Blatt im selben Slider — wischen statt klicken, dieselbe
+   * Geste wie zu den Zimmern. Ohne `film` fehlt die Folie ganz, wie bisher.
+   */
+  film?: { quelle: string; poster: string; bild: string; alt: string };
+  /**
+   * ── JEDE FOLIE HAT IHRE ADRESSE (Owner 20.09.2026: „jeder Slider soll eine eigene URL haben")
+   *
+   * Nur auf der Seite EINES Werks (`app/portal/[kuenstler]/[werk]`): Dort gibt es genau einen
+   * Slider, also kann `?slide=` eindeutig sagen, welche Folie offen ist. In der Übersicht hängen
+   * mehrere Slider untereinander — ein Anhänger für alle wäre dort gelogen.
+   *
+   * `?slide=2` … `5` sind die Zimmer (dieselben Nummern wie auf den Miniaturen), `?slide=video`
+   * der Film; das Blatt selbst ist die Adresse ohne Anhänger. `start` kommt vom Server, damit
+   * die richtige Folie schon im ersten HTML steht — wer den Link öffnet, sieht kein Umspringen.
+   */
+  adresse?: { start?: string;
+    /** `false`: nur mit dieser Folie STARTEN, die Adresse aber nicht anfassen — für den Slider
+        im Journal-Artikel, dessen Adresse dem Artikel gehört (Owner 20.09.2026). */
+    schreiben?: boolean };
 }) {
-  const [i, setI] = useState(0);
+  const startFolie = (() => {
+    const w = String(adresse?.start ?? "").trim().toLowerCase();
+    if (w === "video") return film ? RAEUME.length + 1 : 0;
+    const n = Number(w);
+    return Number.isInteger(n) && n >= 2 && n <= RAEUME.length + 1 ? n - 1 : 0;
+  })();
+  const [i, setIRoh] = useState(startFolie);
+  /* Die Adresse folgt der Folie — `replaceState`, nicht `pushState`: Wer fünf Zimmer durchblättert,
+     soll mit EINEM „Zurück" die Seite verlassen, nicht fünfmal rückwärts blättern müssen. */
+  const setI = (n: number) => {
+    setIRoh(n);
+    if (!adresse || adresse.schreiben === false || typeof window === "undefined") return;
+    const u = new URL(window.location.href);
+    const wert = n === 0 ? "" : film && n === RAEUME.length + 1 ? "video" : String(n + 1);
+    if (wert) u.searchParams.set("slide", wert); else u.searchParams.delete("slide");
+    window.history.replaceState(window.history.state, "", u.toString());
+  };
+  /** Die Folie mit dem Film — an letzter Stelle, nach allen Zimmern (Owner 20.09.2026: „als
+      letzte Position"). Die Zimmer behalten ihre Nummern, nichts rückt für sie zusammen. */
+  const filmSlide = film ? RAEUME.length + 1 : -1;
   /* ── SEIN BILD HÄNGT MIT AN DER WAND (Owner 18.09.2026: „auch das Bild muss dann an die Wand
      gesehen werden" · „das hochgeladene und das generierte") ─────────────────────────────────
      `PosterDeinBild` trägt hier ein, was gerade im Blatt steht; die Zimmer und die Miniaturen
@@ -220,6 +438,11 @@ export default function PosterRaeume({ children, blatt, hoch = true, aus = false
         <div className={i === 0 ? "" : "invisible"}>
           <MassstabFluss breite={folieBreite}>{children}</MassstabFluss>
         </div>
+
+        {/* Die Film-Folie — nur eingehängt, solange sie aktiv ist (Owner 20.09.2026). */}
+        {film && i === filmSlide ? (
+          <FilmFolie quelle={film.quelle} poster={film.poster} bild={film.bild} alt={film.alt} />
+        ) : null}
 
         {RAEUME.map((datei, k) => (
           i !== k + 1 ? null : (
@@ -274,7 +497,14 @@ export default function PosterRaeume({ children, blatt, hoch = true, aus = false
               i === k + 1 ? "border-[#111]" : "border-[#ddd4c0] hover:border-[#999]"}`}>
             <span ref={k === 0 ? miniRef : undefined} className="relative block h-full">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={datei} alt="" loading="lazy" className="block h-full w-auto max-w-none" />
+              {/* ── DIE MINIATUR LÄDT EIN KLEINES ZIMMER (Owner 20.09.2026: „ich hoffe die Poster an
+                  der Wand sind klein und werden auf dem Handy sofort geladen, sonst ist die ganze
+                  Arbeit umsonst") ─────────────────────────────────────────────────────────────
+                  GEMESSEN: Hier stand dasselbe Foto wie in der grossen Folie — 1100 px breit,
+                  zusammen 570 KB, um vier Kacheln von 64 px zu füllen. `-klein` ist 240 px breit
+                  (scharf auch auf einem Dreifach-Display) und wiegt zusammen rund 40 KB. Das
+                  grosse Foto lädt erst, wenn jemand das Zimmer wirklich öffnet. */}
+              <img src={datei.replace(/\.jpg$/, "-klein.jpg")} alt="" loading="lazy" className="block h-full w-auto max-w-none" />
               <span className="absolute block"
                 style={{ left: `${BLATT.links}%`, top: `${BLATT.oben}%` }}>
                 {/**
@@ -297,6 +527,25 @@ export default function PosterRaeume({ children, blatt, hoch = true, aus = false
             </span>
           </button>
         ))}
+
+        {/* ── DIE FILM-MINIATUR STEHT AM ENDE (Owner 20.09.2026: „als letzte Position") ────────
+            Nach allen Zimmern, nicht direkt hinter Folie 0 — sie ist ein Extra, kein Ersatz für
+            eines der Zimmer. Mit einem Play-Zeichen, sonst sähe sie aus wie ein zweites
+            Werkbild. */}
+        {film ? (
+          <button type="button" onClick={() => setI(filmSlide)} aria-label="Video"
+            className={`relative flex h-[86px] w-[64px] items-center justify-center overflow-hidden rounded-md border bg-black p-0 transition ${
+              i === filmSlide ? "border-[#111]" : "border-[#ddd4c0] hover:border-[#999]"}`}>
+            {/* Dasselbe Standbild wie in der Folie — fehlt es, das Werkbild (Owner 20.09.2026:
+                „Poster für Video muss aus dem Video kommen"). */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={film.poster} alt="" loading="lazy" className="h-full w-full object-cover opacity-80"
+              onError={e => { e.currentTarget.src = film.bild; }} />
+            <span className="absolute grid h-6 w-6 place-items-center rounded-full bg-white/90 text-[#111]">
+              <Play className="ml-[1px] h-3 w-3" aria-hidden />
+            </span>
+          </button>
+        ) : null}
       </div>
     </div>
     </WandBildContext.Provider>

@@ -242,6 +242,9 @@ const TEXTE = {
     preisAufAnfrage: "Price on request",
     alleWerkeVon: "All works by {name}",
     weitereWerke: "More works",
+    /* Der Weg vom Blatt in der Übersicht auf seine eigene Seite (Owner 20.09.2026: „wie komme
+       ich auf die extra Produktseite?"). */
+    produktSeite: "Open product page",
     agentJaText: "Wonderful! Leave me your name and phone number — {name} will call you personally.",
     agentFeldName: "Name",
     agentFeldTelefon: "Phone",
@@ -507,6 +510,12 @@ const TEXTE = {
     rubrikKariTitel: "Your photo as a caricature",
     rubrikKariText: "Upload one photo. You get it drawn — on a poster ready for your wall.",
     rubrikKariLink: "Try it",
+    /* Die Karte unter der Karikatur: der Film eines Künstlers neben seinem Blatt (Owner
+       20.09.2026: „ich brauche das hier drunter genauso auf der Startseite"). Der TITEL ist in
+       jeder Sprache derselbe — es ist die Zeile, die auch über dem Film steht. */
+    rubrikStoryTitel: "The story behind the picture",
+    rubrikStoryText: "Every Living Poster can carry a film: the artist next to the work, telling you what you would never see on your own. Press play.",
+    rubrikStoryLink: "How to present your work like this",
     mehrAnzeigen: "Show {n} more",
     alleAnzeigen: "Show the last {n}",
     seiteZurueck: "Back",
@@ -675,6 +684,7 @@ const TEXTE = {
     preisAufAnfrage: "Preț la cerere",
     alleWerkeVon: "Toate lucrările lui {name}",
     weitereWerke: "Alte lucrări",
+    produktSeite: "Deschide pagina produsului",
     agentJaText: "Minunat! Lasă-mi numele și telefonul — {name} te sună personal.",
     agentFeldName: "Nume",
     agentFeldTelefon: "Telefon",
@@ -819,6 +829,9 @@ const TEXTE = {
     rubrikKariTitel: "Poza ta, ca o caricatură",
     rubrikKariText: "Încarcă o poză. O primești desenată — pe un poster gata de pus pe perete.",
     rubrikKariLink: "Încearcă",
+    rubrikStoryTitel: "The story behind the picture",
+    rubrikStoryText: "Fiecare Living Poster poate purta un film: artistul lângă lucrare, povestindu-ți ce nu ai vedea niciodată singur. Apasă play.",
+    rubrikStoryLink: "Cum îți prezinți lucrarea așa",
     mehrAnzeigen: "Arată încă {n}",
     alleAnzeigen: "Arată ultimele {n}",
     seiteZurueck: "Înapoi",
@@ -974,6 +987,7 @@ const TEXTE = {
     preisAufAnfrage: "Preis auf Anfrage",
     alleWerkeVon: "Alle Werke von {name}",
     weitereWerke: "Weitere Werke",
+    produktSeite: "Produktseite öffnen",
     agentJaText: "Schön! Hinterlass mir deinen Namen und deine Telefonnummer — {name} ruft dich persönlich an.",
     agentFeldName: "Name",
     agentFeldTelefon: "Telefon",
@@ -1118,6 +1132,9 @@ const TEXTE = {
     rubrikKariTitel: "Dein Bild als Karikatur",
     rubrikKariText: "Lad ein Foto hoch. Du bekommst es gezeichnet zurück — auf einem Blatt, das du aufhängen kannst.",
     rubrikKariLink: "Probier es aus",
+    rubrikStoryTitel: "The story behind the picture",
+    rubrikStoryText: "Jedes Living Poster kann einen Film tragen: der Künstler neben dem Werk, der dir erzählt, was du allein nie sehen würdest. Drück auf Play.",
+    rubrikStoryLink: "So zeigst du dein Werk auch",
     mehrAnzeigen: "Noch {n} anzeigen",
     alleAnzeigen: "Die letzten {n} anzeigen",
     seiteZurueck: "Zurück",

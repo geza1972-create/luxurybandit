@@ -10,6 +10,11 @@ import PortalKopf from "@/components/PortalKopf";
 import PortalFuss from "@/components/PortalFuss";
 import KuenstlerAgent from "@/components/KuenstlerAgent";
 import PosterFilm from "@/components/PosterFilm";
+import PosterProdukt from "@/components/PosterProdukt";
+import PortalTeilen from "@/components/PortalTeilen";
+import { aboAktiv } from "@/lib/versusforge-abo";
+import { supabaseFetch, BUCKET, encodeStoragePath } from "@/lib/try-this-look-store";
+import { filmPosterPfad } from "@/lib/lakatosbandi-film";
 import KaufKnopf from "@/components/KaufKnopf";
 import Korb from "@/components/Korb";
 import { preisSatz, preisText } from "@/lib/lakatosbandi-preis";
@@ -40,12 +45,33 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!m || !istKuenstler(m) || m.freigabe !== "frei" || !k) return { title: "lakatosbandi.com", robots: { index: false, follow: false } };
   const w = m.werkInfo?.[i < 0 ? "standard" : String(i)];
   const titel = `${w?.titel || k.hook.slice(0, 60)} — ${m.name}`;
-  const bild = `https://lakatosbandi.com/api/portal-werk?m=${encodeURIComponent(kuenstler)}&i=${i}`;
+  const nr = i < 0 ? "standard" : String(i);
+  /**
+   * ── HAT DAS WERK EINEN FILM, IST SEIN STANDBILD DIE VORSCHAU (Owner 20.09.2026: „wichtig ist
+   * dieses Produkt sharen zu können" · „Poster für Video muss aus dem Video kommen") ───────────
+   *
+   * Wer diese Adresse auf Facebook oder in WhatsApp setzt, soll sehen, was ihn erwartet: den
+   * Künstler vor seinem Blatt, nicht noch einmal das Werk allein. Gefragt wird die Ablage, ob
+   * es das Standbild gibt — eine Vorschau mit totem Bild wäre schlechter als die alte.
+   * Facebook bekommt dazu den Film selbst (`og:video`), damit er im Beitrag laufen kann.
+   */
+  const v = encodeURIComponent(w?.filmAm ?? "1");
+  const filmDa = !!w?.film;
+  const standbildDa = filmDa
+    && (await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(filmPosterPfad(kuenstler, nr))}`, { method: "HEAD" }).catch(() => null))?.ok === true;
+  const bild = standbildDa
+    ? `https://lakatosbandi.com/api/portal-film?m=${encodeURIComponent(kuenstler)}&i=${nr}&art=filmposter&v=${v}`
+    : `https://lakatosbandi.com/api/portal-werk?m=${encodeURIComponent(kuenstler)}&i=${i}`;
+  const film = filmDa ? `https://lakatosbandi.com/api/portal-film?m=${encodeURIComponent(kuenstler)}&i=${nr}&v=${v}` : "";
   return {
     title: titel,
     description: k.hook,
     alternates: { canonical: `${kuenstlerUrl(kuenstler)}/${werk}` },
-    openGraph: { title: titel, description: k.hook, type: "article", url: `${kuenstlerUrl(kuenstler)}/${werk}`, images: [{ url: bild }] },
+    openGraph: {
+      title: titel, description: k.hook, type: "article", url: `${kuenstlerUrl(kuenstler)}/${werk}`, images: [{ url: bild }],
+      ...(film ? { videos: [{ url: film, type: "video/mp4" }] } : {}),
+    },
+    twitter: { card: "summary_large_image", title: titel, description: k.hook, images: [bild] },
   };
 }
 
@@ -88,6 +114,27 @@ export default async function PortalWerk({ params, searchParams }: Props) {
       : (preisText(w?.preis) || preisSatz(m.preisSpanne, T.preisAufAnfrage));
   const andere = kacheln.filter(x => x.i !== i);
 
+  /**
+   * ── DIESELBEN SCHALTER WIE AUF DER KÜNSTLERSEITE (Owner 20.09.2026: „ich brauche einen Fenster
+   * wo alles drin ist, Slider und das auch. Am besten eine Extraseite" · „für jedes Produkt") ──
+   *
+   * Bis heute zeigte diese Seite bei einem lebenden Künstler nur das nackte Werk — kein Blatt,
+   * kein Slider, kein Film, kein Kaufknopf. Das ganze Living Poster gab es nur in der Übersicht,
+   * und ein einzelnes Werk liess sich nicht weitergeben.
+   *
+   * Jetzt steht hier DERSELBE Baustein wie dort (`components/PosterProdukt.tsx`), mit denselben
+   * Regeln: Postershop nur mit Premium, das bearbeitbare Blatt nur mit `kunstAn`. Die Formeln
+   * stehen wortgleich in `app/portal/[kuenstler]/page.tsx` — dort auch die Begründungen.
+   */
+  const nr = i < 0 ? "standard" : String(i);
+  const premium = !!m.reproduktion || aboAktiv(m as Parameters<typeof aboAktiv>[0]);
+  const kaufBar = !!m.reproduktion || (!!m.posterViu && premium);
+  const lebend = premium && m.kunstAn === true;
+  const kariStil = !!String(m.kunstStil ?? "").trim();
+  const istKleidung = (x: number) => !!m.werkInfo?.[x < 0 ? "standard" : String(x)]?.produkt;
+  const anhang = `${sp.lang ? `&lang=${encodeURIComponent(String(sp.lang))}` : ""}${admin ? `&s=${encodeURIComponent(adminS)}` : ""}`;
+  const produktAdresse = `${kuenstlerUrl(kuenstler)}/${werk}${sp.lang ? `?lang=${encodeURIComponent(String(sp.lang))}` : ""}`;
+
   return (
     <div data-lang={L} className="lb-portal min-h-[100dvh] bg-white text-[#111]">
       <PortalKopf T={T} lang={L} login={P.login} start={P.start} journal={P.journal(L)} />
@@ -95,6 +142,23 @@ export default async function PortalWerk({ params, searchParams }: Props) {
       <main className="mx-auto w-full max-w-[1120px] px-5 pb-20 pt-8 md:pt-12">
         <a href={mitAdmin(P.kuenstler(kuenstler))} className="text-[14px] text-[#555] underline">← {n(T.alleWerkeVon)}</a>
 
+        {kaufBar && !w?.produkt ? (
+          <div className="mx-auto mt-6 w-full lg:w-[min(92vw,calc(88svh/1.4142))]">
+            <PosterProdukt
+              kuenstler={kuenstler} m={m} k={k} L={L} T={T}
+              mitAdmin={mitAdmin} admin={admin} adminS={adminS}
+              lebend={lebend} kaufBar={kaufBar} alsPoster={kaufBar}
+              istKleidung={istKleidung} kariStil={kariStil} werkBild={P.werkBild}
+              filmHref={`?film=${nr}${anhang}`} agentHref={`?agent=1${anhang}`}
+              filmOffen={String(sp.film ?? "").trim() === nr}
+              /* Jede Folie hat hier ihre Adresse (`?slide=3`, `?slide=video`) — Owner 20.09.2026. */
+              slide={String(sp.slide ?? "")} />
+            {/* Genau DIESES Werk weitergeben — die Adresse dieser Seite, nicht die des Künstlers. */}
+            <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
+              <PortalTeilen adresse={produktAdresse} aktuelleFolie name={`${w?.titel || m.name} — ${m.name}`} T={T} />
+            </div>
+          </div>
+        ) : (
         <div className={m.reproduktion
           /* EINE SPALTE (Owner 15.09.2026: „wenn ich jetzt auf einem bild klicke kommt ein
              anderes layout") — das Poster steht mittig, darunter der Kauf. Zwei Spalten
@@ -196,6 +260,7 @@ export default async function PortalWerk({ params, searchParams }: Props) {
           </div>
           )}
         </div>
+        )}
 
         {andere.length > 0 && (
           <>
@@ -206,7 +271,10 @@ export default async function PortalWerk({ params, searchParams }: Props) {
                   <a href={werkLink(x.i)} className="block text-[#111] no-underline">
                     <div className="flex aspect-[4/5] items-start justify-center bg-[#f5f5f5]">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={mitAdmin(P.werkBild(kuenstler, x.i))} alt="" loading="lazy" className="max-h-full max-w-full object-contain" />
+                      {/* Mit Breite (20.09.2026 gemessen): Ohne `w` kam das Original — 435 KB und 237 KB
+                          für zwei Kacheln, die am Handy 180 px breit sind. Mit 500 px sind es 90 und
+                          110 KB; dieselbe Regel wie auf der Startseite („Bilder skaliert ausliefern"). */}
+                      <img src={mitAdmin(P.werkBild(kuenstler, x.i, 500))} alt="" loading="lazy" className="max-h-full max-w-full object-contain" />
                     </div>
                     <p className="mt-2 line-clamp-2 text-[14px] font-semibold leading-[1.35]">{x.hook}</p>
                     {(() => {

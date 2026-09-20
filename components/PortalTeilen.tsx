@@ -24,21 +24,36 @@ import type { PortalTexte } from "@/lib/lakatosbandi-texte";
  * Und selbst die Zwischenablage kann fehlschlagen (ältere Browser, kein sicherer Kontext).
  * Auch dann bleibt der Knopf nicht stumm: Er sagt, dass es nicht ging.
  */
-export default function PortalTeilen({ adresse, name, T }: {
+export default function PortalTeilen({ adresse, name, T, aktuelleFolie = false }: {
   /** Die öffentliche Adresse seiner Seite — absolut, damit sie auch weitergeleitet trägt. */
   adresse: string;
   /** Sein Künstlername, für den Text der Freigabe. */
   name: string;
   T: PortalTexte;
+  /**
+   * Auf der Werk-Seite hat jede Folie des Sliders ihre Adresse (`?slide=`, Owner 20.09.2026).
+   * Dann wird geteilt, was gerade OFFEN ist — die Folie reist als Anhänger an der öffentlichen
+   * Adresse mit (nicht `location.href`: lokal und in der Vorschau wäre das die falsche Domain).
+   */
+  aktuelleFolie?: boolean;
 }) {
   const [stand, setStand] = useState<"" | "kopiert" | "fehler">("");
 
   const teilen = async () => {
     setStand("");
+    let ziel = adresse;
+    if (aktuelleFolie && typeof window !== "undefined") {
+      const folie = new URL(window.location.href).searchParams.get("slide");
+      if (folie) {
+        const u = new URL(adresse);
+        u.searchParams.set("slide", folie);
+        ziel = u.toString();
+      }
+    }
     /* Zuerst das Teilen des Geräts — es kennt die Apps, die der Mensch benutzt. */
     try {
       if (typeof navigator !== "undefined" && navigator.share) {
-        await navigator.share({ title: name, url: adresse });
+        await navigator.share({ title: name, url: ziel });
         return;
       }
     } catch {
@@ -46,7 +61,7 @@ export default function PortalTeilen({ adresse, name, T }: {
       return;
     }
     try {
-      await navigator.clipboard.writeText(adresse);
+      await navigator.clipboard.writeText(ziel);
       setStand("kopiert");
       window.setTimeout(() => setStand(""), 2500);
     } catch {

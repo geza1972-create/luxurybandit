@@ -8,6 +8,10 @@ import { portalTexte } from "@/lib/lakatosbandi-texte";
 import PortalKopf from "@/components/PortalKopf";
 import ArtistFair from "@/components/ArtistFair";
 import PortalFuss from "@/components/PortalFuss";
+import PosterProdukt from "@/components/PosterProdukt";
+import { mandantOeffentlich } from "@/lib/versusforge-mandanten";
+import { werkKacheln } from "@/lib/lakatosbandi";
+import { aboAktiv } from "@/lib/versusforge-abo";
 
 /**
  * EIN ARTIKEL — lakatosbandi.com/journal/<sprache>/<slug>.
@@ -64,6 +68,25 @@ export default async function JournalArtikel({ params }: Props) {
   const P = portalPfade((await headers()).get("host"));
   const weitere = ARTIKEL.filter(x => x.slug !== slug).slice(0, 3);
 
+  /**
+   * ── DER FILM IM ARTIKEL (Owner 20.09.2026: „dann zeigst du mein Video") ─────────────────────
+   * Derselbe Film, der am Werk hängt, im selben Player wie auf der Produktseite. Gefragt wird
+   * der Datensatz des Künstlers: Nimmt er den Film einmal weg, verschwindet er auch hier, statt
+   * als totes Rechteck stehenzubleiben. `filmAm` reist in der Adresse mit (Zwischenspeicher).
+   */
+  const vm = a.video ? await mandantOeffentlich(a.video.mandant) : null;
+  const vw = a.video ? vm?.werkInfo?.[a.video.werk] : undefined;
+  const vi = a.video ? (a.video.werk === "standard" ? -1 : Number(a.video.werk)) : -1;
+  const vk = vm ? werkKacheln(vm, lang).find(x => x.i === vi) : undefined;
+  /* Dieselben Schalter wie auf der Künstlerseite — dort stehen die Begründungen. */
+  const vPremium = !!vm && (!!vm.reproduktion || aboAktiv(vm as Parameters<typeof aboAktiv>[0]));
+  const vKaufBar = !!vm && (!!vm.reproduktion || (!!vm.posterViu && vPremium));
+  const film = a.video && vm && vk && vw?.film ? {
+    m: vm, k: vk, kaufBar: vKaufBar,
+    /* Genau die Film-Folie der Produktseite — jede Folie hat dort ihre eigene Adresse. */
+    seite: `${P.kuenstler(a.video.mandant)}/${a.video.werk}?lang=${lang}`,
+  } : null;
+
   const ld = {
     "@context": "https://schema.org",
     "@type": "Article",
@@ -96,6 +119,34 @@ export default async function JournalArtikel({ params }: Props) {
             es nichts zu suchen; dort geht es um anderes. */}
         {a.slug === "artist-fair-stempel" && (
           <ArtistFair groesse={200} klasse="mt-10 block text-[#111]" />
+        )}
+
+        {film && a.video && (
+          <div className="mt-10">
+            {/* ── DER FILM UND DARUNTER DIE MINIATUREN (Owner 20.09.2026: „die anderen Slider auch
+                drunter" · „die Miniaturen") ───────────────────────────────────────────────────
+                Dasselbe Bauteil wie auf der Produktseite, nur ohne Kaufbereich: Der Slider
+                startet auf dem Film, und darunter steht die Reihe Blatt · vier Zimmer · Film.
+                Wer durchblättert, sieht in einem Zug, was „jedes Werk mit deinem Video
+                verbinden" heisst — das Blatt, die Wand, und der Mensch, der es gemalt hat. */}
+            <div className="mx-auto flex w-full justify-center">
+              <PosterProdukt
+                kuenstler={a.video.mandant} m={film.m} k={film.k} L={lang} T={T}
+                mitAdmin={u => u} admin={false} adminS=""
+                lebend={false} kaufBar={film.kaufBar} alsPoster={film.kaufBar}
+                istKleidung={() => false} kariStil={false} werkBild={P.werkBild}
+                filmHref={`${film.seite}&film=${a.video.werk}`} agentHref={`${film.seite}&agent=1`}
+                filmOffen={false} slide="video" nurSlider />
+            </div>
+            {t.videoKnopf && (
+              <p className="m-0 mt-5 text-center">
+                <a href={`${film.seite}&slide=video`}
+                  className="inline-block rounded-full border border-[#111] px-5 py-2.5 text-[15px] font-semibold text-[#111] no-underline transition hover:bg-[#111] hover:text-white">
+                  {t.videoKnopf} →
+                </a>
+              </p>
+            )}
+          </div>
         )}
 
         {t.bild && (

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Printer, Download } from "lucide-react";
+import { Download } from "lucide-react";
 import { kundenbildSichern, POSTER_BILD_EREIGNIS, POSTER_RAHMEN_EREIGNIS, type PosterBildArt, type PosterBildNachricht, type PosterRahmenNachricht } from "@/components/PosterDeinBild";
 import { druckGroessenFuer, druckPreisCents, druckMass, druckVersandCents, druckAbzugCents } from "@/lib/lakatosbandi-druck";
 import { eur } from "@/lib/pricing";
@@ -312,31 +312,22 @@ export default function KaufKnopf({ mandant, werk, material, sprache, anteil = f
 
   return (
     <div className="mt-3">
-      {rahmenBar && datei ? (
-        /* Die eine Frage, zwei Antworten, nebeneinander. */
-        <div className="flex flex-wrap items-center justify-center gap-2">
-          {/* Das Zeichen sagt in einem Blick, was der Chip liefert: gedrucktes Papier oder eine
-              Datei (Owner 19.09.2026: „zwei Icons bitte in den Chips, Print und Download"). */}
-          {[
-            { d: false, t: texte.ohneRahmen, I: Printer },
-            { d: true, t: datei.kaufen, I: Download },
-          ].map(o => (
-            <label key={String(o.d)} className={`${schalter(istDatei === o.d)} inline-flex items-center gap-1.5`}>
-              <input type="radio" name={`art-${mandant}-${werk}`} checked={istDatei === o.d}
-                onChange={() => setIstDatei(o.d)} className="sr-only" />
-              <o.I className="h-[15px] w-[15px] shrink-0" aria-hidden />
-              {o.t}
-            </label>
-          ))}
-        </div>
-      ) : null}
-
       {/* ── RAHMEN UND GRÖSSE GELTEN AUCH FÜR DIE DATEI (Owner 19.09.2026: „nur Print") ─────
           Beim Entfernen des Druckwegs waren auch Rahmen- und Grössenwahl verschwunden. Sie
           gehören aber nicht dem Druck, sondern dem BLATT: Die Datei kommt in A3, A2 oder A1 und
           wahlweise mit gedrucktem Rahmen (`api/kunst-datei?format=…&rahmen=…`). Nur bestellen
           kann man auf einem Generator nichts. */}
-      {rahmenBar && !istDatei ? (
+      {/* ── EINE REIHE, DREI ANTWORTEN (Owner 20.09.2026: erst „diesen Chip raus" zum Print-Chip,
+          dann mit Bild: „hier kann ich nicht zurück auf den Zustand mit Rahmen, nur mit Klick auf
+          Descarcă fișierul, was unlogisch ist") ───────────────────────────────────────────────
+          Ohne Print-Chip stand die Datei allein da und liess sich nur durch einen zweiten Klick
+          auf sich selbst wieder abwählen — ein Schalter, den man als solchen nicht erkennt, und
+          solange er an war, war alles andere verschwunden.
+
+          Jetzt ist es EINE Frage mit drei Antworten, die immer alle dastehen: gerahmt · ohne
+          Rahmen · Datei. Wer die Datei gewählt hat und doch drucken will, klickt einfach auf
+          eine der beiden anderen. Kein Chip verschwindet, keiner muss zweimal geklickt werden. */}
+      {rahmenBar ? (
         /* `lb-rahmen-wahl`: Daran hängt die CSS-Regel, die im Poster darüber den Rahmen zeichnet
            (globals.css, Owner 15.09.2026: „wenn ich einen rahmen auswähle soll auch der rahmen
            erscheinen beim kachel"). */
@@ -350,12 +341,20 @@ export default function KaufKnopf({ mandant, werk, material, sprache, anteil = f
             { an: true, t: texte.mitRahmenWahl },
             { an: false, t: texte.ohneRahmenWahl },
           ].map(o => (
-            <label key={String(o.an)} className={schalter((rahmen !== "0") === o.an)}>
-              <input type="radio" name={`r-${mandant}-${werk}`} checked={(rahmen !== "0") === o.an}
-                onChange={() => setRahmen(o.an ? (farbe || "2") : "0")} className="sr-only" />
+            <label key={String(o.an)} className={schalter(!istDatei && (rahmen !== "0") === o.an)}>
+              <input type="radio" name={`r-${mandant}-${werk}`} checked={!istDatei && (rahmen !== "0") === o.an}
+                onChange={() => { setIstDatei(false); setRahmen(o.an ? (farbe || "2") : "0"); }} className="sr-only" />
               {o.t}
             </label>
           ))}
+          {datei ? (
+            <label className={`${schalter(istDatei)} inline-flex items-center gap-1.5`}>
+              <input type="radio" name={`r-${mandant}-${werk}`} checked={istDatei}
+                onChange={() => setIstDatei(true)} className="sr-only" />
+              <Download className="h-[15px] w-[15px] shrink-0" aria-hidden />
+              {datei.kaufen}
+            </label>
+          ) : null}
         </div>
       ) : null}
 

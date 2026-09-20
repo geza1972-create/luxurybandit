@@ -3,8 +3,10 @@ import PortalRubrik from "@/components/PortalRubrik";
 import PortalReihe from "@/components/PortalReihe";
 import PortalMehr from "@/components/PortalMehr";
 import { PosterWandFoto } from "@/components/PosterWandBild";
+import PosterProdukt from "@/components/PosterProdukt";
 import { SPUR, KACHEL } from "@/components/PortalSpur";
 import Link from "next/link";
+import { ArrowRight } from "lucide-react";
 import { headers } from "next/headers";
 import { resolveLang } from "@/lib/lang-server";
 import { kuenstlerListe, imPortalSichtbar, portalPfade, werkKacheln, posterAnriss, blattZeilen } from "@/lib/lakatosbandi";
@@ -800,9 +802,69 @@ export default async function PortalStart({ searchParams }: { searchParams: Prom
     />
   );
 
+  /**
+   * ── DER FILM UNTER DER KARIKATUR (Owner 20.09.2026, mit Bild der Karikatur-Karte: „ich brauche
+   * das hier drunter genauso auf der Startseite") ─────────────────────────────────────────────
+   *
+   * Dieselbe Creme-Karte, derselbe Aufbau (Bild links, Zeilen rechts) — nur steht links kein
+   * Bild, sondern DERSELBE Slider wie im Artikel und auf der Produktseite: Er startet auf dem
+   * Film (Standbild, „The story behind the picture", Play-Knopf), darunter die Miniaturen Blatt ·
+   * Zimmer · Film. Ohne Kaufbereich; gekauft wird auf der Seite des Werks.
+   *
+   * NICHT AUF GERRY FESTGENAGELT (wie `kariKuenstler` oben): Genommen wird das erste Werk eines
+   * lebenden Künstlers, an dem ein Film hängt. Gibt es keines, fehlt die Karte — eine Karte, die
+   * einen Film verspricht und keinen hat, wäre schlimmer als keine.
+   */
+  const storyFund = (() => {
+    for (const x of kuenstler) {
+      if (x.reproduktion) continue;
+      const kk = werkKacheln(x, L).find(w => {
+        const wi = x.werkInfo?.[w.i < 0 ? "standard" : String(w.i)];
+        return !!wi?.film && !wi?.abgelehntAm;
+      });
+      if (kk) return { m: x, k: kk };
+    }
+    return null;
+  })();
+  const story = storyFund ? (() => {
+    const { m: sm, k: sk } = storyFund;
+    const nr = sk.i < 0 ? "standard" : String(sk.i);
+    const kaufBar = !!sm.posterViu && aboAktiv(sm as Parameters<typeof aboAktiv>[0]);
+    const seite = `${P.kuenstler(sm.kennung)}/${nr}?lang=${L}`;
+    return (
+      <section className="mt-5 grid gap-0 bg-[#f4efe2] sm:grid-cols-[1.15fr_1fr] sm:items-center lg:mt-6">
+        <div className="flex justify-center px-4 pt-5 sm:px-6 sm:py-6">
+          {/* Am Rechner will das Blatt von sich aus bildschirmhoch sein (`lg:w-[min(92vw,…)]`, richtig
+              für die Künstlerseite). In dieser Karte gibt die Spalte das Mass: GEMESSEN bei 1440 px
+              stand es 560 px breit in einer 420er Hülle, also 140 px aus der Mitte gerückt. */}
+          <div className="w-full max-w-[420px] [&_.lb-poster-block]:!w-full">
+            <PosterProdukt
+              kuenstler={sm.kennung} m={sm} k={sk} L={L} T={T}
+              mitAdmin={u => u} admin={false} adminS=""
+              lebend={false} kaufBar={kaufBar} alsPoster={kaufBar}
+              istKleidung={() => false} kariStil={false} werkBild={P.werkBild}
+              filmHref={`${seite}&film=${nr}`} agentHref={`${seite}&agent=1`}
+              filmOffen={false} slide="video" nurSlider />
+          </div>
+        </div>
+        <div className="px-5 pb-6 pt-5 sm:px-8 sm:py-8">
+          <span className="mb-1 block text-[12px] font-semibold uppercase tracking-[0.08em] text-[#666]">{T.rubrikKariKicker}</span>
+          <h2 className="m-0 max-w-[18ch] font-serif text-[26px] font-normal leading-[1.12] text-[#111] sm:text-[34px]">{T.rubrikStoryTitel}</h2>
+          <p className="mt-3 max-w-[42ch] text-[15px] leading-[1.55] text-[#555] sm:text-[17px]">{T.rubrikStoryText}</p>
+          <Link href={P.journal(L, "story-behind-the-picture")}
+            className="mt-4 inline-flex items-center gap-2 border-b border-[#111] pb-[2px] text-[15px] font-semibold text-[#111] no-underline">
+            {T.rubrikStoryLink}
+            <ArrowRight className="h-4 w-4" aria-hidden />
+          </Link>
+        </div>
+      </section>
+    );
+  })() : null;
+
   const start = (
     <>
       {rubrik}
+      {story}
       {reiter}
       {/* EINE HÜLLE UM DIE ABSCHNITTE, damit `first:` greift (Owner 16.09.2026: „hier habe ich
           zwei linien untereinander"): Lag der erste Abschnitt direkt neben der Reiterleiste, war

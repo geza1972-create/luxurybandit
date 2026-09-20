@@ -13,6 +13,21 @@ export const filmPfad = (mandant: string, nr: string) =>
   `versusforge-film/${String(mandant).replace(/[^a-zA-Z0-9_-]/g, "")}/${nr === "" || nr === "-1" ? "standard" : String(nr).replace(/[^a-zA-Z0-9_-]/g, "")}.mp4`;
 
 /**
+ * ── SEIN STANDBILD KOMMT AUS DEM FILM, NICHT VOM WERK (Owner 20.09.2026: „Poster für Video muss
+ * aus dem Video kommen") ──────────────────────────────────────────────────────────────────────
+ *
+ * Die eigene Film-Folie (`components/PosterRaeume.tsx`) zeigte zuerst das Werk selbst als
+ * Standbild, bevor der Film lief — bei Gerrys Aufnahme also die Karte „Gina", nicht ihn mit dem
+ * Telefon vor seinem Poster. Wer einen Film ansieht, soll VOM FILM einen Vorgeschmack sehen,
+ * nicht von etwas Verwandtem daneben.
+ *
+ * Eigener Ordner, eigene Datei: derselbe Name wie der Film, `.jpg` statt `.mp4` — ein Blick in
+ * die Ablage sagt sofort, zu welchem Film das Bild gehört.
+ */
+export const filmPosterPfad = (mandant: string, nr: string) =>
+  `versusforge-film/${String(mandant).replace(/[^a-zA-Z0-9_-]/g, "")}/${nr === "" || nr === "-1" ? "standard" : String(nr).replace(/[^a-zA-Z0-9_-]/g, "")}-poster.jpg`;
+
+/**
  * ── DER KÜNSTLER SPRICHT ÜBER SEIN WERK (Owner 17.09.2026: „mach doch einen Kasten neben
  * diesem Bild fürs Video … ich lasse sie in HeyGen sprechen") ────────────────────────────────
  *
