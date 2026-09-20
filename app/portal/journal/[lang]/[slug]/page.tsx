@@ -9,6 +9,7 @@ import PortalKopf from "@/components/PortalKopf";
 import ArtistFair from "@/components/ArtistFair";
 import PortalFuss from "@/components/PortalFuss";
 import PosterProdukt from "@/components/PosterProdukt";
+import { FilmFolie } from "@/components/PosterRaeume";
 import { mandantOeffentlich } from "@/lib/versusforge-mandanten";
 import { werkKacheln } from "@/lib/lakatosbandi";
 import { aboAktiv } from "@/lib/versusforge-abo";
@@ -160,6 +161,16 @@ export default async function JournalArtikel({ params }: Props) {
             <h2 className="m-0 text-[22px] font-semibold leading-[1.3]">{teil.h}</h2>
             {teil.p.map((absatz, k) => (
               <p key={k} className="mt-4 text-[17.5px] leading-[1.75] text-[#333]">{absatz}</p>
+            ))}
+            {/* Ein kurzer Film unter diesem Abschnitt (`clips` am Artikel) — derselbe Player wie
+                überall: Standbild aus dem Film, Play-Knopf, Ladebalken, Leiste. Ohne die Zeile
+                „The story behind the picture" (hier erzählt niemand) und ohne zweite Musikspur
+                (sie liegt in der Datei). */}
+            {(a.clips ?? []).filter(c => c.nachTeil === i).map(c => (
+              <div key={c.datei} className="relative mx-auto mt-7 w-full max-w-[420px]" style={{ aspectRatio: `${c.breit} / ${c.hoch}` }}>
+                <FilmFolie quelle={`/lakatosbandi/journal/${c.datei}`} poster={`/lakatosbandi/journal/${c.standbild}`}
+                  bild={`/lakatosbandi/journal/${c.standbild}`} alt={teil.h} intro={null} musikAn={false} />
+              </div>
             ))}
           </section>
         ))}

@@ -157,10 +157,30 @@ function useBreite<T extends HTMLElement>() {
     const b = n.getBoundingClientRect().width;
     if (b > 0) setBreite(alt => (alt === b ? alt : b));
   }, []);
-  const setzen = useCallback((n: T | null) => { el.current = n; if (n) messen(); }, [messen]);
-  useEffect(() => {
-    const n = el.current;
+  /**
+   * ── DIE WÄCHTER HÄNGEN AM ELEMENT, NICHT AM ERSTEN AUFBAU (Owner 20.09.2026, mit Bild der leeren
+   * Wand: „das Poster ist wieder nicht an der Wand. Wir müssen eine Lösung finden") ────────────
+   *
+   * HIER STAND EIN `useEffect`, der genau EINMAL lief — beim ersten Aufbau des Sliders. Die
+   * grosse Zimmer-Folie gibt es da noch gar nicht (sie entsteht erst beim Klick), also fand er
+   * nichts vor und hängte NICHTS an: keinen `ResizeObserver`, kein `load` am Zimmerfoto. Beim
+   * Klick mass `setzen` dann ein einziges Mal — und das Foto war noch nicht da: Breite 0, Blatt
+   * unsichtbar, für immer.
+   *
+   * Dass es meistens trotzdem ging, war Zufall: Die Miniaturen luden dasselbe grosse Foto, es
+   * lag also schon im Zwischenspeicher. Seit die Miniaturen ein eigenes kleines Foto laden
+   * (derselbe Tag), lädt das grosse erst beim Öffnen — und der Zufall war weg.
+   *
+   * Jetzt bekommt JEDES Element seine Wächter in dem Moment, in dem es entsteht, und gibt sie
+   * ab, wenn es verschwindet. Das Blatt erscheint, sobald das Foto da ist — egal wie langsam.
+   */
+  const aufraeumen = useRef<(() => void) | null>(null);
+  const setzen = useCallback((n: T | null) => {
+    aufraeumen.current?.();
+    aufraeumen.current = null;
+    el.current = n;
     if (!n) return;
+    messen();
     const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(messen) : null;
     ro?.observe(n);
     /* Zwei Bildaufbauten später steht das Raster; danach nur noch, wenn wirklich etwas nachlädt. */
@@ -168,8 +188,8 @@ function useBreite<T extends HTMLElement>() {
     const spaet = window.setTimeout(messen, 600);
     window.addEventListener("load", messen);
     const bilder = Array.from(n.querySelectorAll("img"));
-    bilder.forEach(b => b.addEventListener("load", messen));
-    return () => {
+    bilder.forEach(b => { b.addEventListener("load", messen); if (b.complete) messen(); });
+    aufraeumen.current = () => {
       ro?.disconnect();
       cancelAnimationFrame(r1);
       window.clearTimeout(spaet);
@@ -177,6 +197,7 @@ function useBreite<T extends HTMLElement>() {
       bilder.forEach(b => b.removeEventListener("load", messen));
     };
   }, [messen]);
+  useEffect(() => () => { aufraeumen.current?.(); aufraeumen.current = null; }, []);
   return [setzen, breite] as const;
 }
 
@@ -193,7 +214,21 @@ function useBreite<T extends HTMLElement>() {
  * bewusste Entscheidung — wischen bis hierher heisst, den Film sehen zu wollen. Stumm startet
  * er trotzdem (das lässt jeder Browser zu), der Lautsprecher-Knopf macht ihn auf Wunsch laut.
  */
-function FilmFolie({ quelle, poster, bild, alt }: { quelle: string; poster: string; bild: string; alt: string }) {
+export function FilmFolie({ quelle, poster, bild, alt, intro = "The story behind the picture", musikAn = true }: {
+  quelle: string; poster: string; bild: string; alt: string;
+  /**
+   * Die Zeile über dem Standbild. „The story behind the picture" gehört zu den Filmen, in denen
+   * ein Künstler über sein Werk spricht; ein Film ohne Geschichte (etwa: ein Poster wird
+   * aufgehängt, im Journal) bekommt `null` und zeigt nur den Play-Knopf.
+   */
+  intro?: string | null;
+  /**
+   * `false`, wenn die Musik schon IN der Datei liegt (Owner 20.09.2026 zum Aufhänge-Film:
+   * „braucht aber Musik" — sie ist dort eingemischt, damit der Film auch ausserhalb der Seite
+   * nicht stumm ist). Zwei Musikspuren übereinander wären ein Fehler, den man sofort hört.
+   */
+  musikAn?: boolean;
+}) {
   const video = useRef<HTMLVideoElement>(null);
   /**
    * ── MUSIK IM HINTERGRUND (Owner 20.09.2026) ──────────────────────────────────────────────
@@ -283,9 +318,11 @@ function FilmFolie({ quelle, poster, bild, alt }: { quelle: string; poster: stri
             {/* Owner 20.09.2026: 32px → „500%" (160px) → „jetzt 200% kleiner" (72px) — die Grösse
                 ist bewusst in Schritten gesucht, nicht berechnet: jeder Wert ist die Antwort auf
                 den vorigen. */}
-            <span className="font-sans text-[72px] font-black uppercase leading-[0.98] tracking-tight text-white [text-shadow:0_3px_20px_rgba(0,0,0,.7)]">
-              The story behind the picture
-            </span>
+            {intro ? (
+              <span className="font-sans text-[72px] font-black uppercase leading-[0.98] tracking-tight text-white [text-shadow:0_3px_20px_rgba(0,0,0,.7)]">
+                {intro}
+              </span>
+            ) : null}
             {/* Owner 20.09.2026: „Playbutton fehlt" — er war da, aber halb durchsichtig auf
                 heller Wand kaum zu sehen. Jetzt ganz weiss, mit einem Ring, der ihn von JEDEM
                 Untergrund abhebt, nicht nur von einem dunklen Bild. */}
@@ -317,7 +354,7 @@ function FilmFolie({ quelle, poster, bild, alt }: { quelle: string; poster: stri
           className="absolute inset-0 h-full w-full object-cover" />
       )}
       {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
-      <audio ref={musik} src="/lakatosbandi/stimme-musik.mp3" loop preload="none" />
+      {musikAn ? <audio ref={musik} src="/lakatosbandi/stimme-musik.mp3" loop preload="none" /> : null}
       {/* ── LADEBALKEN (Owner 20.09.2026) ────────────────────────────────────────────────────
           Bis das erste Bild da ist, steht das Standbild (`poster=`); der Balken sagt „es
           kommt", statt dass die Folie einfach schwarz und tot aussieht. */}

@@ -59,7 +59,17 @@ export type ArtikelZiel = "trichter" | "shop";
  */
 export type ArtikelVideo = { mandant: string; werk: string };
 
-export type Artikel = { slug: string; datum: string; ziel?: ArtikelZiel; video?: ArtikelVideo; texte: Record<JournalSprache, ArtikelText> };
+/**
+ * ── EIN KURZER FILM MITTEN IM TEXT (Owner 20.09.2026: „ich gebe dir noch ein Video, zu zeigen
+ * wie jemand das Poster an die Wand hängt. Das machst du auch in den Artikel rein") ───────────
+ *
+ * Anders als `video` hängt dieser Film an keinem Werk: Er liegt als Datei neben den Bildern des
+ * Journals (`public/lakatosbandi/journal/`), samt Standbild AUS dem Film. `nachTeil` ist die
+ * Nummer des Abschnitts (ab 0), unter dem er steht. Die Musik ist in die Datei eingemischt.
+ */
+export type ArtikelClip = { nachTeil: number; datei: string; standbild: string; breit: number; hoch: number };
+
+export type Artikel = { slug: string; datum: string; ziel?: ArtikelZiel; video?: ArtikelVideo; clips?: ArtikelClip[]; texte: Record<JournalSprache, ArtikelText> };
 
 export const JOURNAL_SPRACHEN: JournalSprache[] = ["en", "ro", "de"];
 
@@ -89,6 +99,8 @@ export const ARTIKEL: Artikel[] = [
     slug: "story-behind-the-picture",
     datum: "2026-09-20",
     video: { mandant: "gerrylouisett", werk: "standard" },
+    /* Unter „Biete das Werk als Poster an" (Abschnitt 6): auspacken, tragen, aufhängen, ansehen. */
+    clips: [{ nachTeil: 6, datei: "poster-an-die-wand.mp4", standbild: "poster-an-die-wand-standbild.jpg", breit: 768, hoch: 1024 }],
     texte: {
       en: {
         titel: "The story behind the picture — how to present an artwork so people stop",

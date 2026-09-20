@@ -851,11 +851,15 @@ export default async function PortalStart({ searchParams }: { searchParams: Prom
           <span className="mb-1 block text-[12px] font-semibold uppercase tracking-[0.08em] text-[#666]">{T.rubrikKariKicker}</span>
           <h2 className="m-0 max-w-[18ch] font-serif text-[26px] font-normal leading-[1.12] text-[#111] sm:text-[34px]">{T.rubrikStoryTitel}</h2>
           <p className="mt-3 max-w-[42ch] text-[15px] leading-[1.55] text-[#555] sm:text-[17px]">{T.rubrikStoryText}</p>
-          <Link href={P.journal(L, "story-behind-the-picture")}
-            className="mt-4 inline-flex items-center gap-2 border-b border-[#111] pb-[2px] text-[15px] font-semibold text-[#111] no-underline">
+          {/* EIN FETTER SCHWARZER KNOPF, KEINE UNTERSTRICHENE ZEILE (Owner 20.09.2026, mit Bild der
+              Zeile: „braucht fetter schwarzer Button") — die dünne Zeile übersah man unter dem
+              grossen Film. `<a>` statt `<Link>`: Die Adresse `/journal/…` lebt auf lakatosbandi.com
+              von einer Umleitung je Host; ein voller Seitenaufruf nimmt sie sicher mit. */}
+          <a href={P.journal(L, "story-behind-the-picture")}
+            className="mt-5 inline-flex items-center gap-2 rounded-xl bg-[#111] px-6 py-3.5 text-[16px] font-bold text-white no-underline transition hover:bg-[#333]">
             {T.rubrikStoryLink}
-            <ArrowRight className="h-4 w-4" aria-hidden />
-          </Link>
+            <ArrowRight className="h-[18px] w-[18px]" aria-hidden />
+          </a>
         </div>
       </section>
     );
