@@ -58,6 +58,13 @@ export type WerkInfo = {
    */
   filmAm?: string;
   /**
+   * ZU DIESEM WERK GIBT ES DEN FILM „AN DIE WAND" (Owner 20.09.2026) — das Blatt wird ausgepackt
+   * und aufgehängt. Ein Merker wie `film`, aus demselben Grund: keine Abfrage der Ablage beim
+   * Zeichnen. Die Dateien: `wandFilmPfad` / `wandFilmPosterPfad` in lib/lakatosbandi-film.ts.
+   */
+  wandFilm?: boolean;
+  wandFilmAm?: string;
+  /**
    * ZU DIESEM WERK SPRICHT DER KÜNSTLER (Owner 17.09.2026). Derselbe Merker wie `film`, für den
    * zweiten Film: Ohne ihn müsste die Seite bei jedem Werk in der Ablage nachsehen, ob eine
    * Datei existiert — zehn Abfragen, bevor eine Zeile gezeichnet werden darf.

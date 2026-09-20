@@ -28,6 +28,22 @@ export const filmPosterPfad = (mandant: string, nr: string) =>
   `versusforge-film/${String(mandant).replace(/[^a-zA-Z0-9_-]/g, "")}/${nr === "" || nr === "-1" ? "standard" : String(nr).replace(/[^a-zA-Z0-9_-]/g, "")}-poster.jpg`;
 
 /**
+ * ── DER FILM „AN DIE WAND" (Owner 20.09.2026: „ich gebe dir noch ein Video, zu zeigen wie jemand
+ * das Poster an die Wand hängt" · mit Bild des Sliders: „das baust du auch hier ein") ─────────
+ *
+ * Ein ZWEITER Film je Werk, neben der Geschichte: auspacken, tragen, aufhängen, ansehen. Er
+ * zeigt genau DIESES Blatt — deshalb hängt er am Werk und nicht am Haus; unter einem anderen
+ * Poster wäre er falsch. Eigene Dateien im selben Ordner wie der Film: `<nr>-wand.mp4` und sein
+ * Standbild `<nr>-wand.jpg` (aus dem Film geschnitten, wie beim ersten). Die Musik ist in die
+ * Datei eingemischt — in dem Film spricht niemand.
+ */
+const werkNr = (nr: string) => (nr === "" || nr === "-1" ? "standard" : String(nr).replace(/[^a-zA-Z0-9_-]/g, ""));
+export const wandFilmPfad = (mandant: string, nr: string) =>
+  `versusforge-film/${String(mandant).replace(/[^a-zA-Z0-9_-]/g, "")}/${werkNr(nr)}-wand.mp4`;
+export const wandFilmPosterPfad = (mandant: string, nr: string) =>
+  `versusforge-film/${String(mandant).replace(/[^a-zA-Z0-9_-]/g, "")}/${werkNr(nr)}-wand.jpg`;
+
+/**
  * ── DER KÜNSTLER SPRICHT ÜBER SEIN WERK (Owner 17.09.2026: „mach doch einen Kasten neben
  * diesem Bild fürs Video … ich lasse sie in HeyGen sprechen") ────────────────────────────────
  *

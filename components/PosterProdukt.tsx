@@ -122,14 +122,26 @@ export default function PosterProdukt({
           ein Merker, zwei Stellen, die ihn brauchen. */}
       <PosterRaeume aus={!alsPoster || istKleidung(k.i)} hoch={!wi?.quer}
         adresse={slide === undefined ? undefined : { start: slide, schreiben: !nurSlider }}
-        film={wi?.film ? {
-          quelle: `/api/portal-film?m=${encodeURIComponent(kuenstler)}&i=${nr}&v=${encodeURIComponent(wi?.filmAm ?? "1")}`,
-          /* Ein Bild AUS DEM FILM (Owner 20.09.2026: „Poster für Video muss aus dem Video
-             kommen") — `bild` (das Werk) ist nur der Rückfall, solange keines geschnitten
-             wurde (`FilmFolie` fängt das 404 auf). */
-          poster: `/api/portal-film?m=${encodeURIComponent(kuenstler)}&i=${nr}&art=filmposter&v=${encodeURIComponent(wi?.filmAm ?? "1")}`,
-          bild: mitAdmin(werkBild(kuenstler, k.i, 1100)), alt: m.name,
-        } : undefined}
+        filme={[
+          /* Erst „an die Wand", dann die Geschichte — sie bleibt an letzter Stelle (Owner
+             20.09.2026: „als letzte Position"). Beide Standbilder kommen AUS ihrem Film; `bild`
+             (das Werk) ist nur der Rückfall, solange keines geschnitten wurde. */
+          ...(wi?.wandFilm ? [{
+            schluessel: "wand",
+            quelle: `/api/portal-film?m=${encodeURIComponent(kuenstler)}&i=${nr}&art=wand&v=${encodeURIComponent(wi?.wandFilmAm ?? "1")}`,
+            poster: `/api/portal-film?m=${encodeURIComponent(kuenstler)}&i=${nr}&art=wandposter&v=${encodeURIComponent(wi?.wandFilmAm ?? "1")}`,
+            bild: mitAdmin(werkBild(kuenstler, k.i, 1100)), alt: m.name,
+            /* Hier erzählt niemand — kein „The story behind the picture", und die Musik liegt
+               schon in der Datei. */
+            intro: null, musikAn: false,
+          }] : []),
+          ...(wi?.film ? [{
+            schluessel: "video",
+            quelle: `/api/portal-film?m=${encodeURIComponent(kuenstler)}&i=${nr}&v=${encodeURIComponent(wi?.filmAm ?? "1")}`,
+            poster: `/api/portal-film?m=${encodeURIComponent(kuenstler)}&i=${nr}&art=filmposter&v=${encodeURIComponent(wi?.filmAm ?? "1")}`,
+            bild: mitAdmin(werkBild(kuenstler, k.i, 1100)), alt: m.name,
+          }] : []),
+        ]}
         blatt={
 
           <Poster

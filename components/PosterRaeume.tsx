@@ -391,7 +391,7 @@ export function FilmFolie({ quelle, poster, bild, alt, intro = "The story behind
   );
 }
 
-export default function PosterRaeume({ children, blatt, hoch = true, aus = false, film, adresse }: {
+export default function PosterRaeume({ children, blatt, hoch = true, aus = false, filme = [], adresse }: {
   /** Folie 0: das Werk mit allem Werkzeug. */
   children: React.ReactNode;
   /** Dasselbe Blatt ohne Werkzeug — das hängt an der Wand. */
@@ -408,7 +408,13 @@ export default function PosterRaeume({ children, blatt, hoch = true, aus = false
    * hängt er DAHINTER als eigenes Blatt im selben Slider — wischen statt klicken, dieselbe
    * Geste wie zu den Zimmern. Ohne `film` fehlt die Folie ganz, wie bisher.
    */
-  film?: { quelle: string; poster: string; bild: string; alt: string };
+  /**
+   * MEHRERE FILME, JEDER SEINE FOLIE (Owner 20.09.2026, mit Bild des Sliders: „das baust du auch
+   * hier ein" · „und das Video auch") — in dieser Reihenfolge hinter den Zimmern. `schluessel`
+   * ist der Name in der Adresse (`?slide=wand`, `?slide=video`) und auf der Miniatur. Die
+   * Geschichte des Künstlers steht weiter an LETZTER Stelle; der Aufrufer sortiert.
+   */
+  filme?: { schluessel: string; quelle: string; poster: string; bild: string; alt: string; intro?: string | null; musikAn?: boolean }[];
   /**
    * ── JEDE FOLIE HAT IHRE ADRESSE (Owner 20.09.2026: „jeder Slider soll eine eigene URL haben")
    *
@@ -427,7 +433,8 @@ export default function PosterRaeume({ children, blatt, hoch = true, aus = false
 }) {
   const startFolie = (() => {
     const w = String(adresse?.start ?? "").trim().toLowerCase();
-    if (w === "video") return film ? RAEUME.length + 1 : 0;
+    const f = filme.findIndex(x => x.schluessel === w);
+    if (f >= 0) return RAEUME.length + 1 + f;
     const n = Number(w);
     return Number.isInteger(n) && n >= 2 && n <= RAEUME.length + 1 ? n - 1 : 0;
   })();
@@ -438,13 +445,11 @@ export default function PosterRaeume({ children, blatt, hoch = true, aus = false
     setIRoh(n);
     if (!adresse || adresse.schreiben === false || typeof window === "undefined") return;
     const u = new URL(window.location.href);
-    const wert = n === 0 ? "" : film && n === RAEUME.length + 1 ? "video" : String(n + 1);
+    const wert = n === 0 ? "" : n > RAEUME.length ? (filme[n - RAEUME.length - 1]?.schluessel ?? "") : String(n + 1);
     if (wert) u.searchParams.set("slide", wert); else u.searchParams.delete("slide");
     window.history.replaceState(window.history.state, "", u.toString());
   };
-  /** Die Folie mit dem Film — an letzter Stelle, nach allen Zimmern (Owner 20.09.2026: „als
-      letzte Position"). Die Zimmer behalten ihre Nummern, nichts rückt für sie zusammen. */
-  const filmSlide = film ? RAEUME.length + 1 : -1;
+  /* Die Film-Folien stehen hinter den Zimmern; die Zimmer behalten ihre Nummern. */
   /* ── SEIN BILD HÄNGT MIT AN DER WAND (Owner 18.09.2026: „auch das Bild muss dann an die Wand
      gesehen werden" · „das hochgeladene und das generierte") ─────────────────────────────────
      `PosterDeinBild` trägt hier ein, was gerade im Blatt steht; die Zimmer und die Miniaturen
@@ -477,9 +482,10 @@ export default function PosterRaeume({ children, blatt, hoch = true, aus = false
         </div>
 
         {/* Die Film-Folie — nur eingehängt, solange sie aktiv ist (Owner 20.09.2026). */}
-        {film && i === filmSlide ? (
-          <FilmFolie quelle={film.quelle} poster={film.poster} bild={film.bild} alt={film.alt} />
-        ) : null}
+        {filme.map((f, n) => (i === RAEUME.length + 1 + n ? (
+          <FilmFolie key={f.schluessel} quelle={f.quelle} poster={f.poster} bild={f.bild} alt={f.alt}
+            intro={f.intro === undefined ? "The story behind the picture" : f.intro} musikAn={f.musikAn !== false} />
+        ) : null))}
 
         {RAEUME.map((datei, k) => (
           i !== k + 1 ? null : (
@@ -569,20 +575,21 @@ export default function PosterRaeume({ children, blatt, hoch = true, aus = false
             Nach allen Zimmern, nicht direkt hinter Folie 0 — sie ist ein Extra, kein Ersatz für
             eines der Zimmer. Mit einem Play-Zeichen, sonst sähe sie aus wie ein zweites
             Werkbild. */}
-        {film ? (
-          <button type="button" onClick={() => setI(filmSlide)} aria-label="Video"
+        {filme.map((f, n) => (
+          <button key={f.schluessel} type="button" onClick={() => setI(RAEUME.length + 1 + n)}
+            aria-label={f.schluessel === "video" ? "Video" : `Video ${f.schluessel}`}
             className={`relative flex h-[86px] w-[64px] items-center justify-center overflow-hidden rounded-md border bg-black p-0 transition ${
-              i === filmSlide ? "border-[#111]" : "border-[#ddd4c0] hover:border-[#999]"}`}>
+              i === RAEUME.length + 1 + n ? "border-[#111]" : "border-[#ddd4c0] hover:border-[#999]"}`}>
             {/* Dasselbe Standbild wie in der Folie — fehlt es, das Werkbild (Owner 20.09.2026:
                 „Poster für Video muss aus dem Video kommen"). */}
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={film.poster} alt="" loading="lazy" className="h-full w-full object-cover opacity-80"
-              onError={e => { e.currentTarget.src = film.bild; }} />
+            <img src={f.poster} alt="" loading="lazy" className="h-full w-full object-cover opacity-80"
+              onError={e => { e.currentTarget.src = f.bild; }} />
             <span className="absolute grid h-6 w-6 place-items-center rounded-full bg-white/90 text-[#111]">
               <Play className="ml-[1px] h-3 w-3" aria-hidden />
             </span>
           </button>
-        ) : null}
+        ))}
       </div>
     </div>
     </WandBildContext.Provider>
