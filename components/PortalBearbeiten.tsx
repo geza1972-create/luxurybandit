@@ -245,6 +245,10 @@ export default function PortalBearbeiten({ mandant, k, T, lang, aufbau = false, 
   const [vollDialog, setVollDialog] = useState(false);
   const [ueberMichVorher, setUeberMichVorher] = useState<string | null>(null);
   const [spruchVorher, setSpruchVorher] = useState<Record<number, string>>({});
+  /* Nur gesetzt, wenn der Knopf WIRKLICH einen Titel geliefert und das Feld überschrieben hat —
+     sonst würde „Rückgängig" ihren eigenen, gerade erst getippten Titel gegen einen leeren
+     tauschen, den es nie gab. */
+  const [titelVorher, setTitelVorher] = useState<Record<number, string>>({});
   /**
    * ── DIE ABSAGE STEHT AM KNOPF, NICHT AM SEITENANFANG (Owner 19.09.2026: „als ich noch kein Abo
    * hatte, habe ich versucht die Texte vom Poster mit AI zu korrigieren, und habe keine Meldung
@@ -550,6 +554,12 @@ export default function PortalBearbeiten({ mandant, k, T, lang, aufbau = false, 
   /**
    * Einen Satz für EIN Werk schreiben lassen. Der Vorschlag landet im Feld; gespeichert wird er
    * erst mit „Speichern" — so bleibt die Entscheidung bei ihr.
+   *
+   * ── DER TITEL LÄUFT MIT (Owner 25.09.2026: „du musst mir Titel auch generieren wenn ich
+   * drücke") ─────────────────────────────────────────────────────────────────────────────────
+   * Derselbe Knopf, derselbe Aufruf — kein zweiter Knopf nur für den Titel. Nur wenn das Modell
+   * WIRKLICH einen Titel liefert, wird ihr Feld überschrieben (und merkt sich den alten Wert
+   * für „Rückgängig"); liefert es keinen, bleibt ihr eigener Titel unberührt.
    */
   const spruchSchreiben = async (i: number) => {
     if (spruchLaeuft[i]) return;
@@ -562,12 +572,17 @@ export default function PortalBearbeiten({ mandant, k, T, lang, aufbau = false, 
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ mandant, k, i }),
       });
-      const d = (await res.json().catch(() => null)) as { spruch?: string; grund?: string } | null;
+      const d = (await res.json().catch(() => null)) as { spruch?: string; titel?: string; grund?: string } | null;
       /* Seinen Satz merken, BEVOR der Vorschlag ihn überschreibt — je Werk getrennt. */
       if (res.ok && d?.spruch) {
         const alt = kacheln.find(x => x.i === i)?.spruch ?? "";
         setSpruchVorher(v => ({ ...v, [i]: alt }));
         aendern(i, "spruch", d.spruch);
+        if (d.titel) {
+          const altTitel = kacheln.find(x => x.i === i)?.titel ?? "";
+          setTitelVorher(v => ({ ...v, [i]: altTitel }));
+          aendern(i, "titel", d.titel);
+        }
         setStatus("");
       }
       /* Kein stummer Knopf: Liegt das Bild noch in der Prüfung, erfährt sie den Grund.
@@ -1071,6 +1086,12 @@ export default function PortalBearbeiten({ mandant, k, T, lang, aufbau = false, 
                 onClick={() => {
                   aendern(kc.i, "spruch", spruchVorher[kc.i]);
                   setSpruchVorher(v => { const n = { ...v }; delete n[kc.i]; return n; });
+                  /* Derselbe Knopf holt auch den Titel zurück, falls der Ki-Lauf ihn geändert
+                     hat — beides gehört zusammen, aus demselben Klick entstanden. */
+                  if (titelVorher[kc.i] !== undefined) {
+                    aendern(kc.i, "titel", titelVorher[kc.i]);
+                    setTitelVorher(v => { const n = { ...v }; delete n[kc.i]; return n; });
+                  }
                 }}
                 className="ml-1.5 inline-flex items-center rounded-full border border-[#dfe4e9] p-1.5 text-[#777] transition hover:border-[#111] hover:text-[#111]">
                 <Undo2 className="h-[13px] w-[13px]" aria-hidden />

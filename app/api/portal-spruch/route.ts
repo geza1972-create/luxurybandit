@@ -52,13 +52,15 @@ export async function POST(request: Request) {
   /* Dieselben Grenzen wie beim Speichern: -1 ist das Standardmotiv, 11 die höchste Kachel. */
   if (!Number.isInteger(i) || i < -1 || i > 11) return NextResponse.json({ ok: false }, { status: 400 });
 
-  const spruch = await spruchFuerWerk(mandant, i).catch(e => {
+  const { spruch, titel } = await spruchFuerWerk(mandant, i).catch(e => {
     console.warn("[portal-spruch] gescheitert:", mandant, i, e);
-    return "";
+    return { spruch: "", titel: "" };
   });
   /* Leer heisst: kein Bild lesbar (noch in der Prüfung oder nie hochgeladen) oder das Modell
      hat nichts geliefert. Der Browser sagt es ihr, statt stumm zu bleiben. */
   if (!spruch) return NextResponse.json({ ok: false }, { status: 502 });
   void ereignisMerken(mandant, String(m.name ?? ""), "spruchErzeugt", i);
-  return NextResponse.json({ ok: true, spruch });
+  /* `titel` kann leer bleiben (das Modell findet nicht immer einen guten Namen) — dann rührt
+     das Dashboard das Titelfeld gar nicht an, siehe dort. */
+  return NextResponse.json({ ok: true, spruch, titel });
 }

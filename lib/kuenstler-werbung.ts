@@ -81,8 +81,8 @@ export async function kandidatVorbereiten(id: string): Promise<VorbereitetErgebn
   if (!gesehen?.ok) return { ok: false, grund: "nicht-gelesen" };
 
   /* Sein Satz — in SEINER Sprache, nicht in unserer. Er liest ihn in der Mail. */
-  const spruch = await spruchAusBefund({ apiKey, befund: gesehen.werk, sprache: k.sprache, bild })
-    .catch(() => "");
+  const { spruch } = await spruchAusBefund({ apiKey, befund: gesehen.werk, sprache: k.sprache, bild })
+    .catch(() => ({ spruch: "", titel: "" }));
   if (!spruch) return { ok: false, grund: "kein-spruch" };
 
   const schluessel = randomUUID().replace(/-/g, "");

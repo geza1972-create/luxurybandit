@@ -17,6 +17,11 @@
  * IDEMPOTENT: Existiert die Datei schon, wird NICHTS überschrieben — das Skript zeigt nur
  * den Stand und den Dashboard-Link.
  *
+ * PREMIUM WIE GERRY LOUISETT UND SZIDONIA BANDI (Owner 25.09.2026: „die haben premium", zum
+ * Dashboard, wo Living Poster und die Stimmaufnahme hinter „Upgrade" standen): Dasselbe
+ * geschenkte Jahr, ab heute — `posterViu: true` allein reicht nicht, `aboAktiv()`
+ * (lib/versusforge-abo.ts) sperrt beide Bausteine im Dashboard ohne aktives Abo.
+ *
  *   node scripts/lakatosbandi-studio-anlegen.mjs          → Probelauf, nichts geschrieben
  *   node scripts/lakatosbandi-studio-anlegen.mjs --echt   → wirklich anlegen
  */
@@ -45,7 +50,9 @@ if (schon.ok) {
   process.exit(0);
 }
 
-const jetzt = new Date().toISOString();
+const jetztDatum = new Date();
+const jetzt = jetztDatum.toISOString();
+const inEinemJahr = new Date(jetztDatum); inEinemJahr.setFullYear(jetztDatum.getFullYear() + 1);
 const schluessel = crypto.randomUUID().replace(/-/g, "");
 const loeschSchluessel = crypto.randomUUID().replace(/-/g, "");
 
@@ -76,6 +83,9 @@ const angaben = {
   /* Living Poster ist für dieses Studio an — genau der Verkaufsweg, den der Owner für seine
      eigenen Werke aufbauen will. */
   posterViu: true,
+  /* Geschenktes Premium-Jahr — siehe Kopf dieser Datei. `aktiv` bleibt false: geschenkt ist
+     nicht bezahlt, sonst liefe das Geschenk nie ab. */
+  abo: { aktiv: false, seit: jetzt, geschenktBis: inEinemJahr.toISOString() },
   instagram: "", facebook: "",
 };
 

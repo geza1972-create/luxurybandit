@@ -77,19 +77,27 @@ const infoSchluessel = (i: number) => (i < 0 ? "standard" : String(i));
  *
  * DERSELBE PROMPT WIE OBEN, bewusst: Zwei Stellen, die Sprüche schreiben, wären zwei Stimmen
  * unter denselben Bildern.
+ *
+ * ── DER TITEL LÄUFT MIT (Owner 25.09.2026: „du musst mir Titel auch generieren wenn ich
+ * drücke") ─────────────────────────────────────────────────────────────────────────────────
+ *
+ * Bisher schrieb der Knopf nur den Spruch; das Titelfeld blieb stumm daneben, egal wie oft sie
+ * drückte. `spruchAusBefund` liefert jetzt beides aus EINEM Aufruf — kein zweiter Modellaufruf
+ * nur für ein paar Worte.
  */
-export async function spruchFuerWerk(mandant: string, i: number): Promise<string> {
+export async function spruchFuerWerk(mandant: string, i: number): Promise<{ spruch: string; titel: string }> {
+  const leer = { spruch: "", titel: "" };
   const apiKey = process.env.OPENAI_API_KEY?.trim() ?? "";
-  if (!apiKey) return "";
+  if (!apiKey) return leer;
   const m = await mandantLesen(mandant);
-  if (!m) return "";
+  if (!m) return leer;
 
   const schluessel = infoSchluessel(i);
   /* Befund von früher nutzen; fehlt er, das Bild jetzt ansehen. */
   let befund = m.werkBefunde?.[schluessel] as WerkBefund | undefined;
   if (!befund?.szene && !befund?.motiv) {
     const bild = await motivLesen(mandant, i);
-    if (!bild) return "";
+    if (!bild) return leer;
     const gesehen = await bildAnsehen({ apiKey, bild }).catch(() => null);
     if (gesehen?.ok) {
       befund = gesehen.werk;
@@ -115,7 +123,7 @@ export async function spruchFuerWerk(mandant: string, i: number): Promise<string
   const bild = await motivLesen(mandant, i).catch(() => "");
 
   return spruchAusBefund({ apiKey, befund, sprache: m.sprache, andere, ...(bild ? { bild } : {}) })
-    .catch(e => { console.warn("[kuenstler-sprueche] Einzelspruch gescheitert:", mandant, i, e); return ""; });
+    .catch(e => { console.warn("[kuenstler-sprueche] Einzelspruch gescheitert:", mandant, i, e); return leer; });
 }
 
 /**
@@ -144,9 +152,9 @@ export async function spruchAusBefund(o: {
    * ausgerechnet der Spruch läuft auf dem GROSSEN Modell, ist also die teure Hälfte. Was man
    * nicht misst, kann man nicht senken.
    *
-   * ALS RÜCKRUF, NICHT ALS RÜCKGABEWERT: Die Funktion gibt weiter einen String zurück, sonst
-   * müsste jeder Aufrufer (`spruchFuerWerk`, `api/portal-spruch`) mit umgebaut werden, nur um
-   * eine Zahl durchzureichen, die dort niemanden interessiert.
+   * ALS RÜCKRUF, NICHT ALS RÜCKGABEWERT: Der Verbrauch reist nicht im Rückgabewert mit, sonst
+   * müsste jeder Aufrufer ihn durchreichen, nur um eine Zahl weiterzugeben, die dort niemanden
+   * interessiert.
    */
   melden?: (v: Verbrauch) => void;
   /**
@@ -163,10 +171,11 @@ export async function spruchAusBefund(o: {
    * Wer das Bild sieht, benennt es in seiner Sprache selbst. Deshalb reist es jetzt mit.
    */
   bild?: string;
-}): Promise<string> {
+}): Promise<{ spruch: string; titel: string }> {
+  const leer = { spruch: "", titel: "" };
   const teile = [o.befund?.szene, (o.befund?.merkmale ?? []).join(", "), o.befund?.selten].filter(Boolean);
   const beschreibung = teile.length ? teile.join(" · ") : "";
-  if (!beschreibung || !o.apiKey) return "";
+  if (!beschreibung || !o.apiKey) return leer;
   const andere = (o.andere ?? []).filter(Boolean).slice(0, 4);
 
   const r = await frageModell(o.apiKey, GROSS, [
@@ -194,16 +203,27 @@ export async function spruchAusBefund(o: {
        und sonst nichts Eigenes. */
     "HIER SCHREIBST DU GENAU EINEN SPRUCH für EIN Bild: keine Auswahl, keine Aufzählung, kein Vorspann, keine Rückfrage.",
     o.bild ? `Notiz aus der früheren Analyse (nur als Hinweis, nie nacherzählen): ${beschreibung}` : `Das Bild: ${beschreibung}`,
-    'Antworte NUR als JSON: {"spruch":"..."}',
+    /**
+     * ── DAZU EIN TITEL FÜR DAS BLATT (Owner 25.09.2026: „du musst mir Titel auch generieren
+     * wenn ich drücke") ───────────────────────────────────────────────────────────────────────
+     *
+     * Der Titel steht GROSS auf dem gedruckten Poster (`blattZeilen`) — anders als der Spruch,
+     * der nur auf der Seite steht. Deshalb eigene, kürzere Regeln: ein Name für das Werk, kein
+     * zweiter Spruch. „X: Y" ist hier erlaubt (im Spruch oben ausdrücklich verboten) — das ist
+     * die klassische Form eines Kunsttitels, keine KI-Marotte.
+     */
+    "Dazu einen TITEL für dasselbe Bild — er steht gross auf dem gedruckten Poster, ist also etwas anderes als der Spruch: ein bis vier Wörter, ein Name für das Werk, keine Erklärung, kein Satzzeichen am Ende, keine Anführungszeichen. „Titel: Untertitel“ ist hier erlaubt, wenn es passt.",
+    'Antworte NUR als JSON: {"spruch":"...","titel":"..."}',
     ].join("\n") },
   ], "low");
 
   if (!r.ok) {
     console.warn("[kuenstler-sprueche] Spruch aus Befund gescheitert:", r.fehler);
-    return "";
+    return leer;
   }
   o.melden?.(r.verbrauch);
-  return str((r.daten as { spruch?: unknown } | null)?.spruch, 280).trim();
+  const daten = r.daten as { spruch?: unknown; titel?: unknown } | null;
+  return { spruch: str(daten?.spruch, 280).trim(), titel: str(daten?.titel, 120).trim() };
 }
 
 /** Liest ein abgelegtes Motiv und gibt es als data:-URL zurück — auch aus der Prüfablage. */

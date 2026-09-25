@@ -260,14 +260,14 @@ export async function POST(request: Request) {
   }
 
   let spruchVerbrauch = { hinein: 0, heraus: 0 };
-  const spruch = await spruchAusBefund({
+  const { spruch } = await spruchAusBefund({
     apiKey, befund: gesehen.werk, sprache,
     /* DAS BILD SELBST, nicht nur der Befund (Owner 14.09.2026: „was zum Henker wurde hier
        generiert"). Es liegt hier ohnehin in der Hand — ohne es entstand eine Nacherzählung
        englischer Stichworte samt falschem Artikel. Begründung in `spruchAusBefund`. */
     bild,
     melden: v => { spruchVerbrauch = { hinein: v.hinein, heraus: v.heraus }; },
-  }).catch(() => "");
+  }).catch(() => ({ spruch: "", titel: "" }));
   if (!spruch) return NextResponse.json({ ok: false, grund: "kein-spruch" }, { status: 502 });
 
   /**
