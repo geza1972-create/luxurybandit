@@ -834,7 +834,16 @@ export async function bewerbungAlsPdf(
       const INHALT_X = LINIE_X + 12;
       const INHALT_B = A4.b - RAND - INHALT_X;
       for (const e of profil.erfahrung) {
-        platz(46);
+        /* KEIN EINTRAG ÜBER DEN SEITENUMBRUCH (Owner 25.09.2026, am UI/UX-PDF gefunden:
+           Bundesdruckerei und UX-Institut standen ohne Jahre da): Läuft ein Eintrag beim
+           Zeichnen über die Seitengrenze, greift unten `y < yOben` nicht mehr und Jahre
+           samt Linie fallen weg. Deshalb wird die Höhe VORAB mit denselben Formeln wie in
+           `text()` gemessen und ganz verlangt — der Umbruch passiert dann VOR dem Eintrag,
+           nie mittendrin. Der Deckel schützt vor einem absurd langen Einzeltext. */
+        const hRolle = umbrechen(winAnsi(e.rolle), fett, 11, INHALT_B).length * 11 * 1.45;
+        const hFirma = e.firma ? umbrechen(winAnsi(e.firma), normal, 9.5, INHALT_B).length * 9.5 * 1.45 + 3 : 0;
+        const hErgebnis = e.ergebnis ? umbrechen(winAnsi(`·  ${e.ergebnis}`), normal, 9.5, INHALT_B).length * 9.5 * 1.45 + 10 : 10;
+        platz(Math.min(hRolle + hFirma + hErgebnis + 8, A4.h - 2 * RAND));
         const yOben = y;
         /* Erst der Inhalt — er bestimmt, wie lang die Linie wird. */
         text(e.rolle, { groesse: 11, font: fett, x: INHALT_X, maxBreite: INHALT_B, abstand: 0 });
