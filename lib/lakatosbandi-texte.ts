@@ -398,8 +398,8 @@ const TEXTE = {
      * die zwei kleinen sagen, was es hier gibt. Wer aus einer Anzeige kommt, sieht sonst sofort
      * zwanzig Blätter und weiss nicht, wonach er schaut.
      */
-    rubrikGrossTitel: "Buy art that still belongs to the artist",
-    rubrikGrossText: "Every work here comes from the person who made it. The artist is named, linked and paid — that is what Artist Fair means.",
+    rubrikGrossTitel: "Modern art, with a story behind it",
+    rubrikGrossText: "Every work comes with its own story — printed to order, with a code that tells it.",
     rubrikGrossLink: "Browse the art",
     rubrikEinsKicker: "Collection",
     rubrikEinsTitel: "Living Poster",
@@ -777,8 +777,8 @@ const TEXTE = {
     tabWerke: "Lucrări originale",
     tabReproduktionen: "Living Poster",
     tabStart: "Acasă",
-    rubrikGrossTitel: "Cumpără artă care încă îi aparține artistului",
-    rubrikGrossText: "Fiecare lucrare de aici vine de la omul care a făcut-o. Artistul este numit, legat și plătit — asta înseamnă Artist Fair.",
+    rubrikGrossTitel: "Artă modernă, cu o poveste în spate",
+    rubrikGrossText: "Fiecare lucrare vine cu propria poveste — tipărită la comandă, cu un cod care o spune.",
     rubrikGrossLink: "Vezi arta",
     rubrikEinsKicker: "Colecție",
     rubrikEinsTitel: "Living Poster",
@@ -1088,8 +1088,8 @@ const TEXTE = {
     tabWerke: "Originale",
     tabReproduktionen: "Living Poster",
     tabStart: "Start",
-    rubrikGrossTitel: "Kauf Kunst, die dem Künstler noch gehört",
-    rubrikGrossText: "Jedes Werk hier kommt von dem Menschen, der es gemacht hat. Der Künstler wird genannt, verlinkt und bezahlt — das ist Artist Fair.",
+    rubrikGrossTitel: "Moderne Kunst mit Geschichte",
+    rubrikGrossText: "Jedes Werk kommt mit seiner eigenen Geschichte — auf Bestellung gedruckt, mit einem Code, der sie erzählt.",
     rubrikGrossLink: "Kunst ansehen",
     rubrikEinsKicker: "Kollektion",
     rubrikEinsTitel: "Living Poster",
