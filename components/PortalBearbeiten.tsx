@@ -50,7 +50,7 @@ import { eur } from "@/lib/pricing";
  * BILDER GEHEN SOFORT HOCH (über `api/versusforge-bild`, mit der Inhaltsprüfung). Die Texte sammelt „Speichern".
  */
 
-type Kachel = { i: number; spruch: string; titel: string; technik: string; groesse: string; jahr: string; geschichte: string; preis: string; detalii: string; vertritt: boolean; poster: boolean; kunst: boolean; stimme?: boolean; stimmeAm?: string; sprecher?: boolean; nurStimme?: boolean; youtube?: string;
+type Kachel = { i: number; spruch: string; titel: string; technik: string; groesse: string; jahr: string; geschichte: string; preis: string; detalii: string; posterPreis: string; vertritt: boolean; poster: boolean; kunst: boolean; stimme?: boolean; stimmeAm?: string; sprecher?: boolean; nurStimme?: boolean; youtube?: string;
   /* Ob an diesem Werk schon ein Film hängt (Owner 20.09.2026) — die Geschichte und „an die Wand". */
   film?: boolean; filmAm?: string; wandFilm?: boolean; wandFilmAm?: string };
 
@@ -716,7 +716,7 @@ export default function PortalBearbeiten({ mandant, k, T, lang, aufbau = false, 
               const nr = frei.shift();
               if (nr === undefined) break;
               vorgemerkt[String(nr)] = await verkleinern(f);
-              neue.push({ i: nr, spruch: "", titel: "", technik: "", groesse: "", jahr: "", geschichte: "", preis: "", detalii: "", vertritt: false, poster: false, kunst: true });
+              neue.push({ i: nr, spruch: "", titel: "", technik: "", groesse: "", jahr: "", geschichte: "", preis: "", detalii: "", posterPreis: "", vertritt: false, poster: false, kunst: true });
             }
             if (neue.length) {
               setAusstehend(v => ({ ...v, ...vorgemerkt }));
@@ -1154,6 +1154,14 @@ export default function PortalBearbeiten({ mandant, k, T, lang, aufbau = false, 
                   <input type="checkbox" checked={kc.poster} onChange={e => posterSetzen(kc.i, e.target.checked)} />
                   {T.posterViuWerk}
                 </label>
+              ) : null}
+              {/* Sein eigener Preis für das Poster (Owner 25.09.2026) — nur wo das Poster angeboten wird. */}
+              {posterViu && kc.poster ? (
+                <span className="flex items-center gap-1.5">
+                  <span className="text-[13.5px] font-semibold text-[#555]">{T.posterPreisWort}</span>
+                  <input value={kc.posterPreis} onChange={e => aendern(kc.i, "posterPreis", e.target.value)} maxLength={8} inputMode="decimal"
+                    placeholder={T.posterPreisPlatzhalter} className={`${feld} w-[90px] py-0.5 text-[14px] text-[#444]`} />
+                </span>
               ) : null}
               {/* ── DARF DAS BILD EINES KUNDEN IN DIESEM STIL ENTSTEHEN ────────────────────
                   Owner 17.09.2026: „die künstler können das gar nicht einschalten. das ist ein

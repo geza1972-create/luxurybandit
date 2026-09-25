@@ -4,7 +4,7 @@ import { mandantLesen } from "@/lib/versusforge-mandanten";
 import { mandantPruefen } from "@/lib/versusforge-mandant";
 import { EIGENER_MANDANT } from "@/lib/versusforge-namen";
 import { werkKacheln, portalPfade } from "@/lib/lakatosbandi";
-import { druckPreisCents, druckAbzugCents, istTextil, istDatei, druckVersandCents, DRUCK_LAENDER } from "@/lib/lakatosbandi-druck";
+import { druckPreisCents, druckAbzugCents, istDatei, istEigenesStueck, druckVersandCents, posterPreisA3Cents, DRUCK_LAENDER } from "@/lib/lakatosbandi-druck";
 import { kundenbildZettel } from "@/lib/lakatosbandi-kundenbild";
 import { korbAblegen } from "@/lib/lakatosbandi-bestellung";
 import { createPackCheckout, stripeConfigured } from "@/lib/stripe";
@@ -136,11 +136,14 @@ export async function POST(request: Request) {
        `kunstAn` tragen nur Künstler, die der Owner selbst angelegt hat. Dort gibt es niemanden
        zu bezahlen; eine Lizenz wäre eine Buchung von ihm an sich selbst, die der Käufer bezahlt.
        Hier steht die verbindliche Rechnung — der Satz auf der Seite folgt ihr nur. */
-    const anteil = !m.reproduktion && !eigenes && m.kunstAn !== true;
-    const cents = druckPreisCents(material, groesse, anteil);
+    /* Kein Lizenzaufschlag auf ein eigenes Stück wie die Sonnenbrille oder Textil (Owner
+       21.09.2026) — die verbindliche Prüfung, dieselbe Ausnahme wie am Kaufknopf. */
+    const anteil = !istEigenesStueck(material) && !m.reproduktion && !eigenes && m.kunstAn !== true;
+    const schluessel = String(kachel.i) === "-1" ? "standard" : String(kachel.i);
+    /* Sein eigener Posterpreis (Owner 25.09.2026) — aus dem Datensatz, nie aus dem Browser. */
+    const cents = druckPreisCents(material, groesse, anteil, posterPreisA3Cents(m.werkInfo?.[schluessel]?.posterPreis));
     if (cents === null) return NextResponse.json({ ok: false, grund: "kein-preis" }, { status: 400 });
 
-    const schluessel = String(kachel.i) === "-1" ? "standard" : String(kachel.i);
     /* Und nur die Werke, die er angehakt hat (Owner 16.09.2026: „auch bei jedem bild"). Hat er
        noch keines gewählt, gelten alle — dieselbe Regel wie auf seiner Seite. */
     if (!m.reproduktion) {
@@ -156,7 +159,7 @@ export async function POST(request: Request) {
       ...(zettel?.stil ? { erzeugt: bildId } : {}),
       ...(eigenes ? { bild: bildId } : {}),
       /* „L cm" wäre Unsinn — Zentimeter nur beim Druck. */
-      name: `${titel} · ${material} · ${groesse}${istTextil(material) || istDatei(material) ? "" : " cm"}`,
+      name: `${titel} · ${material} · ${groesse}${istEigenesStueck(material) || istDatei(material) ? "" : " cm"}`,
     });
   }
 

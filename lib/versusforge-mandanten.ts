@@ -183,6 +183,8 @@ export type WerkInfo = {
    * `titel` unverändert.
    */
   titelSprachen?: Record<string, string>;
+  /** Sein Preis für das Poster A3 ohne Rahmen, in Euro als Text („250") — siehe `posterPreisA3Cents`. Leer: Preistabelle. */
+  posterPreis?: string;
   /**
    * DIESES WERK VERTRITT IHN (Owner 12.09.2026: „hier muss ein Häkchen sein in allen Sprachen,
    * welches Bild mich repräsentiert").

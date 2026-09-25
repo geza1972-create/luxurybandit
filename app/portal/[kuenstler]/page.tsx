@@ -159,7 +159,7 @@ export default async function PortalKuenstler({ params, searchParams }: Props) {
         return {
           ...x, titel: w.titel ?? "", technik: w.technik ?? "", groesse: w.groesse ?? "", jahr: w.jahr ?? "", geschichte: w.geschichte ?? "",
           /* Der Preis aus dem Gespräch gehört zum gewählten Bild („standard"). */
-          preis: preisText(w.preis ?? ""), detalii: w.detalii ?? "",
+          preis: preisText(w.preis ?? ""), detalii: w.detalii ?? "", posterPreis: w.posterPreis ?? "",
           /* Sein Häkchen „dieses Bild repräsentiert mich" (Owner 12.09.2026) — ohne diese Zeile
              stünde das Formular bei jedem Öffnen wieder auf leer und überschriebe seine Wahl. */
           vertritt: !!w.vertritt,

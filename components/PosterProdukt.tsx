@@ -15,7 +15,7 @@ import PosterLizenzSatz from "@/components/PosterLizenzSatz";
 import KaufKnopf from "@/components/KaufKnopf";
 import PreisLabel from "@/components/PreisLabel";
 import { preisSatz, preisText } from "@/lib/lakatosbandi-preis";
-import { druckPreisCents, druckGroessenFuer, druckSpanneCents, DRUCK_KUENSTLER_CENTS, KUNST_CENTS } from "@/lib/lakatosbandi-druck";
+import { druckPreisCents, druckGroessenFuer, druckSpanneCents, posterPreisA3Cents, DRUCK_KUENSTLER_CENTS, KUNST_CENTS } from "@/lib/lakatosbandi-druck";
 import { eur } from "@/lib/pricing";
 import { kuenstlerUrl } from "@/lib/lakatosbandi-adressen";
 import { ArrowRight } from "lucide-react";
@@ -499,6 +499,7 @@ export default function PosterProdukt({
                    der Sonnenbrille ist der Preis in der Tabelle schon der ganze Preis, wie
                    bei Textil (dieselbe Kachel-Reihe ruft `KaufKnopf` seit je ohne `anteil`). */
                 material={wi?.produkt ?? "posterramaneagra"} sprache={L} anteil={!wi?.produkt && !m.reproduktion && !m.kunstAn} adminS={admin ? adminS : ""}
+                a3Cents={wi?.produkt ? undefined : posterPreisA3Cents(wi?.posterPreis)}
                 texte={{ kaufen: T.kaufKaufen, korb: T.kaufKorb, groesse: T.kaufGroesse, fehler: T.korbFehler,
                   ohneRahmen: T.druckOhneRahmen, ohneRahmenWahl: T.ohneRahmenWahl, mitRahmen: T.druckMitRahmen, mitRahmenWahl: T.mitRahmenWahl, versand: T.druckVersandDrin, rahmenSchwarz: T.druckRahmenSchwarz }}
                 /* Die Datei steckt im selben Block (Owner 17.09.2026) — nur beim Poster,

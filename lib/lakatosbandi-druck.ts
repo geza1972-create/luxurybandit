@@ -36,7 +36,16 @@
    Angebot, und zwar aus dem Grund, den der Owner selbst genannt hat, als unsere Scans eine
    dunkle Kante trugen: „das hat auch ein rahmen. sieht blöd aus." Wer das Blatt in eine echte
    Leiste hängt, hätte sonst zwei Rahmen übereinander. */
-export const DRUCK_MATERIAL = ["poster", "posterrama", "posterramaneagra", "fisier", "tricou", "hanorac"] as const;
+/**
+ * ── SONNENBRILLE: EIN EIGENES PRODUKT, KEIN DRUCK (Owner 21.09.2026: „Er kann alles verkaufen.
+ * Poster, Brille, T-shirts") ─────────────────────────────────────────────────────────────────
+ *
+ * Anders als Poster und Textil ist sie kein Blatt und kein Stoff, den man in Grössen druckt —
+ * ein Modell, ein Preis, „Einheitsgrösse" als einzige Wahl. Sie läuft trotzdem durch DIESELBE
+ * Tabelle (Skill `bezahlung`, Regel 2): ein Künstler kann sie neben Postern anbieten, ohne dass
+ * die Kasse einen zweiten Weg braucht.
+ */
+export const DRUCK_MATERIAL = ["poster", "posterrama", "posterramaneagra", "fisier", "tricou", "hanorac", "sonnenbrille"] as const;
 export type DruckMaterial = (typeof DRUCK_MATERIAL)[number];
 
 /**
@@ -71,6 +80,8 @@ const GROESSEN = {
   fisier: ["neagra", "holz", "fara"],
   tricou: ["S", "M", "L", "XL", "XXL"],
   hanorac: ["S", "M", "L", "XL", "XXL"],
+  /** Ein Modell, keine Grösse — dieselbe Fassung für jeden (Owner 21.09.2026). */
+  sonnenbrille: ["Einheitsgröße"],
 } as const satisfies Record<DruckMaterial, readonly string[]>;
 
 export const druckGroessenFuer = (material: string): readonly string[] =>
@@ -78,6 +89,18 @@ export const druckGroessenFuer = (material: string): readonly string[] =>
 
 /** Ob dieses Material Kleidung ist — sie ist schwarz, und das steht auch so auf der Seite. */
 export const istTextil = (material: string) => material === "tricou" || material === "hanorac";
+
+/**
+ * ── EIN EIGENES STÜCK, KEIN DRUCK SEINES WERKS (Owner 21.09.2026, beim Anlegen der
+ * Sonnenbrille) ────────────────────────────────────────────────────────────────────────────
+ *
+ * Der Lizenzaufschlag (`DRUCK_KUENSTLER_CENTS`) gilt der REPRODUKTION seines Werks — Poster,
+ * Rahmen, Datei. Textil zählte deshalb nie mit (`api/druck-kasse` prüfte das nie explizit,
+ * weil Kleidung hinter `KLEIDUNG_AN` nie eine echte Kasse erreichte); die Sonnenbrille ist
+ * genau dieselbe Art Ausnahme, nur schon live. Ohne diese Prüfung würde der Server auf ihre
+ * 70 € still 10 € Lizenz aufschlagen — für ein Stück, das kein Bild von ihm trägt.
+ */
+export const istEigenesStueck = (material: string) => istTextil(material) || material === "sonnenbrille";
 
 /**
  * ── KLEIDUNG IST VORERST AUS (Owner 18.09.2026: „mach die T-Shirts jetzt raus und Hoodies. Die
@@ -187,6 +210,8 @@ const PREISE: Record<DruckMaterial, Record<string, number>> = {
   fisier: gleich(GROESSEN.fisier, 1000),
   tricou: gleich(GROESSEN.tricou, 2400),
   hanorac: gleich(GROESSEN.hanorac, 4900),
+  /** 70 € fest (Owner 21.09.2026: „Ich will Sonnenbrille verkaufen für 70€"). */
+  sonnenbrille: gleich(GROESSEN.sonnenbrille, 7000),
 };
 
 /**
@@ -267,17 +292,24 @@ export const KUNST_CENTS = 1000;
  * `kuenstlerAnteil` entscheidet der SERVER aus dem Datensatz des Künstlers, nie der Browser
  * (Skill `bezahlung`, Regel 3) — im Korb steht er nur, damit das Schild stimmt.
  */
-export function druckPreisCents(material: string, groesse: string, kuenstlerAnteil: boolean | number = false): number | null {
+export function druckPreisCents(material: string, groesse: string, kuenstlerAnteil: boolean | number = false, a3Cents?: number): number | null {
   const m = DRUCK_MATERIAL.find(x => x === material);
   if (!m) return null;
   if (!druckGroessenFuer(m).includes(groesse)) return null;
-  const p = PREISE[m][groesse] ?? null;
+  let p = PREISE[m][groesse] ?? null;
   if (p === null) return null;
+  /* Sein eigener Preis für dieses Werk ersetzt die Tabelle beim Poster: A3 ohne Rahmen kostet
+     genau `a3Cents`, die anderen Formate und der Rahmen behalten ihren Abstand dazu. */
+  if (a3Cents && (m === "poster" || m === "posterrama" || m === "posterramaneagra")) {
+    p = p - PREISE.poster.A3 + a3Cents;
+  }
   /* Die Datei kostet überall dasselbe — der Künstleranteil hängt am gedruckten Poster, nicht an
      einer Datei (Owner 16.09.2026: „ohne lizenz"). */
   /* `true` heisst die volle Lizenz; eine Zahl heisst genau diesen Betrag (die Vermittlung von
      1 €, wenn nur sein eigenes Foto im Blatt steht). */
-  const dazu = kuenstlerAnteil === true ? DRUCK_KUENSTLER_CENTS : (typeof kuenstlerAnteil === "number" ? kuenstlerAnteil : 0);
+  /* Sein eigener Preis ist der ganze Preis — die Lizenz steckt darin und kommt nicht obendrauf. */
+  const eigenerPreis = !!a3Cents && (m === "poster" || m === "posterrama" || m === "posterramaneagra");
+  const dazu = eigenerPreis ? 0 : kuenstlerAnteil === true ? DRUCK_KUENSTLER_CENTS : (typeof kuenstlerAnteil === "number" ? kuenstlerAnteil : 0);
   return dazu && m !== "fisier" ? p + dazu : p;
 }
 
@@ -410,3 +442,18 @@ export const DRUCK_LAENDER = ["RO"] as const;
  * gebrochene Versprechen. Bis dahin sagt die Seite nichts darüber.
  */
 export const DRUCK_LIEFERZEIT_TAGE: number | null = null;
+
+/**
+ * ── SEIN EIGENER POSTERPREIS JE WERK (Owner 25.09.2026: „die Poster kosten 250 Euro und ich kann
+ * das nirgendwo ändern, nur die Originale" · „ohne Rahmen kosten sie so viel") ────────────────
+ *
+ * `WerkInfo.posterPreis` ist der Preis des Posters A3 OHNE Rahmen in Euro, wie er ihn tippt
+ * („250", „89,50"). Leer oder unsinnig → `undefined`, und die Tabelle gilt wie bisher. Der Server
+ * (`api/druck-kasse`) liest den Wert aus dem Datensatz, nie aus dem Browser (Skill `bezahlung`).
+ * Sein Preis ist der ganze Preis: Der Lizenzaufschlag kommt bei eigenem Preis NICHT obendrauf.
+ */
+export function posterPreisA3Cents(roh: unknown): number | undefined {
+  const n = Number(String(roh ?? "").replace(/[^0-9,.]/g, "").replace(",", "."));
+  if (!Number.isFinite(n) || n < 5 || n > 5000) return undefined;
+  return Math.round(n * 100);
+}

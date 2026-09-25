@@ -9,6 +9,7 @@ import { profilNachtragen } from "@/lib/kuenstler-profil";
 import { neuesWerkAnFollower } from "@/lib/versusforge-folgen-neu-post";
 import { after } from "next/server";
 import { preisText } from "@/lib/lakatosbandi-preis";
+import { posterPreisA3Cents } from "@/lib/lakatosbandi-druck";
 import { ereignisMerken } from "@/lib/versusforge-ereignis";
 import { aboAktiv, darfKi, werkeGrenze } from "@/lib/versusforge-abo";
 
@@ -106,6 +107,8 @@ export async function POST(request: Request) {
            Leer heisst: An diesem Bild steht sein allgemeiner Satz. */
         preis: preisText(x.preis),
         detalii: zeile(x.detalii, 160),
+        /* Sein Posterpreis (Euro, A3 ohne Rahmen) — nur, was `posterPreisA3Cents` als Preis liest. */
+        posterPreis: posterPreisA3Cents(x.posterPreis) ? String(x.posterPreis).replace(/[^0-9,.]/g, "").slice(0, 8) : "",
         /* Welches Werk ihn vertritt (Owner 12.09.2026) — muss hier mitgeführt werden, sonst
            verschwindet das Häkchen beim Speichern: Diese Liste ist eine Whitelist, nicht ein
            Durchreichen. Dass nur EINES gesetzt ist, stellt das Formular sicher. */

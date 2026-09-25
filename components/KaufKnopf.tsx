@@ -24,8 +24,10 @@ import { eur } from "@/lib/pricing";
  * DER ANGEZEIGTE BETRAG IST NUR DAS SCHILD. Verbindlich ist der, den `api/druck-kasse` aus
  * derselben Tabelle liest (Skill `bezahlung`, Regel 3) — der Browser schickt nur die Wahl.
  */
-export default function KaufKnopf({ mandant, werk, material, sprache, anteil = false, adminS = "", texte, datei }: {
+export default function KaufKnopf({ mandant, werk, material, sprache, anteil = false, adminS = "", texte, datei, a3Cents }: {
   mandant: string;
+  /** Sein eigener Posterpreis (A3 ohne Rahmen, Cent) — nur zur Anzeige, die Kasse liest ihn selbst aus dem Datensatz. */
+  a3Cents?: number;
   /** „standard" oder die Kachelnummer. */
   werk: string;
   /** „poster", „tricou" oder „hanorac" — was diese Kachel ist. */
@@ -108,7 +110,17 @@ export default function KaufKnopf({ mandant, werk, material, sprache, anteil = f
     : rahmenBar ? (rahmen === "1" ? "posterrama" : rahmen === "2" ? "posterramaneagra" : "poster")
     : material;
   const groessen = druckGroessenFuer(echtesMaterial);
-  const [groesse, setGroesse] = useState(druckGroessenFuer(material === "posterrama" ? "posterrama" : material === "poster" ? "poster" : "posterramaneagra")[0] ?? "");
+  /**
+   * ── DIE VORWAHL GILT FÜR JEDES MATERIAL, NICHT NUR FÜR POSTER (Owner 21.09.2026, beim
+   * Anlegen der Sonnenbrille bemerkt) ──────────────────────────────────────────────────────
+   *
+   * Hier stand ein Rückfall auf „posterramaneagra" für alles, was nicht „poster" oder
+   * „posterrama" war — bei Textil oder der Sonnenbrille wählte die Seite also unsichtbar A3
+   * vor, eine Grösse, die es dort gar nicht gibt (bislang folgenlos: Kleidung stand hinter
+   * `KLEIDUNG_AN`). Vorgewählt ist jetzt die kleinste Grösse DIESES Materials — die Regel, die
+   * der Kommentar oben schon verspricht.
+   */
+  const [groesse, setGroesse] = useState(druckGroessenFuer(material === "poster" || material.startsWith("posterrama") ? "posterramaneagra" : material)[0] ?? "");
   /* Die Datei hat nur eine Fassung: ohne Rahmen (Owner 17.09.2026). In der Preistabelle heisst
      sie weiterhin „fara" — dort ist die „Grösse" die Fassung. */
   const fassung = "fara";
@@ -172,7 +184,7 @@ export default function KaufKnopf({ mandant, werk, material, sprache, anteil = f
      des Prints"). Die Begründung steht in `api/druck-kasse`; dort wird verbindlich gerechnet. */
   const anteilJetzt: boolean | number = anteil === false ? false : bildArt === "keins";
 
-  const listenPreis = druckPreisCents(echtesMaterial, wahl, anteilJetzt);
+  const listenPreis = druckPreisCents(echtesMaterial, wahl, anteilJetzt, a3Cents);
   if (listenPreis === null) return null;
   /**
    * ── DAS ERZEUGEN IST SCHON BEZAHLT (Owner 19.09.2026: „also 10 abziehen, oder?") ──────────
@@ -396,7 +408,7 @@ export default function KaufKnopf({ mandant, werk, material, sprache, anteil = f
         ) : (
           groessen.map(g => {
             /* Der Preis steht an der Grösse: „alles auf Anhieb" heisst auch, was es kostet. */
-            const p = druckPreisCents(echtesMaterial, g, anteilJetzt);
+            const p = druckPreisCents(echtesMaterial, g, anteilJetzt, a3Cents);
             return (
               <label key={g} className={schalter(groesse === g)}>
                 <input type="radio" name={`g-${mandant}-${werk}`} value={g} checked={groesse === g}
