@@ -84,7 +84,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Dieser Trichter gehört jemand anderem." }, { status: 403 });
     }
 
-    const nr = str(body.nr, 6);
+    /* 12 statt 6 Zeichen (Owner 21.09.2026, Sonnenbrille): Die zweite Produktansicht eines
+       Werks trägt denselben Schlüssel mit dem Zusatz „-2" — „standard-2" hat zehn Zeichen. */
+    const nr = str(body.nr, 12);
     const pfad = motivPfad(kennung, nr);
 
     /* WEGNEHMEN IST AUCH EINE ANTWORT: Wer sein Bild loswerden will, soll dafür nicht den
@@ -112,10 +114,10 @@ export async function POST(request: Request) {
      * ── ERST GEPRÜFT, DANN GESPEICHERT (Owner 10.09.2026: „Ich will nicht, dass Leute hier
      * Pornobilder hochladen. Ich werde sie freigeben müssen." · „markierte") ──────────────────
      *
-     * VERBOTEN wird nicht gespeichert — nirgends, auch nicht zur Ansicht für den Owner.
-     * MARKIERT liegt in der Prüfablage, die nie öffentlich ausgeliefert wird, bis der Owner
-     * entscheidet (`app/api/versusforge-freigabe/route.ts`). FREI geht wie bisher an seinen Platz.
-     * Begründung und Grenzen in `lib/versusforge-moderation.ts`.
+     * VERBOTEN wird nicht gespeichert — nirgends, auch nicht zur Ansicht für den Owner. Das
+     * gilt für JEDEN, ohne Ausnahme (auch für die zwei unten): Die automatische Prüfung ist
+     * eine Frage des ANSTANDS, nicht des Vertrauens. Begründung und Grenzen in
+     * `lib/versusforge-moderation.ts`.
      */
     const urteil = await bildPruefen({ apiKey: process.env.OPENAI_API_KEY?.trim() ?? "", bild: `data:image/jpeg;base64,${teil}` });
     if (urteil.urteil === "verboten") {
@@ -123,30 +125,27 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "abgelehnt", code: urteil.aktfoto ? "aktfoto" : "abgelehnt" }, { status: 422 });
     }
     /**
-     * ── AB JETZT GEHT JEDES BILD IN DIE PRÜFUNG (Owner 18.09.2026) ────────────────────────────
+     * ── AB JETZT GEHT JEDES BILD IN DIE PRÜFUNG (Owner 18.09.2026) — AUSSER ZWEIEN (Owner
+     * 25.09.2026: „ich will dass die Bilder von Gerry Louisett und Szidonia Bandi keine
+     * Freigabe benötigen") ────────────────────────────────────────────────────────────────────
      *
      * „Ab jetzt lassen wir nicht alle. Ich muss selektieren. Sie können nicht mehr direkt
-     * posten, ich muss die Bilder freigeben. Einzeln." · „Selbst wenn sie speichern und
-     * hochladen, sind die Bilder nicht automatisch drin."
+     * posten, ich muss die Bilder freigeben. Einzeln." — das galt seit dem 18.09. für JEDEN
+     * Künstler, auch für die zwei, die der Owner selbst kennt und deren Werke er längst
+     * angesehen hat. Ihr Bild wartete deshalb genauso in der Prüfablage wie das eines Fremden
+     * (GEMESSEN 25.09.2026: Gerrys drittes Werk lag seit dem Hochladen in
+     * `versusforge-motiv-pruefung/gerrylouisett/3.jpg`, auf der Seite fehlte es).
      *
-     * HIER STAND `urteil === "markiert" ? pruefPfad : pfad` — nur was die Moderation auffällig
-     * fand, wartete; alles andere war sofort öffentlich. Das war eine Frage des ANSTANDS
-     * (nichts Verbotenes), nicht der QUALITÄT. Und die Qualität ist der Grund, warum die Seite
-     * heute aussieht, wie sie aussieht: Werke, die im Wohnzimmer, schräg und aus drei Metern
-     * fotografiert sind.
+     * `OHNE_FREIGABE` ist eine Ausnahme für ZWEI NAMEN, keine Rückkehr zu „alle frei": Ihr Weg
+     * geht direkt an den öffentlichen Platz, wie vor dem 18.09. — jeder andere Künstler bleibt
+     * in der Prüfablage, mit derselben Mail und denselben zwei Knöpfen
+     * (`app/api/versusforge-freigabe/route.ts`).
      *
-     * Der Weg dahinter ändert sich NICHT: dieselbe Prüfablage, dieselbe Mail, dieselben zwei
-     * Knöpfe (`api/versusforge-freigabe`). Was sich ändert, ist nur, wer hineinkommt — jetzt
-     * alle.
-     *
-     * WAS DER KÜNSTLER SIEHT: Sein Bild liegt, wo es lag, und die Kachel im Dashboard zeigt
-     * „in Prüfung" (`T.bildPruefung`) statt des Bildes. Er hat also nicht das Gefühl, der
-     * Upload sei fehlgeschlagen — er sieht, dass jemand draufschaut.
-     *
-     * VERBOTEN bleibt verboten: Was die Moderation ablehnt, wird weiterhin gar nicht erst
-     * gespeichert, auch nicht zur Ansicht.
+     * WAS DER KÜNSTLER OHNE FREIGABE SIEHT: sein Bild, sofort — keine Kachel „in Prüfung".
      */
-    const zielPfad = pruefPfad(kennung, nr);
+    const OHNE_FREIGABE = new Set(["gerrylouisett", "szidoniabandi-6"]);
+    const brauchtFreigabe = !OHNE_FREIGABE.has(kennung);
+    const zielPfad = brauchtFreigabe ? pruefPfad(kennung, nr) : pfad;
 
     const put = await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(zielPfad)}`, {
       method: "POST",
@@ -156,6 +155,10 @@ export async function POST(request: Request) {
     if (!put.ok) {
       console.error("[versusforge-bild] Motiv nicht gespeichert:", put.status);
       return NextResponse.json({ error: "Das Bild liess sich nicht ablegen." }, { status: 502 });
+    }
+    if (!brauchtFreigabe) {
+      /* Direkt am öffentlichen Platz — nichts wartet, keine Mail, kein Zettel aufzuräumen. */
+      return NextResponse.json({ ok: true, motiv: true, pruefung: false });
     }
     /**
      * ── EIN NEUES BILD HEBT DIE ALTE ABLEHNUNG AUF (Owner 18.09.2026) ─────────────────────────
