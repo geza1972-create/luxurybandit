@@ -23,7 +23,9 @@ export const runtime = "nodejs";
 export async function GET(request: Request) {
   const sp = new URL(request.url).searchParams;
   const kennung = String(sp.get("m") ?? "").slice(0, 80);
-  const i = String(sp.get("i") ?? "-1").slice(0, 6);
+  /* 12 statt 6 Zeichen (Owner 21.09.2026, Sonnenbrille): die zweite Produktansicht trägt
+     denselben Schlüssel mit „-2" — „standard-2" hat zehn Zeichen. */
+  const i = String(sp.get("i") ?? "-1").slice(0, 12);
   const m = kennung ? await mandantLesen(kennung) : null;
   /* MIT SEINEM SCHLÜSSEL SIEHT ER SEINE BILDER AUCH VOR DER FREIGABE (Owner 11.09.2026: „Dort müssen sofort
      alle Bilder zu sehen sein") — Käufer weiterhin erst danach. */
@@ -95,10 +97,20 @@ export async function GET(request: Request) {
    * Druckdatei und der Erzeugungsweg holen weiter das volle Bild.
    *
    * DER CACHE IST DAS ZWEITE: 300 Sekunden hiessen, dass dieselbe Kachel fünf Minuten später
-   * wieder durch Supabase, durch `sharp` und durch die Leitung muss. Ein freigegebenes Werk
-   * ändert sich nicht mehr; ein Tag am Rand und ein Jahr im Vorrat des CDN sind ehrlicher.
-   * Für die Bearbeiten-Ansicht (`eigen`) bleibt es bei „gar nicht speichern" — dort ist das
-   * Bild noch nicht freigegeben.
+   * wieder durch Supabase, durch `sharp` und durch die Leitung muss.
+   *
+   * ── „EIN FREIGEGEBENES WERK ÄNDERT SICH NICHT MEHR" WAR FALSCH (Owner 21.09.2026: „ich habe
+   * das Bild ersetzt und wird live nicht übernommen") ─────────────────────────────────────────
+   *
+   * Genau das tut es: Ein Künstler tauscht sein Motiv am selben Platz aus (dieselbe Adresse,
+   * `motivPfad(kennung, nr)`), und `immutable` mit einem Jahr Vorrat sagte jedem CDN-Knoten und
+   * jedem Browser, das Alte für ein Jahr zu behalten — kein Ablauf, keine Nachfrage. Ein Motiv
+   * ist eben doch nicht wie ein gedruckter Film mit fester Datei; es wird nachgebessert.
+   *
+   * `stale-while-revalidate` statt `immutable`: Fünf Minuten frisch, danach darf der Knoten das
+   * Alte noch einen Tag zeigen, WÄHREND er im Hintergrund das Neue holt — der nächste Besucher
+   * bekommt es, ohne dass irgendjemand wartet. Für die Bearbeiten-Ansicht (`eigen`) bleibt es
+   * bei „gar nicht speichern" — dort ist das Bild noch nicht freigegeben.
    */
   const wRoh = Math.round(Number(sp.get("w")) || 0);
   const breite = wRoh >= 80 && wRoh <= 2000 ? wRoh : 0;
@@ -109,7 +121,7 @@ export async function GET(request: Request) {
       const roh = await res.arrayBuffer();
       const kopf = {
         "Content-Type": "image/jpeg",
-        "Cache-Control": eigen ? "private, no-store" : "public, max-age=86400, s-maxage=31536000, immutable",
+        "Cache-Control": eigen ? "private, no-store" : "public, max-age=300, s-maxage=300, stale-while-revalidate=86400",
       };
       if (!breite) return new Response(roh, { headers: kopf });
       try {
