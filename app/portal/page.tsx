@@ -725,8 +725,18 @@ export default async function PortalStart({ searchParams }: { searchParams: Prom
    *
    * FÄLLT ES AUS, BLEIBT DAS RAUMFOTO: Solange noch kein lebender Künstler freigegeben ist, darf
    * die Rubrik nicht leer sein.
+   *
+   * AUCH KEIN `kunstAn`-KONTO (Owner 25.09.2026: „und wieso steht dann das hier auf der
+   * Startseite?" zu einem Karikatur-Beispielbild unter „Kauf Kunst, die dem Künstler noch
+   * gehört") ─────────────────────────────────────────────────────────────────────────────────
+   *
+   * `!m.reproduktion` schloss nur die gemeinfreien Meister aus — ein Generator wie
+   * „caricaturist-ai" ist kein Meister, also kam sein eigenes BEISPIELBILD hier durch, sobald es
+   * gerade das jüngste war. Das ist kein Werk, „das dem Künstler noch gehört" — es ist die
+   * Probezeichnung des Werkzeugs. Dieselbe Ausnahme gilt schon für `originalWerke` weiter unten
+   * (Zeile 369) und für `originalKuenstler`; hier fehlte sie.
    */
-  const neuestesWerk = kacheln.find(({ m }) => !m.reproduktion);
+  const neuestesWerk = kacheln.find(({ m }) => !m.reproduktion && !m.kunstAn);
   const neuestesPoster = posterWerke[0];
 
   /**
@@ -754,15 +764,36 @@ export default async function PortalStart({ searchParams }: { searchParams: Prom
 
   const rubrik = (
     <PortalRubrik
-      gross={kariKuenstler && kariWerk ? {
+      /**
+       * ── DAS NEUESTE WERK GEHÖRT NACH OBEN, IMMER (Owner 21.09.2026: „ich will das letzte Werk
+       * immer auf der Startseite ganz oben sehen … Diese Rubrik ist für Werbung, und ich will die
+       * neuen Werke hier promoten, egal ob Poster oder Original") ────────────────────────────────
+       *
+       * Bis heute stand hier IMMER die Karikatur, sobald irgendein Künstler `kunstAn` hatte —
+       * praktisch also immer, und das jüngste Werk kam nie an die Reihe (der Rückfall unten griff
+       * nur, wenn es GAR keinen Karikaturisten gab). Jetzt ist es umgekehrt: Der Aufmacher zeigt
+       * IMMER das jüngste Werk eines lebenden Künstlers — Poster oder Original, das entscheidet
+       * `neuestesWerk` bereits nicht (`!m.reproduktion` schliesst nur die gemeinfreien Meister
+       * aus). Erst wenn es gar kein lebendes Werk gibt, bleibt die Karikatur als Aufmacher stehen,
+       * und erst danach das Raumfoto.
+       *
+       * DIE KARIKATUR GEHT NICHT VERLOREN (Owner: „das darf auch nicht verloren gehen"): Sie
+       * steht jetzt als dritte, kleinere Kachel weiter unten — dieselben Texte, nur nicht mehr
+       * der Aufmacher.
+       */
+      gross={neuestesWerk ? {
+        titel: T.rubrikGrossTitel, text: T.rubrikGrossText, link: T.rubrikGrossLink,
+        href: zuKuenstler(neuestesWerk.m.kennung),
+        bild: P.werkBild(neuestesWerk.m.kennung, neuestesWerk.k.i, 900),
+      } : kariKuenstler && kariWerk ? {
         kicker: T.rubrikKariKicker,
         titel: T.rubrikKariTitel, text: T.rubrikKariText, link: T.rubrikKariLink,
         href: zuKuenstler(kariKuenstler.kennung),
         bild: P.werkBild(kariKuenstler.kennung, kariWerk.i, 900),
       } : {
         titel: T.rubrikGrossTitel, text: T.rubrikGrossText, link: T.rubrikGrossLink,
-        href: neuestesWerk ? zuKuenstler(neuestesWerk.m.kennung) : adr({ ansicht: "werke", s: 1 }),
-        bild: neuestesWerk ? P.werkBild(neuestesWerk.m.kennung, neuestesWerk.k.i, 900) : "/lakatosbandi/raum1.jpg",
+        href: adr({ ansicht: "werke", s: 1 }),
+        bild: "/lakatosbandi/raum1.jpg",
       }}
       kacheln={[
         {
@@ -798,6 +829,14 @@ export default async function PortalStart({ searchParams }: { searchParams: Prom
           link: T.rubrikZweiLink, href: adr({ ansicht: "repro", s: 1 }),
           bild: "/lakatosbandi/beispiel-sternennacht.jpg",
         },
+        /* ── DIE KARIKATUR, JETZT ALS KLEINE KACHEL (Owner 21.09.2026) ─────────────────────────
+           Dieselben Texte, die vorher den Aufmacher trugen — nur nicht mehr gross. Ohne
+           Karikaturisten fehlt die Kachel einfach; dieselbe Bedingung wie am Aufmacher oben. */
+        ...(kariKuenstler && kariWerk ? [{
+          kicker: T.rubrikKariKicker, titel: T.rubrikKariTitel, text: T.rubrikKariText,
+          link: T.rubrikKariLink, href: zuKuenstler(kariKuenstler.kennung),
+          bild: P.werkBild(kariKuenstler.kennung, kariWerk.i, 900),
+        }] : []),
       ]}
     />
   );

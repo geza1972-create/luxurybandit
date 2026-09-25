@@ -136,14 +136,17 @@ export async function POST(request: Request) {
      * (GEMESSEN 25.09.2026: Gerrys drittes Werk lag seit dem Hochladen in
      * `versusforge-motiv-pruefung/gerrylouisett/3.jpg`, auf der Seite fehlte es).
      *
-     * `OHNE_FREIGABE` ist eine Ausnahme für ZWEI NAMEN, keine Rückkehr zu „alle frei": Ihr Weg
+     * `OHNE_FREIGABE` ist eine Ausnahme für NAMEN, keine Rückkehr zu „alle frei": Ihr Weg
      * geht direkt an den öffentlichen Platz, wie vor dem 18.09. — jeder andere Künstler bleibt
      * in der Prüfablage, mit derselben Mail und denselben zwei Knöpfen
      * (`app/api/versusforge-freigabe/route.ts`).
      *
      * WAS DER KÜNSTLER OHNE FREIGABE SIEHT: sein Bild, sofort — keine Kachel „in Prüfung".
+     *
+     * „lakatos-bandi-studio" DAZU (Owner 25.09.2026, direkt beim Anlegen des Studios: „die
+     * Bilder werden auch sofort freigegeben") — sein eigenes Studio, keine fremde Anmeldung.
      */
-    const OHNE_FREIGABE = new Set(["gerrylouisett", "szidoniabandi-6"]);
+    const OHNE_FREIGABE = new Set(["gerrylouisett", "szidoniabandi-6", "lakatos-bandi-studio"]);
     const brauchtFreigabe = !OHNE_FREIGABE.has(kennung);
     const zielPfad = brauchtFreigabe ? pruefPfad(kennung, nr) : pfad;
 
