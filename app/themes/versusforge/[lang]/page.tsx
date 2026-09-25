@@ -81,6 +81,7 @@ export default async function VersusForgeArtLanding({ params }: Params) {
   /* Der Chat liegt auf dem Portal (Owner 11.09.2026: „nicht auf VersusForge") — direkt dorthin,
      statt über die Weiterleitung von `/engine`. Mit `?lang=` entfällt dort die Sprachfrage. */
   const start = `https://lakatosbandi.com/start?lang=${L}`;
+  const portal = `https://lakatosbandi.com/?lang=${L}`;
 
   const schritte = [
     { t: T.schritt1t, d: T.schritt1d },
@@ -110,19 +111,27 @@ export default async function VersusForgeArtLanding({ params }: Params) {
       kinder={<>
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqLd).replace(/</g, "\\u003c") }} />
 
-        {/* DIE KARTE — Logo und der EINE goldene Knopf der Seite (Skill `ci-design`). */}
+        {/* DIE KARTE — ein Living Poster an der Wand statt des Logos, und der EINE goldene Knopf
+            führt aufs Portal (Owner 25.09.2026: „hier soll ein Link zum Portal sein und ein Poster
+            drin sein"). Das Bild ist das Standbild aus dem Journal-Film „Poster an die Wand". */}
         <div className="lb-karte relative mt-5 overflow-hidden rounded-[20px] p-4 shadow-[0_18px_50px_rgba(0,0,0,0.35)]">
           <CornerOrnaments />
           <div className="lb-karte-rahmen pointer-events-none absolute inset-[8px] rounded-[14px]" />
           <div className="relative">
             <p className="lb-karte-gold text-center text-[10px] font-black uppercase tracking-[0.24em]">{T.kicker}</p>
             <DividerOrnament className="mt-2" />
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/VersusForge/Logo-VersusForge.JPG" alt="VersusForge" width={640} height={640}
-              className="mx-auto mt-3 aspect-square w-full max-w-[320px] rounded-[14px] object-cover" />
+            <a href={portal} className="mx-auto mt-3 block w-full max-w-[320px]">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/lakatosbandi/journal/poster-an-die-wand-standbild.jpg" alt={T.posterAlt} width={768} height={1024}
+                className="aspect-[3/4] w-full rounded-[14px] object-cover" />
+            </a>
+            <p className="mt-2 text-center text-[11px] font-bold opacity-70">{T.posterZeile}</p>
             <div className="mt-4">
-              <Knopf art="gold" href={start}>{T.cta}</Knopf>
+              <Knopf art="gold" href={portal}>{T.portalKnopf}</Knopf>
             </div>
+            <p className="mt-3 text-center text-[12.5px] font-bold">
+              <a href={start} className="underline underline-offset-4 opacity-80">{T.cta}</a>
+            </p>
           </div>
         </div>
         <p className="mt-3 text-center text-[12.5px] font-semibold text-white/60">{T.trust}</p>
@@ -175,7 +184,7 @@ export default async function VersusForgeArtLanding({ params }: Params) {
           <Lead>{T.portalP1}</Lead>
           {/* Der Name steht fest, nicht aus der Übersetzung — ein Domainname hat keine Sprache. */}
           <p className="mt-3 border-l-2 border-[#f6cf51]/50 pl-3 text-[18px] font-black leading-snug text-white">
-            <a href={`https://lakatosbandi.com/?lang=${L}`} className="text-white underline decoration-[#f6cf51]/60 underline-offset-4">lakatosbandi.com</a>
+            <a href={portal} className="text-white underline decoration-[#f6cf51]/60 underline-offset-4">lakatosbandi.com</a>
           </p>
           <Lead>{T.portalP2}</Lead>
         </section>

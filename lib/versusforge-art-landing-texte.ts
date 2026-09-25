@@ -33,7 +33,12 @@ export const ART_LANDING_TEXTE = {
   h1y: "Das Portal",
   h1b: "verkauft.",
   sub: "VersusForge hat ein Portal für Künstler gebaut: eine E-Commerce-Plattform für Kunst, in der alle unsere Werkzeuge zusammenarbeiten — Texte, Bilder, Filme, Anzeigen, Verkaufsagenten und ein Shop für Poster. Du konzentrierst dich auf deine Kunst, das Portal skaliert deine Arbeit.",
-  cta: "Kostenlos starten",
+  /* „Kostenlos starten" stand im Übersetzungsspeicher falsch („Start for free · No form · You talk
+     to an agent", gesehen 25.09.2026) — ein neuer Wortlaut umgeht den vergifteten Eintrag. */
+  cta: "Als Künstler kostenlos starten",
+  portalKnopf: "Zum Portal",
+  posterZeile: "Ein Living Poster an der Wand — gedruckt auf lakatosbandi.com",
+  posterAlt: "Ein Living Poster im Holzrahmen an einer Wohnzimmerwand",
   trust: "Deine Seite ist kostenlos · Originale 100 % für dich · Keine Provision",
 
   merkmaleTitel: "Alles in einem Portal",
