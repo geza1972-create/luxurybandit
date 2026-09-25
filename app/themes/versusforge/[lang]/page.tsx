@@ -52,18 +52,18 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const { lang } = await params;
   if (!gueltig(lang)) return {};
   const T = await artLandingInSprache(lang);
-  /* Nur der erste Satz: Der Übersetzer hängt sonst schon mal die Unterzeile an (rumänisch
+  /* Nur die ersten zwei Sätze („Du malst. Das Portal verkauft." — seit 25.09.2026 zwei Sätze): Der Übersetzer hängt sonst schon mal die Unterzeile an (rumänisch
      gesehen, 10.09.2026) — ein Tab-Titel mit drei Zeilen schneidet Google ohnehin ab. */
-  const titel = `${T.h1a} ${T.h1y} ${T.h1b}`.replace(/\s+/g, " ").trim().split(/(?<=[.!?])\s/)[0];
+  const titel = `${T.h1a} ${T.h1y} ${T.h1b}`.replace(/\s+/g, " ").trim().split(/(?<=[.!?])\s/).slice(0, 2).join(" ");
   return {
-    title: `VersusForge · Marketing for Art — ${titel}`,
+    title: `VersusForge · Portal for Artists — ${titel}`,
     description: T.sub,
     alternates: {
       canonical: `/themes/versusforge/${lang}`,
       languages: { ...Object.fromEntries(ART_SPRACHEN.map(l => [l, `/themes/versusforge/${l}`])), "x-default": "/themes/versusforge/en" },
     },
     openGraph: {
-      title: `VersusForge · Marketing for Art — ${titel}`,
+      title: `VersusForge · Portal for Artists — ${titel}`,
       description: T.sub,
       type: "website",
       url: `/themes/versusforge/${lang}`,
@@ -78,8 +78,9 @@ export default async function VersusForgeArtLanding({ params }: Params) {
   const L: Lang = lang;
   const T = await artLandingInSprache(L);
   const preis = eur(VERSUSFORGE_ABO_CENTS, L);
-  /* Der Chat in derselben Sprache — mit `?lang=` entfällt dort die Sprachfrage. */
-  const start = `/engine?lang=${L}`;
+  /* Der Chat liegt auf dem Portal (Owner 11.09.2026: „nicht auf VersusForge") — direkt dorthin,
+     statt über die Weiterleitung von `/engine`. Mit `?lang=` entfällt dort die Sprachfrage. */
+  const start = `https://lakatosbandi.com/start?lang=${L}`;
 
   const schritte = [
     { t: T.schritt1t, d: T.schritt1d },
@@ -128,7 +129,8 @@ export default async function VersusForgeArtLanding({ params }: Params) {
 
         <p className="mt-6 text-[15px] font-semibold leading-snug text-white/85">{T.sub}</p>
 
-        {/* WAS DU BEKOMMST — vier Kacheln, dasselbe Muster wie bei David. */}
+        {/* DIE MODULE DES PORTALS — sechs Kacheln, dasselbe Muster wie bei David (Owner 25.09.2026:
+            „hier werden alle Module, die VersusForge entwickelt hat"). */}
         <div className="lb-karte relative mt-10 overflow-hidden rounded-[20px] px-4 pb-4 pt-5 shadow-[0_18px_50px_rgba(0,0,0,0.35)]">
           <CornerOrnaments />
           <div className="lb-karte-rahmen pointer-events-none absolute inset-[8px] rounded-[14px]" />
@@ -136,7 +138,7 @@ export default async function VersusForgeArtLanding({ params }: Params) {
             <h2 className="lb-karte-gold m-0 text-center text-[10px] font-black uppercase tracking-[0.24em]">{T.merkmaleTitel}</h2>
             <DividerOrnament className="mt-2" />
             <div className="mt-3 grid grid-cols-2 gap-2">
-              {[{ t: T.m1t, d: T.m1d }, { t: T.m2t, d: T.m2d }, { t: T.m3t, d: T.m3d }, { t: T.m4t, d: T.m4d }].map((m, i) => (
+              {[{ t: T.m1t, d: T.m1d }, { t: T.m2t, d: T.m2d }, { t: T.m3t, d: T.m3d }, { t: T.m4t, d: T.m4d }, { t: T.m5t, d: T.m5d }, { t: T.m6t, d: T.m6d }].map((m, i) => (
                 <div key={i} className="lb-karte-news rounded-[12px] px-2.5 py-2">
                   <span className="lb-karte-gold text-[10.5px] font-black">{String(i + 1).padStart(2, "0")}</span>
                   <h3 className="m-0 mt-0.5 text-[12px] font-black leading-snug">{m.t}</h3>
@@ -172,7 +174,9 @@ export default async function VersusForgeArtLanding({ params }: Params) {
           <SectionTitle>{T.portalT}</SectionTitle>
           <Lead>{T.portalP1}</Lead>
           {/* Der Name steht fest, nicht aus der Übersetzung — ein Domainname hat keine Sprache. */}
-          <p className="mt-3 border-l-2 border-[#f6cf51]/50 pl-3 text-[18px] font-black leading-snug text-white">lakatosbandi.com</p>
+          <p className="mt-3 border-l-2 border-[#f6cf51]/50 pl-3 text-[18px] font-black leading-snug text-white">
+            <a href={`https://lakatosbandi.com/?lang=${L}`} className="text-white underline decoration-[#f6cf51]/60 underline-offset-4">lakatosbandi.com</a>
+          </p>
           <Lead>{T.portalP2}</Lead>
         </section>
 

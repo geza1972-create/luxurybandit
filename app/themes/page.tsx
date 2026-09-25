@@ -520,7 +520,7 @@ export default async function ThemesCatalog({ searchParams }: {
        heisst so — `BESCHREIBER` im Kopf und im Schriftzug bleibt „Marketing Engine".
        ENGLISCH, weil der Katalog englische Quelle ist: Ein deutscher Text blieb auf der
        englischen Seite deutsch. Die Karte führt auf die Landingpage (SEO), nicht in den Chat. */
-    { icon: Target, title: "VersusForge · Marketing for Art", tagline: "Show us your paintings — we find the buyers who value your art. You get your marketing plan, ad copy for every work and your own gallery with an agent that talks to your prospects. Start for free.", href: "/themes/versusforge", cover: "/VersusForge/Logo-VersusForge.JPG", poster: "/VersusForge/Logo-VersusForge.JPG", chips: "♥ Your gallery · Your agent · Your buyers" },
+    { icon: Target, title: "VersusForge · The new portal for artists", tagline: "You paint — the portal sells. VersusForge brings all its tools together on lakatosbandi.com, an e-commerce platform for art: your own page, sales agents, Living Posters, texts, films and ads. You focus on your art, the portal scales your work. Start for free.", href: "/themes/versusforge", cover: "/VersusForge/Logo-VersusForge.JPG", poster: "/VersusForge/Logo-VersusForge.JPG", chips: "♥ Your page · Sales agents · Living Posters" },
     /**
      * PLATZ EINS: DIE VIDEOBOTSCHAFT AN DICH SELBST (Owner 11.08.2026: „mach das als
      * erstes" — unmittelbar nachdem er das Thema benannt hatte).

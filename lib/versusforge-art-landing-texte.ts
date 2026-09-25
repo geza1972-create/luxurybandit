@@ -2,90 +2,99 @@ import { textbausteineInSprache } from "@/lib/lebenslauf-uebersetzen";
 import type { Lang } from "@/lib/lang";
 
 /**
- * DIE LANDINGPAGE „MARKETING FOR ART" — deutsche Quelle, eine Stelle (Owner 10.09.2026:
- * „normalerweise haben wir eine Landingpage dazu, die für SEO gemacht ist").
+ * DIE LANDINGPAGE „VERSUSFORGE · MARKETING FOR ART" — deutsche Quelle, eine Stelle.
  *
- * WARUM ES SIE GIBT: `/engine` führt seit dem 10.09. direkt in den Chat — richtig für die
- * Anzeige, aber Google findet in einem Chat nichts. Diese Seite ist das, was gefunden wird;
- * der Knopf führt in denselben Chat.
+ * NEU GESCHRIEBEN (Owner 25.09.2026: „VersusForge macht ein neues Portal für Künstler. Hier
+ * werden alle Module, die VersusForge entwickelt hat … die aktuelle Landingpage beschreibt nur
+ * einen Tunnel. Aber lakatosbandi.com hat alles, es ist eine E-Commerce-Plattform für Kunst …
+ * Der Künstler konzentriert sich nur auf die Kreativität und das Portal skaliert seine Arbeit,
+ * bietet sie als Poster an, benutzt Verkaufsagenten").
  *
- * NUR, WAS GEBAUT IST. Jeder Satz hier ist im Code gedeckt (lib/versusforge-kunst-rezept.ts,
- * lib/versusforge-abo.ts, lib/versusforge-moderation.ts). Das Portal lakatosbandi.com steht
- * NICHT drin — es ist noch nicht online, und ein Versprechen, das der Künstler widerlegt
- * sieht, kostet mehr als es bringt (Skill `agenten`, Regel 6).
+ * Bis heute beschrieb die Seite nur den Weg in den Chat (Plan, Texte, Galerie). Seit das Portal
+ * online ist, erzählt sie das Portal: lakatosbandi.com, gebaut aus den VersusForge-Modulen.
+ *
+ * NUR, WAS GEBAUT IST — die Regel bleibt (Skill `agenten`, Regel 6). Gedeckt im Code:
+ *   · Agent / Anfragen       — app/api/kuenstler-agent, agent-anfrage, lib/kuenstler-lead.ts
+ *   · Living Poster / Shop   — app/api/druck-kasse, poster-kunst, lib/lakatosbandi-preise-texte.ts
+ *   · Film und Stimme        — app/api/portal-film, portal-werk-film, portal-stimme
+ *   · Texte (Algorithmus)    — app/api/portal-spruch, kunst-text, lib/versusforge-hook-rezept.ts
+ *   · Anzeigen               — lib/versusforge-anzeige*.ts, app/api/kampagne
+ *   · Journal / Follower     — lib/lakatosbandi-journal.ts, app/api/portal-folgen, rundbrief
+ *   · Rekrutierung           — lib/lakatosbandi-bald-texte.ts (rekrut), app/api/meta-leads
+ * Preise wie auf lakatosbandi.com/preise: Seite kostenlos, Premium `{preis}` im Monat.
  *
  * `{preis}` ist der Abo-Preis aus lib/pricing.ts und wird NACH der Übersetzung eingesetzt —
  * der erste Platzhalter in geschweiften Klammern, egal wie der Übersetzer ihn umbenennt
- * ([[uebersetzer-fallen]]).
+ * ([[uebersetzer-fallen]]). Der Domainname steht fest in der Seite, nicht hier.
  */
 export const ART_LANDING_TEXTE = {
-  kicker: "VersusForge · Marketing for Art",
-  h1a: "Finde die Käufer, die",
-  h1y: "deine Kunst",
-  h1b: "schätzen.",
-  sub: "Für Malerinnen, Maler und bildende Künstler: dein Marketingplan, Anzeigentexte zu jedem Werk und deine eigene Galerie mit einem KI-Agenten, der mit deinen Interessenten spricht.",
+  kicker: "VersusForge · Das neue Portal für Künstler",
+  h1a: "Du malst.",
+  h1y: "Das Portal",
+  h1b: "verkauft.",
+  sub: "VersusForge hat ein Portal für Künstler gebaut: eine E-Commerce-Plattform für Kunst, in der alle unsere Werkzeuge zusammenarbeiten — Texte, Bilder, Filme, Anzeigen, Verkaufsagenten und ein Shop für Poster. Du konzentrierst dich auf deine Kunst, das Portal skaliert deine Arbeit.",
   cta: "Kostenlos starten",
-  trust: "Kostenlos starten · Kein Formular · Du sprichst mit einem Agenten",
+  trust: "Deine Seite ist kostenlos · Originale 100 % für dich · Keine Provision",
 
-  merkmaleTitel: "Was du bekommst",
-  m1t: "Deine Kategorie",
-  m1d: "Wo dein Stil wirklich hingehört — damit dich die richtigen Leute finden.",
-  m2t: "Dein Preis, ehrlich",
-  m2d: "Eingeordnet nach dem, was vergleichbare Künstler verlangen.",
-  m3t: "Texte zu jedem Werk",
-  m3d: "Sätze, die Menschen beim Scrollen anhalten — für Instagram und Facebook.",
-  m4t: "Galerie mit Agent",
-  m4d: "Er spricht mit Interessenten und gibt dir Name und Telefonnummer weiter.",
+  merkmaleTitel: "Alles in einem Portal",
+  m1t: "Deine Seite",
+  m1d: "Deine eigene Galerie auf dem Portal, in drei Sprachen, unter deinem Namen.",
+  m2t: "Verkaufsagent",
+  m2d: "Spricht rund um die Uhr mit Interessenten und meldet dir jeden Käufer mit Name und Telefonnummer.",
+  m3t: "Living Poster",
+  m3d: "Deine Werke als Poster, auf Bestellung gedruckt — mit QR-Code, der deine Geschichte erzählt.",
+  m4t: "Texte mit Methode",
+  m4d: "Titel, Sätze und Profiltext aus unserem Marketing-Algorithmus, nicht aus einer Vorlage.",
+  m5t: "Film und Stimme",
+  m5d: "Erzähl in einer Minute die Geschichte deines Werks — der Film läuft auf deiner Seite und hinter jedem Poster.",
+  m6t: "Anzeigen und Reichweite",
+  m6d: "Wir bewerben das Portal selbst — dazu Journal-Artikel, Follower und Anzeigen aus deinen Werken.",
 
-  s1t: "Gute Kunst verkauft sich nicht von allein",
-  s1p1: "Die meisten Künstler posten ihre Werke und warten. Das Problem ist selten die Kunst — es ist, dass sie in der falschen Kategorie steht, beim falschen Publikum, mit einem Text, der nichts erzählt.",
-  s1p2: "Die wichtigste Regel im Kunstmarketing: Finde den Käufer, der schätzt, was du machst. Nicht irgendeinen.",
+  s1t: "Ein Künstler sollte kein Marketingbüro sein",
+  s1p1: "Fotografieren, Texte schreiben, posten, Anzeigen schalten, Anfragen beantworten, Versand organisieren — das alles frisst die Zeit, die ins nächste Bild gehören sollte. Und am Ende steht das Werk trotzdem beim falschen Publikum.",
+  s1p2: "Deshalb haben wir alles, was VersusForge für das Marketing entwickelt hat, in ein Portal gelegt. Du bringst die Kunst mit. Den Rest macht das Portal.",
 
   s2t: "So funktioniert es",
   schritt1t: "Zeig uns deine Werke",
-  schritt1d: "Lade mindestens drei Bilder im selben Stil hoch. Der Agent sieht sie sich an: Medium, Stil, Motiv, was selten ist.",
-  schritt2t: "Kategorie und Preis",
-  schritt2d: "Er ordnet deinen Stil ein und bespricht mit dir deinen Preis — ehrlich, auch wenn es unbequem ist.",
-  schritt3t: "Texte und Galerie",
-  schritt3d: "Du bekommst Anzeigentexte zu deinen Werken und deine eigene Galerie. Nach einer Prüfung durch uns — innerhalb von drei Tagen — geht sie online.",
-  schritt4t: "Der Agent arbeitet für dich",
-  schritt4d: "Interessenten sprechen mit deinem Agenten. Er sammelt Name und Telefonnummer, und du rufst an. Verkauft wird zwischen dir und dem Käufer — nicht bei uns.",
+  schritt1d: "Sprich mit unserem Agenten und lade mindestens drei Werke im selben Stil hoch. Er sieht sich Medium, Stil, Motiv und das Seltene daran an.",
+  schritt2t: "Deine Seite geht online",
+  schritt2d: "Wir ordnen deinen Stil ein, besprechen ehrlich deinen Preis und prüfen jeden Künstler selbst — innerhalb von drei Tagen. Dann steht deine Seite auf dem Portal.",
+  schritt3t: "Das Portal skaliert deine Arbeit",
+  schritt3d: "Texte zu jedem Werk, Filme und deine Stimme, Living Poster im Shop, Anzeigen aus deinen Bildern — aus einem Original werden viele Wege zum Käufer.",
+  schritt4t: "Die Agenten verkaufen",
+  schritt4d: "Wer ein Original will, spricht mit deinem Agenten; du bekommst die Anfrage mit Name und Telefonnummer. Poster bestellen Käufer direkt im Shop — du bekommst für jedes eine Lizenz.",
 
-  /* DAS PORTAL (Owner 10.09.2026: „wo werden die Künstler promotet, auf welchem Portal: das ist
-     lakatosbandi.com — das kommt auf die Landingpage"). Es ist noch nicht online, deshalb steht
-     es ehrlich dabei (Owner: „ja" zu „wird gerade aufgebaut"). Der Domainname steht fest in
-     der Seite, nicht hier — ein Übersetzer soll ihn nicht anfassen. */
-  portalT: "Wo wir dich bekannt machen",
-  portalP1: "Deine Werke erscheinen auf unserer Marketing-Plattform für Künstler:",
-  portalP2: "Dort werben wir für alle Künstler gemeinsam, und jedes Werk führt Interessenten direkt zu deinem Agenten. Die Plattform wird gerade aufgebaut.",
+  portalT: "Das Portal",
+  portalP1: "Alle Module von VersusForge arbeiten jetzt an einem Ort, für Künstler:",
+  portalP2: "Eine E-Commerce-Plattform für Kunst mit Originalen und Living Postern, dem Artist Fair Shop, Journal-Artikeln für Google, Followern, die neue Werke per Mail bekommen, und eigenen Anzeigen, mit denen wir Käufer und neue Künstler finden. Hinter allem arbeitet dieselbe Engine: VersusForge.",
 
-  s3t: "Warum wir Künstler auch ablehnen",
-  s3p1: "Eine Galerie ist nur so gut wie die Werke darin. Deshalb nehmen wir nur auf, wer mindestens drei Arbeiten im selben Stil zeigt — ein einzelnes Bild sagt noch nichts über einen Künstler.",
+  s3t: "Warum wir auswählen",
+  s3p1: "Ein Portal ist nur so gut wie die Werke darauf. Deshalb nehmen wir nur auf, wer mindestens drei Arbeiten im selben Stil zeigt — ein einzelnes Bild sagt noch nichts über einen Künstler. Ein Mensch sieht sich jeden Künstler an.",
   s3p2: "Gemalte und gezeichnete Akte sind willkommen. Aktfotografie nehmen wir zurzeit nicht an.",
 
   s4t: "Was es kostet",
-  s4p1: "Der Start kostet nichts: Marketingplan, Texte, Galerie und Agent.",
-  s4p2: "Wenn sich drei Interessenten bei dir gemeldet haben, fragen wir dich, ob du deinen Agenten für {preis} im Monat behalten willst. Monatlich kündbar.",
-  s4p3: "Sagst du nein, arbeitet der Agent weiter — neue Anfragen siehst du nach 14 Tagen aber erst wieder mit dem Abo.",
+  s4p1: "Deine Seite kostet nichts: bis zu 10 Werke, dein Agent, Anfragen von Käufern. Originale verkaufst du selbst — ohne Provision, 100 % für dich.",
+  s4p2: "Premium kostet {preis} im Monat: Texte mit unserem Marketing-Algorithmus, mehr Werke und der Artist Fair Shop, in dem deine Werke als Poster verkauft werden. Monatlich kündbar.",
+  s4p3: "Nach einer Kündigung bleibt deine Seite online, mit allen Werken und Texten.",
 
   faqTitel: "Häufige Fragen",
-  f1q: "Für wen ist VersusForge Marketing for Art?",
-  f1a: "Für Malerinnen, Maler und bildende Künstler, die ihre Werke verkaufen wollen und nicht wissen, wie sie die richtigen Käufer erreichen — egal ob unbekannt oder schon bekannt.",
+  f1q: "Was ist das neue Portal von VersusForge?",
+  f1a: "lakatosbandi.com — eine E-Commerce-Plattform für Kunst. Sie vereint alle Werkzeuge, die VersusForge für Marketing gebaut hat: Texte, Bilder, Filme, Anzeigen, Verkaufsagenten und einen Shop für Poster.",
   f2q: "Muss ich etwas über Marketing wissen?",
-  f2a: "Nein. Der Agent stellt dir Fragen, sieht sich deine Bilder an und baut daraus deinen Plan und deine Texte.",
-  f3q: "Verkauft ihr meine Bilder?",
-  f3a: "Nein. Wir bringen dir Interessenten mit Namen und Telefonnummer. Den Preis und den Verkauf klärst du selbst mit dem Käufer.",
-  f4q: "Wie viele Bilder brauche ich?",
-  f4a: "Mindestens drei im selben Stil. Mehr Werke kannst du später in deinem Dashboard hinzufügen.",
+  f2a: "Nein. Der Agent stellt dir Fragen, sieht sich deine Bilder an und baut daraus deine Seite und deine Texte. Du konzentrierst dich auf deine Kunst.",
+  f3q: "Verkauft ihr meine Originale?",
+  f3a: "Nein. Dein Agent führt das Gespräch und meldet dir den Interessenten. Preis, Übergabe und Versand klärst du direkt mit dem Käufer — wir nehmen davon nichts.",
+  f4q: "Was ist ein Living Poster?",
+  f4a: "Ein gedrucktes Poster deines Werks, auf Bestellung gefertigt, mit oder ohne Holzrahmen. Wer den QR-Code scannt, hört Musik, deine Stimme und liest die Geschichte des Werks. Für jedes verkaufte Poster bekommst du eine Lizenz.",
+  f7q: "Wie finden Käufer mich?",
+  f7a: "Wir schalten die Werbung für das Portal selbst, schreiben Journal-Artikel, die bei Google gefunden werden, und Follower bekommen deine neuen Werke per Mail. Die Anzeigen aus deinen Werken kannst du auch selbst schalten.",
   f5q: "In welchen Sprachen?",
-  f5a: "Englisch, Rumänisch und Deutsch. Der Agent spricht mit dir in deiner Sprache.",
-  f7q: "Wo werden meine Werke gezeigt?",
-  f7a: "In deiner eigenen Galerie und auf lakatosbandi.com, unserer Plattform für Künstler, die gerade aufgebaut wird.",
+  f5a: "Englisch, Rumänisch und Deutsch. Deine Seite erscheint in allen drei.",
   f6q: "Was passiert mit meinen Bildern?",
-  f6a: "Sie werden für deine Analyse, deine Texte und deine Galerie verwendet. Du kannst alles jederzeit löschen.",
+  f6a: "Sie werden für deine Seite, deine Texte, deine Poster und deine Anzeigen verwendet. Deine Originale bleiben deine. Du kannst alles jederzeit löschen.",
 
-  schlussT: "Bereit, deine Kunst zu zeigen?",
-  schlussP: "Das Gespräch dauert ein paar Minuten. Halte drei Bilder im selben Stil bereit.",
+  schlussT: "Bereit, nur noch zu malen?",
+  schlussP: "Das Gespräch mit dem Agenten dauert ein paar Minuten. Halte drei Bilder im selben Stil bereit.",
 } as const;
 
 /** Die drei Sprachen der Seite, in dieser Reihenfolge (Owner: Englisch, Rumänisch, Deutsch) —
