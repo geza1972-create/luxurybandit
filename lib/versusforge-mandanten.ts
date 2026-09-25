@@ -39,8 +39,23 @@ export type WerkInfo = {
    * WAS DIESE KACHEL IST (15.09.2026, Reproduktionen): Ohne diese Angabe böte der Agent an
    * jeder Kachel alle vier Materialien an — jemand hätte das FOTO DES SHIRTS auf Leinwand
    * bestellen können. Leer heisst wie bisher: ein Druck in allen Formaten.
+   *
+   * „sonnenbrille" SEIT 21.09.2026 (Owner: „Er kann alles verkaufen. Poster, Brille,
+   * T-shirts") — anders als `tricou`/`hanorac` läuft sie NICHT hinter `KLEIDUNG_AN`: Sie ist
+   * kein Druck, den die pausierte Kleidung braucht, sondern ein eigenes Produkt mit festem
+   * Preis. `istTextil` in lib/lakatosbandi-druck.ts unterscheidet die beiden Fälle.
    */
-  produkt?: "tricou" | "hanorac";
+  produkt?: "tricou" | "hanorac" | "sonnenbrille";
+  /**
+   * ── DIE ZWEITE PRODUKTANSICHT (Owner 21.09.2026, Sonnenbrille) ───────────────────────────────
+   *
+   * Ein Merker wie `film`: Bei einem Werk mit `produkt` zeigt der Slider statt der Zimmer eigene
+   * Fotos dieses Stücks — `werkBild` ist die erste (z. B. Frontalansicht), dieses zweite Bild
+   * (z. B. Seitenansicht) liegt unter derselben Nummer mit dem Zusatz „-2" (`motivPfad`,
+   * dieselbe Ablage und Prüfung wie jedes Werkbild). Ohne diesen Merker müsste die Seite bei
+   * jedem Werk in der Ablage nachsehen, ob die Datei existiert.
+   */
+  produktBild2?: boolean;
   /**
    * ZU DIESEM WERK GIBT ES EINEN FILM (15.09.2026, Video Poster). Die Kachel zeigt dann das
    * bewegte Bild statt des stillen — Rahmen und Text bleiben HTML (Owner: „kannst du nicht nur
@@ -161,6 +176,13 @@ export type WerkInfo = {
   youtube?: string;
   /** Weitere Details, z. B. „Print semnat, ediție limitată 3/50" (Owner 11.09.2026: „hier wäre nicht Technica, sondern Alte detalii"). */
   detalii?: string; titel?: string; technik?: string; groesse?: string; jahr?: string;
+  /**
+   * DERSELBE TITEL IN DEN ANDEREN PORTALSPRACHEN (Owner 25.09.2026: „die Titel müssen auch
+   * übersetzt sein") — dieselbe Lücke wie bei `hookSprachen`, nur je Werk statt je Künstler,
+   * weil der Titel selbst je Werk steht. `blattZeilen` liest hier, fehlt ein Eintrag, gilt
+   * `titel` unverändert.
+   */
+  titelSprachen?: Record<string, string>;
   /**
    * DIESES WERK VERTRITT IHN (Owner 12.09.2026: „hier muss ein Häkchen sein in allen Sprachen,
    * welches Bild mich repräsentiert").
@@ -472,6 +494,17 @@ export type MandantAngaben = {
   leben?: string;
   /** Über mich — sein Text auf seiner Seite (Owner 11.09.2026: „Text über sich"). */
   ueberMich?: string;
+  /**
+   * ── DERSELBE TEXT IN DEN ANDEREN PORTALSPRACHEN (Owner 25.09.2026: „texte übersetzen — das
+   * sind die Profiltexte") ────────────────────────────────────────────────────────────────────
+   *
+   * Dieselbe Lücke wie bei `hookSprachen`, nur für den Profiltext: Er entsteht in EINER Sprache,
+   * und ein Besucher in einer anderen sah ihn bisher unverändert — bei Lakatos & Bandi Studio
+   * rumänisch, mitten auf der deutschen Seite. Anders als `hookSprachen` ein einzelner String je
+   * Sprache, kein Feld je Werk: `ueberMich` ist EIN Text, nicht einer je Kachel. Fehlt ein
+   * Eintrag, gilt das Original — nie eine leere Fläche.
+   */
+  ueberMichSprachen?: Record<string, string>;
   /** Was er vor der Kamera sagt (Owner 18.09.2026) — Vorschlag von uns, Text von ihm. */
   stimmeSkript?: string;
   /**

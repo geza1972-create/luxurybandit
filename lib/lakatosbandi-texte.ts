@@ -12,11 +12,14 @@ export const PORTAL_SPRACHEN: Lang[] = ["en", "ro", "de"];
 const TEXTE = {
   en: {
     unter: "Marketing for Art",
-    /* ── DIE MARKE STEHT IN DER ÜBERSCHRIFT (Owner 18.09.2026: „Descopera Arta Artist Fair") ──
-       Der erste Satz der Seite sagt jetzt, was für ein Laden das ist — nicht nur, dass es Kunst
-       gibt. Warum die Werke besonders sind, steht in der Zeile darunter. */
-    titel: "Discover art — Artist Fair.",
-    lead: "Selected artists. Every work comes with the sentence that explains what makes it rare. Interested? Talk to the artist's agent.",
+    /* ── DIE MARKE STEHT IN DER ÜBERSCHRIFT (Owner 18.09.2026: „Descopera Arta Artist Fair",
+       ersetzt 25.09.2026: „wir nehmen keine neuen Künstler mehr auf. Wir produzieren selber.
+       Konzentrieren wird uns auf moderne Kunst. Siehe Texte von Lakatos & Bandi Studio") ──────
+       Der erste Satz der Seite sagt jetzt, was für ein Laden das ist — nicht mehr „wir vermitteln
+       viele Künstler", sondern „wir sind das Atelier". Ton und Worte aus dem Profiltext von
+       Lakatos & Bandi Studio (Sünde/Heiligkeit, Verbot/Verlangen, Tradition/Gegenwart). */
+    titel: "Lakatos & Bandi Studio — modern art from our own atelier.",
+    lead: "Portraits that sit between classical painting and contemporary provocation — sin and the sacred, forbidden and desire, tradition and the present. Every work carries its own story.",
     leer: "The first artists are being reviewed right now. Come back soon.",
     anmelden: "Artist login",
     /* Das Wort im Kopf (Owner 14.09.2026: „hier braucht man eigentlich ein Menü für Preise") —
@@ -535,8 +538,8 @@ const TEXTE = {
   },
   ro: {
     unter: "Marketing for Art",
-    titel: "Descoperă artă — Artist Fair.",
-    lead: "Artiști selectați. Fiecare lucrare vine cu fraza care spune ce o face rară. Te interesează? Vorbește cu agentul artistului.",
+    titel: "Lakatos & Bandi Studio — artă modernă, din atelierul propriu.",
+    lead: "Portrete la granița dintre pictura clasică și provocarea contemporană — păcat și sacru, interzis și dorință, tradiție și prezent. Fiecare lucrare vine cu propria poveste.",
     leer: "Primii artiști sunt verificați chiar acum. Revino în curând.",
     anmelden: "Login artist",
     preiseWort: "Prețuri",
@@ -858,8 +861,8 @@ const TEXTE = {
   },
   de: {
     unter: "Marketing for Art",
-    titel: "Entdecke Kunst — Artist Fair.",
-    lead: "Ausgewählte Künstler. Zu jedem Werk steht der Satz, der sagt, was es selten macht. Interessiert? Sprich mit dem Agenten des Künstlers.",
+    titel: "Lakatos & Bandi Studio — moderne Kunst aus dem eigenen Atelier.",
+    lead: "Porträts an der Schnittstelle zwischen klassischer Malerei und zeitgenössischer Provokation — Sünde und Heiligkeit, Verbot und Verlangen, Tradition und Gegenwart. Jedes Werk trägt seine eigene Geschichte.",
     leer: "Die ersten Künstler werden gerade geprüft. Schau bald wieder vorbei.",
     anmelden: "Login für Künstler",
     preiseWort: "Preise",

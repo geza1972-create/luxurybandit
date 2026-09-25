@@ -2,7 +2,7 @@ import type { MandantOeffentlich } from "@/lib/versusforge-mandanten";
 import type { Lang } from "@/lib/lang";
 import type { PortalTexte } from "@/lib/lakatosbandi-texte";
 import { platzhalterName } from "@/lib/lakatosbandi-texte";
-import { blattZeilen, posterAnriss } from "@/lib/lakatosbandi";
+import { blattZeilen, posterAnriss, ueberMichFuer } from "@/lib/lakatosbandi";
 import { kunstBlattSatz } from "@/lib/lakatosbandi-kunst";
 import Poster from "@/components/Poster";
 import PosterGross, { PosterGrossKnopf } from "@/components/PosterGross";
@@ -48,6 +48,7 @@ export default function PosterProdukt({
   id, kuenstler, m, k, L, T, mitAdmin, admin, adminS,
   lebend, kaufBar, alsPoster, istKleidung, kariStil,
   werkBild, filmHref, agentHref, filmOffen, produktHref, slide, nurSlider = false,
+  produktFotos,
 }: {
   /** Für den Sprung zurück nach Stripes „Abbrechen" (`#w-3`) — trägt `lb-poster-block[id]`. */
   id?: string;
@@ -100,9 +101,26 @@ export default function PosterProdukt({
    * in die Adresse — die gehört dort dem Artikel.
    */
   nurSlider?: boolean;
+  /**
+   * ── EIGENE PRODUKTFOTOS STATT DER ZIMMER (Owner 21.09.2026, Sonnenbrille: „muss wie die
+   * Poster mehrere Slides haben") ────────────────────────────────────────────────────────────
+   *
+   * Gesetzt, wenn `wi.produkt` ein eigenes Stück ist (kein Druck des Werks) — der Aufrufer baut
+   * die Liste (Front, zweite Ansicht), diese Komponente zeigt sie nur. Ohne diese Liste bleibt
+   * es beim Verhalten von vorher: Zimmer, wenn `alsPoster`, sonst nichts.
+   */
+  produktFotos?: string[];
 }) {
   const nr = k.i < 0 ? "standard" : String(k.i);
   const wi = m.werkInfo?.[nr];
+  const eigenesProdukt = !!produktFotos?.length;
+  /**
+   * ── DAS ERSTE FOTO GEHÖRT ZU FOLIE 0, NICHT IN DEN SLIDER DAHINTER (Owner 21.09.2026) ──────
+   * Folie 0 (`children`, unten) zeigt bei einem eigenen Produkt bereits das erste Foto (dasselbe
+   * `werkBild`) — stünde es zusätzlich als erste Folie im Slider, sähe der Käufer es zweimal
+   * hintereinander. `fotosDahinter` bekommt deshalb nur, was NACH dem ersten Foto kommt.
+   */
+  const [mini0Foto, ...fotosDahinter] = produktFotos ?? [];
   return (
     <div id={id} className="lb-poster-block w-full lg:w-[min(92vw,calc(88svh/1.4142))]">
       {/* ── ZWEI KLICKS, ZWEI ZIELE (Owner 17.09.2026: „klick aufs bild vergrössert das
@@ -120,7 +138,8 @@ export default function PosterProdukt({
           als extra Slide") ─────────────────────────────────────────────────────────────────
           Dieselbe Adresse wie im QR-Fenster (`quelle` bei `PosterFilm` weiter unten) —
           ein Merker, zwei Stellen, die ihn brauchen. */}
-      <PosterRaeume aus={!alsPoster || istKleidung(k.i)} hoch={!wi?.quer}
+      <PosterRaeume aus={eigenesProdukt ? false : (!alsPoster || istKleidung(k.i))} hoch={!wi?.quer}
+        fotos={fotosDahinter} mini0Bild={eigenesProdukt ? mini0Foto : undefined}
         adresse={slide === undefined ? undefined : { start: slide, schreiben: !nurSlider }}
         filme={[
           /* Erst „an die Wand", dann die Geschichte — sie bleibt an letzter Stelle (Owner
@@ -141,6 +160,14 @@ export default function PosterProdukt({
             quelle: `/api/portal-film?m=${encodeURIComponent(kuenstler)}&i=${nr}&v=${encodeURIComponent(wi?.filmAm ?? "1")}`,
             poster: `/api/portal-film?m=${encodeURIComponent(kuenstler)}&i=${nr}&art=filmposter&v=${encodeURIComponent(wi?.filmAm ?? "1")}`,
             bild: mitAdmin(werkBild(kuenstler, k.i, 1100)), alt: m.name,
+            /* ── KEIN „THE STORY BEHIND THE PICTURE" BEI EINEM EIGENEN PRODUKT (Owner
+               21.09.2026, Sonnenbrille: „das Video mit mir") ────────────────────────────────
+               Der Satz gehört zu einem gemalten Werk mit einer Entstehungsgeschichte. Bei
+               einem Stück wie der Sonnenbrille ist das Video keine Kunstgeschichte, sondern
+               eine Produktvorstellung — und die feste 72-px-Schrift ist auf ein hochkantes
+               Poster gerechnet: Bei einem breiten Produktfoto (kurzer, breiter Kasten) läuft
+               sie über den Rahmen hinaus, statt ihn zu füllen. */
+            intro: eigenesProdukt ? null : undefined,
             youtube: String(wi?.filmYoutube ?? "").trim() || undefined,
           }] : []),
         ]}
@@ -152,8 +179,8 @@ export default function PosterProdukt({
                an der Wand") — sonst steht dort „Numele tău", während auf dem Blatt
                daneben sein Name steht. */
             titel={<PosterWandZeile art="titel"
-              standard={blattZeilen(m.name, wi, L).gross} />}
-            stil={blattZeilen(m.name, wi, L).klein}
+              standard={blattZeilen(m.name, wi, L, m.sprache).gross} />}
+            stil={blattZeilen(m.name, wi, L, m.sprache).klein}
             text={<PosterWandZeile art="satz"
               standard={m.kunstAn ? kunstBlattSatz(m.kunstStil) : posterAnriss(k.hook)} />}
             qrEcke
@@ -236,7 +263,7 @@ export default function PosterProdukt({
                  Die Regel samt Begründung steht in `blattZeilen` (lib/lakatosbandi.ts).
                  Hier kommt nur dazu, dass der KUNDE die grosse Zeile überschreiben darf —
                  dann tritt darunter „by …" hervor (`PosterStil`). */
-              const zeilen = blattZeilen(m.name, wi, L);
+              const zeilen = blattZeilen(m.name, wi, L, m.sprache);
               return {
                 titel: lebend ? <PosterDeinText satz={zeilen.gross} art="titel" /> : zeilen.gross,
                 stil: lebend ? <PosterStil name={zeilen.klein || m.name} /> : zeilen.klein,
@@ -371,7 +398,7 @@ export default function PosterProdukt({
                   : { kaufOriginal: { text: T.originalAnfragen, href: agentHref } })}
                 kuenstler={m.name} leben={m.leben}
                 titel={wi ? [platzhalterName(wi.titel, L), wi.jahr].filter(Boolean).join(", ") : ""}
-                geschichte={k.hook} ueber={m.ueberMich} />
+                geschichte={k.hook} ueber={ueberMichFuer(m, L)} />
               </PosterDeinBild>
             }
           />
@@ -383,7 +410,7 @@ export default function PosterProdukt({
               quer={!!wi?.quer}
               profil={m.profilBild ? mitAdmin(`/api/portal-werk?m=${encodeURIComponent(kuenstler)}&i=profil`) : undefined}
               kuenstler={m.name} titel={wi ? [platzhalterName(wi.titel, L), wi.jahr].filter(Boolean).join(", ") : ""}
-              geschichte={k.hook} ueber={m.ueberMich} />
+              geschichte={k.hook} ueber={ueberMichFuer(m, L)} />
           </div>
         )}
       </PosterGross>
@@ -403,6 +430,15 @@ export default function PosterProdukt({
              preis") — ohne sie klebt das Preisschild am unteren Bildrand. */
           <div className={alsPoster ? "mt-4 text-center" : "mt-3"}>
             {zeile ? <p className="m-0 text-[14px] leading-[1.45] text-[#666]">{zeile}</p> : null}
+            {/* ── DER PRODUKTTEXT (Owner 21.09.2026, Sonnenbrille: „das Produkt muss noch
+                einen Text haben") ─────────────────────────────────────────────────────────
+                Bei einem eigenen Stück (Sonnenbrille, künftig Kleidung) steht hier, WAS es
+                ist — Material, Passform, was auf dem Blatt keinen Platz hätte. Dasselbe Feld
+                wie auf der alten, nackten Werkseite (`detalii`), hier nur auch im Postershop
+                sichtbar, wo der Kaufweg tatsächlich steht. */}
+            {wi?.produkt && wi?.detalii ? (
+              <p className="m-0 mx-auto mt-2 max-w-[42ch] text-[14.5px] leading-[1.5] text-[#555]">{wi.detalii}</p>
+            ) : null}
             {/* DAS PREISSCHILD IST RAUS (Owner 15.09.2026: „das raus") — bei einer
                 Reproduktion steht der Preis schon auf dem Kaufknopf, und zweimal
                 dieselbe Zahl übereinander liest niemand als Angebot, sondern als
@@ -457,8 +493,12 @@ export default function PosterProdukt({
             {kaufBar ? (
               <KaufKnopf mandant={kuenstler} werk={nr}
                 /* Kein Künstleranteil bei Reproduktionen UND bei den eigenen Generatoren
-                   (Owner 19.09.2026) — verbindlich gerechnet wird in `api/druck-kasse`. */
-                material={wi?.produkt ?? "posterramaneagra"} sprache={L} anteil={!m.reproduktion && !m.kunstAn} adminS={admin ? adminS : ""}
+                   (Owner 19.09.2026) — verbindlich gerechnet wird in `api/druck-kasse`.
+                   AUCH NICHT BEI EINEM EIGENEN PRODUKT (Owner 21.09.2026, Sonnenbrille): Der
+                   Lizenzaufschlag gilt der Reproduktion SEINES Werks — bei einem Stück wie
+                   der Sonnenbrille ist der Preis in der Tabelle schon der ganze Preis, wie
+                   bei Textil (dieselbe Kachel-Reihe ruft `KaufKnopf` seit je ohne `anteil`). */
+                material={wi?.produkt ?? "posterramaneagra"} sprache={L} anteil={!wi?.produkt && !m.reproduktion && !m.kunstAn} adminS={admin ? adminS : ""}
                 texte={{ kaufen: T.kaufKaufen, korb: T.kaufKorb, groesse: T.kaufGroesse, fehler: T.korbFehler,
                   ohneRahmen: T.druckOhneRahmen, ohneRahmenWahl: T.ohneRahmenWahl, mitRahmen: T.druckMitRahmen, mitRahmenWahl: T.mitRahmenWahl, versand: T.druckVersandDrin, rahmenSchwarz: T.druckRahmenSchwarz }}
                 /* Die Datei steckt im selben Block (Owner 17.09.2026) — nur beim Poster,

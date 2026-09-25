@@ -56,11 +56,26 @@ export { PORTAL_URL, imPortal, aufVersusforge, istKuenstler, kuenstlerUrl, kuens
  */
 export function blattZeilen(
   name: string,
-  wi?: { titel?: string; jahr?: string } | null,
-  /** Die Sprache des Besuchers — nur für den Platzhalter „Dein Name" (`platzhalterName`). */
+  wi?: { titel?: string; jahr?: string; titelSprachen?: Record<string, string> } | null,
+  /** Die Sprache des Besuchers — für den Platzhalter „Dein Name" UND für den Titel, siehe unten. */
   lang?: Lang,
+  /**
+   * ── DER TITEL AUF DEM BLATT, IN SEINER SPRACHE (Owner 25.09.2026: „die Titel müssen auch
+   * übersetzt sein") ─────────────────────────────────────────────────────────────────────────
+   *
+   * Ohne diese Angabe stand der Titel unverändert da, egal welche Sprache der Besucher wählte —
+   * bei Lakatos & Bandi Studio auf Rumänisch der deutsche Titel „Rauchgebet". Dieselbe
+   * Rückfall-Regel wie bei `hookSprachen`: sein Original ist der Rückfall, immer.
+   */
+  mSprache?: string,
 ): { gross: string; klein: string } {
-  const t = lang ? platzhalterName(wi?.titel, lang) : String(wi?.titel ?? "").trim();
+  const eigen = String(wi?.titel ?? "").trim();
+  const s = String(lang ?? "").slice(0, 2).toLowerCase();
+  const eigeneSprache = String(mSprache ?? "").slice(0, 2).toLowerCase();
+  const titel = s && eigeneSprache && s !== eigeneSprache
+    ? String(wi?.titelSprachen?.[s] ?? "").trim() || eigen
+    : eigen;
+  const t = lang ? platzhalterName(titel, lang) : titel;
   const j = String(wi?.jahr ?? "").trim();
   return t
     ? { gross: t, klein: [name, j].filter(Boolean).join(", ") }
@@ -93,6 +108,22 @@ export function werkKacheln(
     if (text) liste.push({ hook: text, i });
   });
   return liste;
+}
+
+/**
+ * SEIN PROFILTEXT, IN DER SPRACHE DES BESUCHERS (Owner 25.09.2026: „texte übersetzen — das sind
+ * die Profiltexte"). Dieselbe Rückfall-Regel wie bei `werkKacheln`: Sein Original ist der
+ * Rückfall, immer — fehlt eine Übersetzung, steht der Text so da, wie er ihn geschrieben hat, nie
+ * eine leere Fläche.
+ */
+export function ueberMichFuer(
+  m: Pick<MandantAngaben, "ueberMich" | "ueberMichSprachen" | "sprache">,
+  lang?: string,
+): string {
+  const eigen = String(m.ueberMich ?? "").trim();
+  const s = String(lang ?? "").slice(0, 2).toLowerCase();
+  if (!s || s === String(m.sprache ?? "").slice(0, 2).toLowerCase()) return eigen;
+  return String(m.ueberMichSprachen?.[s] ?? "").trim() || eigen;
 }
 
 /**

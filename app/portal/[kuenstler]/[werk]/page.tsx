@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { headers } from "next/headers";
 import { mandantOeffentlich } from "@/lib/versusforge-mandanten";
-import { istKuenstler, portalPfade, werkKacheln, kuenstlerUrl } from "@/lib/lakatosbandi";
+import { istKuenstler, portalPfade, werkKacheln, kuenstlerUrl, ueberMichFuer } from "@/lib/lakatosbandi";
 import { portalSprache, portalTexte } from "@/lib/lakatosbandi-texte";
 import { mandantPruefen } from "@/lib/versusforge-mandant";
 import { EIGENER_MANDANT } from "@/lib/versusforge-namen";
@@ -19,7 +19,7 @@ import KaufKnopf from "@/components/KaufKnopf";
 import Korb from "@/components/Korb";
 import { preisSatz, preisText } from "@/lib/lakatosbandi-preis";
 import PreisLabel from "@/components/PreisLabel";
-import { druckPreisCents, druckGroessenFuer, druckSpanneCents, KLEIDUNG_AN } from "@/lib/lakatosbandi-druck";
+import { druckPreisCents, druckGroessenFuer, druckSpanneCents, KLEIDUNG_AN, istTextil } from "@/lib/lakatosbandi-druck";
 import { eur } from "@/lib/pricing";
 
 /**
@@ -101,8 +101,9 @@ export default async function PortalWerk({ params, searchParams }: Props) {
 
   const w = m.werkInfo?.[i < 0 ? "standard" : String(i)];
   /* Kleidung ist abgeschaltet (Owner 18.09.2026) — ein alter Link soll kein kaufbares Shirt
-     zeigen, das es nicht mehr gibt. Begründung an `KLEIDUNG_AN` in lib/lakatosbandi-druck.ts. */
-  if (w?.produkt && !KLEIDUNG_AN) notFound();
+     zeigen, das es nicht mehr gibt. Begründung an `KLEIDUNG_AN` in lib/lakatosbandi-druck.ts.
+     Die Sonnenbrille zählt NICHT als Kleidung (Owner 21.09.2026) — sie bleibt erreichbar. */
+  if (w?.produkt && istTextil(w.produkt) && !KLEIDUNG_AN) notFound();
   const zeile = w ? [w.titel, w.technik, w.groesse, w.jahr].filter(Boolean).join(" · ") : "";
   /* Sein Preis für dieses Werk — sonst sein allgemeiner Satz (Owner 12.09.2026).
      Bei Reproduktionen steht der echte Preis: fest bei Shirt und Hoodie, sonst die Spanne aus
@@ -131,7 +132,7 @@ export default async function PortalWerk({ params, searchParams }: Props) {
   const kaufBar = !!m.reproduktion || (!!m.posterViu && premium);
   const lebend = premium && m.kunstAn === true;
   const kariStil = !!String(m.kunstStil ?? "").trim();
-  const istKleidung = (x: number) => !!m.werkInfo?.[x < 0 ? "standard" : String(x)]?.produkt;
+  const istKleidung = (x: number) => istTextil(m.werkInfo?.[x < 0 ? "standard" : String(x)]?.produkt ?? "");
   const anhang = `${sp.lang ? `&lang=${encodeURIComponent(String(sp.lang))}` : ""}${admin ? `&s=${encodeURIComponent(adminS)}` : ""}`;
   const produktAdresse = `${kuenstlerUrl(kuenstler)}/${werk}${sp.lang ? `?lang=${encodeURIComponent(String(sp.lang))}` : ""}`;
 
@@ -142,13 +143,19 @@ export default async function PortalWerk({ params, searchParams }: Props) {
       <main className="mx-auto w-full max-w-[1120px] px-5 pb-20 pt-8 md:pt-12">
         <a href={mitAdmin(P.kuenstler(kuenstler))} className="text-[14px] text-[#555] underline">← {n(T.alleWerkeVon)}</a>
 
-        {kaufBar && !w?.produkt ? (
+        {kaufBar && (!w?.produkt || !istTextil(w.produkt)) ? (
           <div className="mx-auto mt-6 w-full lg:w-[min(92vw,calc(88svh/1.4142))]">
             <PosterProdukt
               kuenstler={kuenstler} m={m} k={k} L={L} T={T}
               mitAdmin={mitAdmin} admin={admin} adminS={adminS}
-              lebend={lebend} kaufBar={kaufBar} alsPoster={kaufBar}
+              lebend={lebend} kaufBar={kaufBar}
+              /* Kein Papier-Poster für ein eigenes Produkt wie die Sonnenbrille (Owner
+                 21.09.2026) — nur echte Poster/Drucke bekommen Rahmen, QR und Passepartout. */
+              alsPoster={kaufBar && !w?.produkt}
               istKleidung={istKleidung} kariStil={kariStil} werkBild={P.werkBild}
+              produktFotos={w?.produkt === "sonnenbrille"
+                ? [mitAdmin(P.werkBild(kuenstler, i, 1100)), ...(w.produktBild2 ? [mitAdmin(P.werkBild2(kuenstler, i, 1100))] : [])]
+                : undefined}
               filmHref={`?film=${nr}${anhang}`} agentHref={`?agent=1${anhang}`}
               filmOffen={String(sp.film ?? "").trim() === nr}
               /* Jede Folie hat hier ihre Adresse (`?slide=3`, `?slide=video`) — Owner 20.09.2026. */
@@ -181,7 +188,7 @@ export default async function PortalWerk({ params, searchParams }: Props) {
                   quelle={w?.film ? `/api/portal-film?m=${encodeURIComponent(kuenstler)}&i=${i < 0 ? "standard" : i}&v=${encodeURIComponent(w?.filmAm ?? "1")}` : undefined}
                   bild={mitAdmin(P.werkBild(kuenstler, i))} alt={w?.titel || m.name}
                   kuenstler={m.name} leben={m.leben} titel={zeile}
-                  geschichte={k.hook} ueber={m.ueberMich} />
+                  geschichte={k.hook} ueber={ueberMichFuer(m, L)} />
               </div>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src="/api/portal-qr" alt=""

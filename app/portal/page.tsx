@@ -674,8 +674,8 @@ export default async function PortalStart({ searchParams }: { searchParams: Prom
                   viel — wer hier klickt, muss dasselbe wiederfinden. */}
               <Poster
                 klasse="lb-rahmen-fest"
-                titel={blattZeilen(m.name, wi, L).gross}
-                stil={blattZeilen(m.name, wi, L).klein}
+                titel={blattZeilen(m.name, wi, L, m.sprache).gross}
+                stil={blattZeilen(m.name, wi, L, m.sprache).klein}
                 text={posterAnriss(k.hook)}
                 qrEcke
                 qr="/api/portal-qr"
@@ -809,8 +809,8 @@ export default async function PortalStart({ searchParams }: { searchParams: Prom
             return (
               <Poster
                 klasse="lb-rahmen-fest"
-                titel={blattZeilen(neuestesPoster.m.name, wi, L).gross}
-                stil={blattZeilen(neuestesPoster.m.name, wi, L).klein}
+                titel={blattZeilen(neuestesPoster.m.name, wi, L, neuestesPoster.m.sprache).gross}
+                stil={blattZeilen(neuestesPoster.m.name, wi, L, neuestesPoster.m.sprache).klein}
                 text={posterAnriss(neuestesPoster.k.hook)}
                 qrEcke
                 qr="/api/portal-qr"
@@ -1041,23 +1041,18 @@ export default async function PortalStart({ searchParams }: { searchParams: Prom
             * Grenzen (`max-w-[720px]`, `max-w-[620px]`), werden also NICHT mitgezogen — eine Zeile
             * über 1500 px liest niemand. Unter 1280 px ändert sich nichts.
             */}
+          {/**
+            * ── KEIN ANWERBE-KNOPF MEHR (Owner 25.09.2026: „das raus. Muss ersetzt werden. Wir
+            * nehmen keine neuen Künstler mehr auf. Wir produzieren selber. Konzentrieren wird uns
+            * auf moderne Kunst") ─────────────────────────────────────────────────────────────────
+            *
+            * Hier stand „Melde dich als Künstler an" — der Aufmacher warb um FREMDE Künstler.
+            * Jetzt ist das Haus selbst der Künstler (Lakatos & Bandi Studio, siehe `T.titel`
+            * unten), also fällt der Knopf weg. Die Anmeldung (`bewerben`) bleibt als Adresse
+            * erreichbar, nur nicht mehr beworben — siehe `PortalBald` weiter unten.
+            */}
           <h1 className="m-0 max-w-[720px] font-serif text-[34px] font-normal leading-[1.15] tracking-[-0.01em] md:text-[48px]">{T.titel}</h1>
           <p className="mt-4 max-w-[620px] text-[16px] leading-[1.55] text-[#555]">{T.lead}</p>
-
-          {/**
-            * ── DER ANWERBE-KNOPF STEHT WIEDER OBEN UND WIEDER SCHWARZ (Owner 13.09.2026: „wo ist
-            * der grosse CTA jetzt Künstlerseite anlegen? Oben schwarz?") ──────────────────────
-            *
-            * Er hing im `bald`-Zweig und ist mit dem sechsten freigegebenen Künstler von selbst
-            * verschwunden — niemand hat das entschieden, `START_AB` hat es getan. Übrig blieb ein
-            * dünner Umriss nach 8.594 px (GEMESSEN). Jetzt hängt er an keiner Schwelle mehr.
-            *
-            * Schmal gehalten, eine Zeile: Diese Seite gehört dem Käufer, der Künstler ist Gast.
-            */}
-          <a href={bewerben}
-            className="mt-6 inline-block bg-[#111] px-7 py-4 text-[16px] font-semibold text-white no-underline hover:bg-[#333]">
-            {T.seiteInEinerMinute}
-          </a>
 
           {feed}
         </main>

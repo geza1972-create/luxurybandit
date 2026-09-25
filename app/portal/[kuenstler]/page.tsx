@@ -19,16 +19,17 @@ import { kunstBlattSatz } from "@/lib/lakatosbandi-kunst";
 import { POSTER_TITEL } from "@/lib/lakatosbandi-poster";
 import KaufKnopf from "@/components/KaufKnopf";
 import MehrText from "@/components/MehrText";
+import BildVollbild from "@/components/BildVollbild";
 import Korb from "@/components/Korb";
 import { preisSatz, preisText } from "@/lib/lakatosbandi-preis";
-import { druckPreisCents, druckGroessenFuer, druckSpanneCents, DRUCK_KUENSTLER_CENTS, DRUCK_VERSAND_CENTS, KLEIDUNG_AN, KUNST_CENTS } from "@/lib/lakatosbandi-druck";
+import { druckPreisCents, druckGroessenFuer, druckSpanneCents, DRUCK_KUENSTLER_CENTS, DRUCK_VERSAND_CENTS, KLEIDUNG_AN, KUNST_CENTS, istTextil } from "@/lib/lakatosbandi-druck";
 import { eur } from "@/lib/pricing";
 import PreisLabel from "@/components/PreisLabel";
 import { mandantPruefen } from "@/lib/versusforge-mandant";
 import { hausherrDarf } from "@/lib/lakatosbandi-hausherr";
 import { aboAktiv } from "@/lib/versusforge-abo";
 import { EIGENER_MANDANT } from "@/lib/versusforge-namen";
-import { istKuenstler, portalPfade, werkKacheln, kuenstlerUrl, posterAnriss, kuenstlerListe, imPortalSichtbar, blattZeilen } from "@/lib/lakatosbandi";
+import { istKuenstler, portalPfade, werkKacheln, kuenstlerUrl, posterAnriss, kuenstlerListe, imPortalSichtbar, blattZeilen, ueberMichFuer } from "@/lib/lakatosbandi";
 import { portalSprache, portalTexte, platzhalterName } from "@/lib/lakatosbandi-texte";
 import PortalKopf from "@/components/PortalKopf";
 import PortalFuss from "@/components/PortalFuss";
@@ -334,8 +335,15 @@ export default async function PortalKuenstler({ params, searchParams }: Props) {
   const lebend = premium && m.kunstAn === true;
   /* Karikaturist oder Maler? Davon hängt ab, was auf dem Knopf steht — siehe `kunstStil`. */
   const kariStil = !!String(m.kunstStil ?? "").trim();
-  /* Poster und Kleidung werden getrennt gezeigt (15.09.2026) — `produkt` sagt, was ein Stück ist. */
-  const istKleidung = (i: number) => !!m.werkInfo?.[i < 0 ? "standard" : String(i)]?.produkt;
+  /**
+   * Poster und Kleidung werden getrennt gezeigt (15.09.2026) — `produkt` sagt, was ein Stück ist.
+   *
+   * SONNENBRILLE ZÄHLT NICHT ALS „KLEIDUNG" (Owner 21.09.2026) — sie hängt nicht hinter
+   * `KLEIDUNG_AN` und braucht keine eigene Kachel-Reihe: Sie läuft wie ein Poster mit, nur mit
+   * eigenen Produktfotos statt Zimmern (siehe `PosterProdukt`, `produktFotos`). `istTextil`
+   * trifft nur auf `tricou`/`hanorac` zu.
+   */
+  const istKleidung = (i: number) => istTextil(m.werkInfo?.[i < 0 ? "standard" : String(i)]?.produkt ?? "");
   /* IN DER POSTERANSICHT NUR, WAS ER ANGEHAKT HAT (Owner 16.09.2026: „auch bei jedem bild wenn
      er das macht in seinem admin dann erscheint das in der kategorie"). Bei den gemeinfreien
      Meistern gilt weiter alles — dort setzt niemand Häkchen. */
@@ -497,9 +505,10 @@ export default async function PortalKuenstler({ params, searchParams }: Props) {
                 return vertreter ? `/api/portal-werk?m=${encodeURIComponent(kuenstler)}&i=${vertreter.i}` : "";
               })();
           if (!eigenes) return null;
+          /* PER KLICK GANZ GROSS (Owner 25.09.2026: „das Profilbild soll sich per Klick voll
+             vergrössern"). */
           return (
-            /* eslint-disable-next-line @next/next/no-img-element */
-            <img src={mitAdmin(eigenes)} alt={m.name}
+            <BildVollbild src={mitAdmin(eigenes)} alt={m.name}
               className="h-20 w-20 shrink-0 rounded-full object-cover md:h-24 md:w-24" />
           );
         })()}
@@ -533,18 +542,20 @@ export default async function PortalKuenstler({ params, searchParams }: Props) {
         {/* SEIN TEXT SCHLÄGT DIE ERZEUGTE BESCHREIBUNG — immer. Die Beschreibung (dritte Person,
             aus der Bildanalyse) erscheint nur, solange er selbst nichts geschrieben hat; sie füllt
             eine Lücke, sie verdrängt nichts (Owner 13.09.2026). */}
-        {m.ueberMich
+        {(() => { const ueberText = ueberMichFuer(m, L); return ueberText
           ? (
             /* Nach vier Zeilen zum Ausklappen (Owner 16.09.2026) — der Text einiger Künstler
-               füllte den ganzen ersten Bildschirm, und die Werke begannen erst darunter. */
+               füllte den ganzen ersten Bildschirm, und die Werke begannen erst darunter.
+               IN SEINER SPRACHE ODER IN DER DES BESUCHERS (Owner 25.09.2026): `ueberMichFuer`
+               liefert die Übersetzung, wenn es sie gibt, sonst sein Original. */
             <div className="mt-5 max-w-[640px]">
-              <MehrText text={m.ueberMich} mehr={T.mehrLesen} weniger={T.wenigerLesen}
+              <MehrText text={ueberText} mehr={T.mehrLesen} weniger={T.wenigerLesen}
                 className="whitespace-pre-line text-[16.5px] leading-[1.6] text-[#333]" />
             </div>
           )
           : m.werkBeschreibung
             ? <p className="mt-5 max-w-[640px] whitespace-pre-line text-[16.5px] leading-[1.6] text-[#333]">{m.werkBeschreibung}</p>
-            : null}
+            : null; })()}
 
         {/* ── MIT IHM SPRECHEN ODER IHM FOLGEN (Owner 13.09.2026: „ein Follow-Button einbauen") ──
             Nebeneinander, aber nicht gleichwertig: Der Agent ist gefüllt, „Folgen" nur umrandet.
@@ -661,17 +672,35 @@ export default async function PortalKuenstler({ params, searchParams }: Props) {
               {/* Der ganze Block (Slider, Poster, Kaufknopf, Preis) steht jetzt einmal
                   gemeinsam mit der eigenen Werk-Seite, in `components/PosterProdukt.tsx`
                   (Owner 20.09.2026: „für jedes Produkt eine eigene Seite"). */}
-              <PosterProdukt
-                id={`w-${k.i < 0 ? "standard" : k.i}`}
-                kuenstler={kuenstler} m={m} k={k} L={L} T={T}
-                mitAdmin={mitAdmin} admin={admin} adminS={adminS}
-                lebend={lebend} kaufBar={kaufBar} alsPoster={alsPoster}
-                istKleidung={istKleidung} kariStil={kariStil} werkBild={P.werkBild}
-                filmHref={filmLink(k.i)} agentHref={agentLink(String(k.i))}
-                filmOffen={filmOffen === (k.i < 0 ? "standard" : String(k.i))}
-                /* Der Weg auf die eigene Seite dieses Werks — nur wo es dort auch das ganze
-                   Blatt gibt (Postershop), sonst bliebe es bei der alten, nackten Werkseite. */
-                produktHref={kaufBar ? `${werkLink(k.i)}${werkLink(k.i).includes("?") ? "&" : "?"}lang=${L}` : undefined} />
+              {(() => {
+                const wk = m.werkInfo?.[k.i < 0 ? "standard" : String(k.i)];
+                /**
+                 * ── EIGENE PRODUKTFOTOS STATT ZIMMER (Owner 21.09.2026, Sonnenbrille) ─────────
+                 * Die Front (`werkBild`) und, falls hochgeladen, die zweite Ansicht
+                 * (`werkBild2`, `WerkInfo.produktBild2`) — nie die Zimmer-Slides, eine
+                 * Sonnenbrille hängt nicht an der Wand.
+                 */
+                const produktFotos = wk?.produkt === "sonnenbrille"
+                  ? [mitAdmin(P.werkBild(kuenstler, k.i, 1100)), ...(wk.produktBild2 ? [mitAdmin(P.werkBild2(kuenstler, k.i, 1100))] : [])]
+                  : undefined;
+                return (
+                  <PosterProdukt
+                    id={`w-${k.i < 0 ? "standard" : k.i}`}
+                    kuenstler={kuenstler} m={m} k={k} L={L} T={T}
+                    mitAdmin={mitAdmin} admin={admin} adminS={adminS}
+                    lebend={lebend} kaufBar={kaufBar}
+                    /* Kein Papier-Poster (Rahmen, QR, Passepartout) für ein Stück, das ein
+                       eigenes Produkt ist, nicht ein Druck des Werks (Owner 21.09.2026). */
+                    alsPoster={alsPoster && !wk?.produkt}
+                    istKleidung={istKleidung} kariStil={kariStil} werkBild={P.werkBild}
+                    produktFotos={produktFotos}
+                    filmHref={filmLink(k.i)} agentHref={agentLink(String(k.i))}
+                    filmOffen={filmOffen === (k.i < 0 ? "standard" : String(k.i))}
+                    /* Der Weg auf die eigene Seite dieses Werks — nur wo es dort auch das ganze
+                       Blatt gibt (Postershop), sonst bliebe es bei der alten, nackten Werkseite. */
+                    produktHref={kaufBar ? `${werkLink(k.i)}${werkLink(k.i).includes("?") ? "&" : "?"}lang=${L}` : undefined} />
+                );
+              })()}
             </li>
           ))}
         </ul>
