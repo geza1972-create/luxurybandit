@@ -262,7 +262,7 @@ export default function PortalBearbeiten({ mandant, k, T, lang, aufbau = false, 
    * Hausregel (Skill `ci-design`): Absagen gehören ANS FELD. Also je Werk gemerkt und je Werk
    * angezeigt — beim Premium-Fall mit dem Kaufknopf direkt daneben.
    */
-  const [spruchAbsage, setSpruchAbsage] = useState<Record<number, "premium" | "fehler">>({});
+  const [spruchAbsage, setSpruchAbsage] = useState<Record<number, "premium" | "fehler" | "bild">>({});
   const dateiProfil = useRef<HTMLInputElement>(null);
   const dateiKachel = useRef<HTMLInputElement>(null);
   /* Sein eigenes Gerät zählt nicht als Besucher und schickt ihm keine Besuchs-Mail (Owner 11.09.2026). */
@@ -588,7 +588,7 @@ export default function PortalBearbeiten({ mandant, k, T, lang, aufbau = false, 
       /* Kein stummer Knopf: Liegt das Bild noch in der Prüfung, erfährt sie den Grund.
          OHNE ABO IST ES KEIN FEHLER, sondern eine Grenze — „Speichern fehlgeschlagen" würde ihr
          einen Defekt vorspiegeln, wo sie nur etwas kaufen muss (Owner 14.09.2026). */
-      else setSpruchAbsage(v => ({ ...v, [i]: d?.grund === "premium" ? "premium" : "fehler" }));
+      else setSpruchAbsage(v => ({ ...v, [i]: d?.grund === "premium" ? "premium" : d?.grund === "kein-bild" ? "bild" : "fehler" }));
     } catch {
       setSpruchAbsage(v => ({ ...v, [i]: "fehler" }));
     } finally {
@@ -1100,7 +1100,7 @@ export default function PortalBearbeiten({ mandant, k, T, lang, aufbau = false, 
             {spruchAbsage[kc.i] && (
               <div className="mt-2">
                 <p className={`m-0 text-[13.5px] font-bold leading-[1.4] ${spruchAbsage[kc.i] === "premium" ? "text-[#14181c]" : "text-[#b3261e]"}`}>
-                  {spruchAbsage[kc.i] === "premium" ? T.aboKiGesperrt : T.speichernFehler}
+                  {spruchAbsage[kc.i] === "premium" ? T.aboKiGesperrt : spruchAbsage[kc.i] === "bild" ? T.spruchKeinBild : T.speichernFehler}
                 </p>
                 {spruchAbsage[kc.i] === "premium" && (
                   <MandantKaufen mandant={mandant} k={k} abo wort={T.aboUpgradeKnopf}

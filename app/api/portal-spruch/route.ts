@@ -3,7 +3,7 @@ import { str } from "@/lib/agent-modell";
 import { mandantLesen } from "@/lib/versusforge-mandanten";
 import { istKuenstler } from "@/lib/lakatosbandi";
 import { schluesselStimmt } from "@/lib/schluessel-vergleich";
-import { spruchFuerWerk } from "@/lib/kuenstler-sprueche";
+import { spruchFuerWerk, motivLesen } from "@/lib/kuenstler-sprueche";
 import { ereignisMerken } from "@/lib/versusforge-ereignis";
 import { darfKi } from "@/lib/versusforge-abo";
 
@@ -51,6 +51,10 @@ export async function POST(request: Request) {
   const i = Math.round(Number(b.i));
   /* Dieselben Grenzen wie beim Speichern: -1 ist das Standardmotiv, 11 die höchste Kachel. */
   if (!Number.isInteger(i) || i < -1 || i > 11) return NextResponse.json({ ok: false }, { status: 400 });
+
+  /* Liegt das Bild noch nicht in der Ablage (gewählt, aber nicht gespeichert), gibt es nichts
+     anzusehen — das ist kein Fehler des Modells und braucht eine eigene Antwort. */
+  if (!(await motivLesen(mandant, i).catch(() => ""))) return NextResponse.json({ ok: false, grund: "kein-bild" }, { status: 409 });
 
   const { spruch, titel } = await spruchFuerWerk(mandant, i).catch(e => {
     console.warn("[portal-spruch] gescheitert:", mandant, i, e);

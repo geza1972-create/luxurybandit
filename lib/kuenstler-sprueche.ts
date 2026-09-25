@@ -227,7 +227,7 @@ export async function spruchAusBefund(o: {
 }
 
 /** Liest ein abgelegtes Motiv und gibt es als data:-URL zurück — auch aus der Prüfablage. */
-async function motivLesen(mandant: string, i: number): Promise<string> {
+export async function motivLesen(mandant: string, i: number): Promise<string> {
   const nr = motivNr(i);
   for (const pfad of [motivPfad(mandant, nr), pruefPfad(mandant, nr)]) {
     const res = await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(pfad)}`).catch(() => null);

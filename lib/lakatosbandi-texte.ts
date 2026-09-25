@@ -224,6 +224,7 @@ const TEXTE = {
     verstanden: "Got it",
     zuVieleBilder: "Only {n} places left — we took the first {n}.",
     spruchKiLaeuft: "Writing …",
+    spruchKeinBild: "This image is not saved yet — press Save first, then write with AI.",
     loeschenMailGeschickt: "We've sent you an email. Confirm the deletion with the link inside.",
     loeschenTitel: "Delete your page?",
     /* Das Nein steht gleichberechtigt neben dem Ja (Owner 12.09.2026: „er springt auf seine Seite
@@ -677,6 +678,7 @@ const TEXTE = {
     verstanden: "Am înțeles",
     zuVieleBilder: "Mai sunt {n} locuri libere — am luat primele {n}.",
     spruchKiLaeuft: "Se scrie …",
+    spruchKeinBild: "Imaginea nu e salvată încă — apasă mai întâi Salvează, apoi scrie cu AI.",
     loeschenMailGeschickt: "Ți-am trimis un e-mail. Confirmă ștergerea prin linkul din el.",
     loeschenTitel: "Îți ștergi pagina?",
     loeschenNein: "Nu, păstrez pagina",
@@ -989,6 +991,7 @@ const TEXTE = {
     verstanden: "Verstanden",
     zuVieleBilder: "Nur noch {n} Plätze frei — wir haben die ersten {n} genommen.",
     spruchKiLaeuft: "Wird geschrieben …",
+    spruchKeinBild: "Das Bild ist noch nicht gespeichert — erst auf Speichern drücken, dann mit KI schreiben.",
     loeschenMailGeschickt: "Wir haben dir eine E-Mail geschickt. Bestätige das Löschen über den Link darin.",
     loeschenTitel: "Deine Seite löschen?",
     loeschenNein: "Nein, Seite behalten",
