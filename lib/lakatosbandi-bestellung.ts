@@ -13,6 +13,7 @@ import { motivPfad } from "@/lib/versusforge-moderation";
 import { filmSeite } from "@/lib/lakatosbandi-film";
 import { portalTexte, portalSprache } from "@/lib/lakatosbandi-texte";
 import { druckdateiBauen } from "@/lib/lakatosbandi-druckdatei";
+import { textilDruckBauen } from "@/lib/lakatosbandi-textil";
 
 /**
  * WAS NACH EINER BESTELLUNG PASSIERT (Owner 16.09.2026: „ich will nicht wissen was nach
@@ -189,11 +190,18 @@ async function dateiAnhaenge(b: Bestellung, materialien: (p: BestellPosten) => b
     if (!blatt && (p.material === "tricou" || p.material === "hanorac")) {
       const nrT = p.werk === "-1" || p.werk === "" ? "standard" : p.werk;
       const r = await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(motivPfad(p.mandant, nrT))}`).catch(() => null);
-      if (r?.ok) {
+      const mT = r?.ok ? await mandantLesen(p.mandant) : null;
+      if (r?.ok && mT) {
+        /* Dieselbe Komposition wie die Vorschau — Werk, Titel, Name — gross und durchsichtig. */
+        const druck = await textilDruckBauen({
+          motiv: Buffer.from(await r.arrayBuffer()),
+          titel: String(mT.werkInfo?.[nrT]?.titel ?? ""), name: String(mT.name ?? ""),
+          breite: 3000, hoch: 3750,
+        });
         raus.push({
-          name: `${p.mandant}-${nrT} · ${p.material} ${p.groesse} · ${bestellNummer(b.sitzung)}.jpg`,
-          inhalt: Buffer.from(await r.arrayBuffer()),
-          typ: "image/jpeg",
+          name: `${p.mandant}-${nrT} · ${p.material} ${p.groesse} · ${bestellNummer(b.sitzung)}.png`,
+          inhalt: druck.bild,
+          typ: "image/png",
         });
       } else console.warn(`[bestellung] Motiv für Textil fehlt: ${p.mandant}/${nrT}`);
       continue;

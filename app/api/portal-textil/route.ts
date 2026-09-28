@@ -2,6 +2,7 @@ import { BUCKET, encodeStoragePath, supabaseFetch } from "@/lib/try-this-look-st
 import { mandantLesen } from "@/lib/versusforge-mandanten";
 import { motivPfad } from "@/lib/versusforge-moderation";
 import { istKuenstler } from "@/lib/lakatosbandi";
+import { textilDruckBauen } from "@/lib/lakatosbandi-textil";
 
 /**
  * DAS MOTIV AUF DEM RÜCKEN (Owner 28.09.2026: „alle Motive auf T-Shirts und Hoodies" · „genauso
@@ -15,10 +16,11 @@ import { istKuenstler } from "@/lib/lakatosbandi";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-/* Druckfläche je Stück, in Pixeln der 1254er Vorlage: Mitte x, Oberkante y, grösste Breite/Höhe. */
+/* Fläche fürs Werk je Stück, in Pixeln der 1254er Vorlage: Mitte x, Oberkante y, grösste
+   Breite/Höhe. 35 % kleiner als zuerst (Owner 28.09.2026) — der Text steht darunter. */
 const FLAECHE = {
-  tricou: { vorlage: "/lakatosbandi/shirt-schwarz.png", mitte: 627, oben: 250, breit: 480, hoch: 600 },
-  hanorac: { vorlage: "/lakatosbandi/hoodie-schwarz.png", mitte: 627, oben: 490, breit: 470, hoch: 520 },
+  tricou: { vorlage: "/lakatosbandi/shirt-schwarz.png", mitte: 627, oben: 250, breit: 312, hoch: 390 },
+  hanorac: { vorlage: "/lakatosbandi/hoodie-schwarz.png", mitte: 627, oben: 490, breit: 306, hoch: 338 },
 } as const;
 
 export async function GET(request: Request) {
@@ -45,15 +47,16 @@ export async function GET(request: Request) {
   const vorlage = Buffer.from(await vorlageRes.arrayBuffer());
 
   const sharp = (await import("sharp")).default;
-  const motiv = await sharp(motivRoh, { failOn: "none" })
-    .resize({ width: f.breit, height: f.hoch, fit: "inside", withoutEnlargement: false })
-    .toBuffer({ resolveWithObject: true });
-  const links = Math.round(f.mitte - motiv.info.width / 2);
+  const druck = await textilDruckBauen({
+    motiv: motivRoh, titel: String(m.werkInfo?.[nr]?.titel ?? ""), name: String(m.name ?? ""),
+    breite: f.breit, hoch: f.hoch,
+  });
+  const links = Math.round(f.mitte - druck.breite / 2);
 
   /* Erst zusammensetzen, DANN verkleinern — in einem Durchgang verkleinert sharp die Vorlage vor
      dem Aufsetzen, und das Motiv sässe an den Koordinaten des grossen Bildes (rechts unten). */
   const ganz = await sharp(vorlage)
-    .composite([{ input: motiv.data, left: links, top: f.oben }])
+    .composite([{ input: druck.bild, left: links, top: f.oben }])
     .png()
     .toBuffer();
   const bild = await sharp(ganz).resize({ width: breite }).jpeg({ quality: 84, mozjpeg: true }).toBuffer();

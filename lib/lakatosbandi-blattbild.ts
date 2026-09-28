@@ -55,7 +55,7 @@ const teil = (breiteP: number, anteil: number) => (anteil / 100) * breiteP;
 type Schrift = ReturnType<typeof fontkit.create>;
 
 /** Ein Textlauf als SVG-Pfad: Buchstaben als Umrisse, Grundlinie bei `y`, Beginn bei `x`. */
-function textPfad(font: Schrift, text: string, groesse: number, x: number, y: number, sperre = 0): string {
+export function textPfad(font: Schrift, text: string, groesse: number, x: number, y: number, sperre = 0): string {
   const lauf = font.layout(String(text ?? ""));
   const e = groesse / font.unitsPerEm;
   let stift = x;
@@ -70,7 +70,7 @@ function textPfad(font: Schrift, text: string, groesse: number, x: number, y: nu
 }
 
 /** Wie breit ein Lauf wird — dieselbe Rechnung wie beim Zeichnen, damit Mitte auch Mitte ist. */
-function textBreite(font: Schrift, text: string, groesse: number, sperre = 0): number {
+export function textBreite(font: Schrift, text: string, groesse: number, sperre = 0): number {
   const lauf = font.layout(String(text ?? ""));
   const e = groesse / font.unitsPerEm;
   const b = lauf.positions.reduce((s, p) => s + p.xAdvance * e, 0);
