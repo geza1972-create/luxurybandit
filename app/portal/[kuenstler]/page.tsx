@@ -15,7 +15,6 @@ import Poster from "@/components/Poster";
 import PosterGross, { PosterGrossKnopf } from "@/components/PosterGross";
 import PosterDeinBild from "@/components/PosterDeinBild";
 import PosterDeinText, { PosterStil, PosterRecht } from "@/components/PosterDeinText";
-import { kunstBlattSatz } from "@/lib/lakatosbandi-kunst";
 import { POSTER_TITEL } from "@/lib/lakatosbandi-poster";
 import KaufKnopf from "@/components/KaufKnopf";
 import MehrText from "@/components/MehrText";
@@ -29,7 +28,7 @@ import { mandantPruefen } from "@/lib/versusforge-mandant";
 import { hausherrDarf } from "@/lib/lakatosbandi-hausherr";
 import { aboAktiv } from "@/lib/versusforge-abo";
 import { EIGENER_MANDANT } from "@/lib/versusforge-namen";
-import { istKuenstler, portalPfade, werkKacheln, kuenstlerUrl, posterAnriss, kuenstlerListe, imPortalSichtbar, blattZeilen, ueberMichFuer } from "@/lib/lakatosbandi";
+import { istKuenstler, portalPfade, werkKacheln, kuenstlerUrl, kuenstlerListe, imPortalSichtbar, blattZeilen, ueberMichFuer } from "@/lib/lakatosbandi";
 import { portalSprache, portalTexte, platzhalterName } from "@/lib/lakatosbandi-texte";
 import PortalKopf from "@/components/PortalKopf";
 import PortalFuss from "@/components/PortalFuss";
@@ -697,15 +696,13 @@ export default async function PortalKuenstler({ params, searchParams }: Props) {
                           className="max-h-full max-w-full object-contain" />
                       </div>
                     ) : (
+                      /* In der Galerie nur der Titel auf dem Blatt (Owner 28.09.2026: „zu viel Text.
+                         Hier reicht der Titel") — Name, Satz, Adresse und Code stehen auf der
+                         Produktseite, wo das Blatt gross ist. */
                       <Poster
                         klasse="lb-rahmen-fest"
                         titel={zeilen.gross}
-                        stil={zeilen.klein}
-                        text={m.kunstAn ? kunstBlattSatz(m.kunstStil) : posterAnriss(k.hook)}
-                        qrEcke
-                        qr="/api/portal-qr"
                         siegel={!m.reproduktion}
-                        recht={`lakatosbandi.com/${kuenstler}`}
                         bild={
                           <PosterWandFoto standard={mitAdmin(P.werkBild(kuenstler, k.i, 700))} alt={zeilen.gross}
                             className={wk?.quer ? "block h-auto w-full" : "block h-full w-auto"} />
