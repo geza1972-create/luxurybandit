@@ -287,7 +287,13 @@ export async function bewerbungAlsPdf(
 
   const kontaktZeilen = [profil.ort, profil.telefon, profil.email].filter(Boolean) as string[];
 
-  /* ════ SEITE 1 — DAS ANSCHREIBEN (Brief-Look, volle Breite) ════ */
+  /* ════ SEITE 1 — DAS ANSCHREIBEN (Brief-Look, volle Breite) ════
+     NUR WENN GEWOLLT (Owner 28.09.2026: „allgemeine bewerbung ohne anschreiben"):
+     `ohneAnschreiben` am Profil überspringt den ganzen Briefteil — der Lebenslauf
+     beginnt dann direkt auf Seite 1, die Zählung stimmt von selbst. Bewusst ein
+     EIGENES Feld statt „anschreiben leer": Leere fällt seit jeher auf den
+     Profiltext zurück (Entwürfe im Resume-Trichter verlassen sich darauf). */
+  if (!profil.ohneAnschreiben) {
   vollbreiteFortsetzung = true;
   /* Kopf: Name links, Kontakt rechtsbündig in Kleinschrift — wie ein Briefkopf. */
   seite.drawText(winAnsi(profil.name || "Bewerbung"), { x: RAND, y: y - 19, size: 19, font: fett, color: TINTE });
@@ -342,6 +348,7 @@ export async function bewerbungAlsPdf(
     : W.bewerbung;
   text(betreff, { groesse: 12, font: fett, x: RAND, maxBreite: A4.b - RAND * 2, abstand: 12 });
   text(profil.anschreiben || profil.sprechtext || "", { groesse: 10.5, x: RAND, maxBreite: A4.b - RAND * 2, zeilenfaktor: 1.52 });
+  }
 
   /* ════ AB SEITE 2 — DER LEBENSLAUF ════
    *
@@ -363,9 +370,11 @@ export async function bewerbungAlsPdf(
    * als ein Lebenslauf, dem still die Hälfte der Ausbildung fehlt.
    */
   vollbreiteFortsetzung = false;
-  neueSeite();
-  /* Die Seite, auf der der LEBENSLAUF beginnt — nicht Seite 1. Bei einer Bewerbung mit
-     Anschreiben ist Seite 1 der Brief; das Siegel gehört aber auf den Lebenslauf. */
+  if (!profil.ohneAnschreiben) neueSeite();
+  else y = A4.h - RAND;
+  /* Die Seite, auf der der LEBENSLAUF beginnt — mit Anschreiben ist Seite 1 der Brief,
+     ohne (`ohneAnschreiben`) ist es die erste Seite selbst; das Siegel gehört auf den
+     Lebenslauf. */
   const lebenslaufSeite = seite;
 
   /* Die Spalte ist beim Zeitstrahl-Aufbau breiter — dort trägt sie das randlose Foto über

@@ -248,6 +248,9 @@ export type LebenslaufProfil = {
      Die Mail an den Betreiber geht weiterhin parallel raus (/api/contact) - dieser
      Eintrag ist die Ablage fuer den Bewerber, gedeckelt auf die letzten 50. */
   anfragen?: { id: string; name: string; mail: string; nachricht?: string; datum: string }[];
+  /* „Allgemeine Bewerbung ohne Anschreiben" (Owner 28.09.2026): das PDF laesst den
+     Briefteil weg und beginnt direkt mit dem Lebenslauf (lib/bewerbung-pdf.ts). */
+  ohneAnschreiben?: boolean;
 };
 
 const pfad = (id: string) => `lebenslauf/${id}.json`;
