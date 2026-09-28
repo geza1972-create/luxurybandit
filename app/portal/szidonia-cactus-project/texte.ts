@@ -5,6 +5,10 @@
  */
 export type Sprache = "en" | "ro" | "de";
 
+/* Szidonias Künstlerkennung im Portal — ihr Profilbild und ihre Seite hängen daran. Hier und nicht
+   in WasserSeite.tsx: Eine Konstante aus einer "use client"-Datei kann der Server nicht lesen. */
+export const SZIDONIA = "szidoniabandi-6";
+
 export const TEXTE = {
   en: {
     filmPosition: "Position",

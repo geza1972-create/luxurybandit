@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, type FormEvent, type PointerEvent as RPointerEvent, type ReactNode } from "react";
 import { Maximize2, Pause, Play, Volume2, VolumeX } from "lucide-react";
 import s from "./water.module.css";
-import { TEXTE, type Sprache, type Texte } from "./texte";
+import { SZIDONIA, TEXTE, type Sprache, type Texte } from "./texte";
 
 /**
  * DIE DATEIEN (Owner 28.09.2026, aus dem Drive-Ordner „Kaktus_Projekt"):
@@ -18,6 +18,7 @@ import { TEXTE, type Sprache, type Texte } from "./texte";
  * die langsam ineinander überblenden — Wasser da, Wasser weg.
  */
 const P = "/lakatosbandi/cactus-project";
+const PORTRAET = `/api/portal-werk?m=${SZIDONIA}&i=profil&w=800`;
 const DATEIEN = {
   nass: `${P}/hero.jpg`,
   nassSet: `${P}/hero-960.jpg 960w, ${P}/hero.jpg 1672w`,
@@ -197,7 +198,7 @@ function Film({ T }: { T: Texte }) {
             }}
             className="absolute inset-0 grid place-items-center"
           >
-            <span className="grid h-[74px] w-[74px] place-items-center rounded-full bg-white/92 shadow-[0_6px_24px_rgba(0,0,0,.45)]">
+            <span className="grid h-[74px] w-[74px] place-items-center rounded-full bg-[rgba(255,255,255,0.92)] shadow-[0_6px_24px_rgba(0,0,0,.45)]">
               <Play className="ml-[3px] h-7 w-7 text-[#111]" aria-hidden />
             </span>
           </button>
@@ -482,7 +483,7 @@ function PartnerFormular({ T, sprache }: { T: Texte; sprache: Sprache }) {
   );
 }
 
-export default function WasserSeite({ sprache }: { sprache: Sprache }) {
+export default function WasserSeite({ sprache, kuenstlerSeite }: { sprache: Sprache; kuenstlerSeite: string }) {
   const T = TEXTE[sprache];
   const wurzel = useRef<HTMLElement>(null);
   useBewegung(wurzel);
@@ -577,7 +578,14 @@ export default function WasserSeite({ sprache }: { sprache: Sprache }) {
         <div className={s.forschung}>
           <div data-reveal>
             <h2 id="research-titel" className={s.forschungTitel}>{T.forschungTitel}</h2>
-            <p className={s.name}>Bandi Szidonia</p>
+            {/* IHR PROFILBILD (Owner 28.09.2026: „mach das Bild von Szidonia noch rein, wir haben ein
+                Profilbild von ihr") — aus ihrem Künstlerprofil, nicht kopiert: Ändert sie es dort,
+                ändert es sich hier. Porträt → oben anschneiden (Skill `card`). */}
+            <a href={kuenstlerSeite} className={s.portraitLink}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={PORTRAET} alt="Bandi Szidonia" loading="lazy" decoding="async" className={s.portrait} />
+              <span className={s.name}>Bandi Szidonia</span>
+            </a>
           </div>
           <div className={s.fliess} data-reveal>
             <p>{T.forschung1}</p>

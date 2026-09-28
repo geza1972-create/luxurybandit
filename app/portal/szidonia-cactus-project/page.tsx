@@ -6,7 +6,7 @@ import { portalSprache, portalTexte } from "@/lib/lakatosbandi-texte";
 import PortalKopf from "@/components/PortalKopf";
 import PortalFuss from "@/components/PortalFuss";
 import WasserSeite from "./WasserSeite";
-import { TEXTE, type Sprache } from "./texte";
+import { SZIDONIA, TEXTE, type Sprache } from "./texte";
 
 /**
  * WHAT REMAINS WHEN WATER DISAPPEARS? — SZIDONIAS KUNSTPROJEKT (Owner 28.09.2026).
@@ -56,7 +56,7 @@ export default async function KaktusProjekt({ searchParams }: { searchParams: Pr
   return (
     <div data-lang={L} className="lb-portal lb-kunstprojekt min-h-[100dvh] bg-white text-[#111]">
       <PortalKopf T={T} lang={L} login={P.login} start={P.start} preise={P.preise} journal={P.journal(L)} />
-      <WasserSeite sprache={L} />
+      <WasserSeite sprache={L} kuenstlerSeite={`${P.kuenstler(SZIDONIA)}?lang=${L}`} />
       <PortalFuss lang={L} />
     </div>
   );
