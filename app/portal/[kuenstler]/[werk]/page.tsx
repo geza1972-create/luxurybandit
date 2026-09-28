@@ -2,7 +2,9 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { headers } from "next/headers";
 import { mandantOeffentlich } from "@/lib/versusforge-mandanten";
-import { istKuenstler, portalPfade, werkKacheln, kuenstlerUrl, ueberMichFuer } from "@/lib/lakatosbandi";
+import { istKuenstler, portalPfade, werkKacheln, kuenstlerUrl, ueberMichFuer, blattZeilen } from "@/lib/lakatosbandi";
+import Poster from "@/components/Poster";
+import { PosterWandFoto } from "@/components/PosterWandBild";
 import { portalSprache, portalTexte } from "@/lib/lakatosbandi-texte";
 import { mandantPruefen } from "@/lib/versusforge-mandant";
 import { EIGENER_MANDANT } from "@/lib/versusforge-namen";
@@ -19,7 +21,7 @@ import KaufKnopf from "@/components/KaufKnopf";
 import Korb from "@/components/Korb";
 import { preisSatz, preisText } from "@/lib/lakatosbandi-preis";
 import PreisLabel from "@/components/PreisLabel";
-import { druckPreisCents, druckGroessenFuer, druckSpanneCents, KLEIDUNG_AN, istTextil } from "@/lib/lakatosbandi-druck";
+import { druckPreisCents, druckGroessenFuer, druckSpanneCents, posterPreisA3Cents, KLEIDUNG_AN, istTextil } from "@/lib/lakatosbandi-druck";
 import { eur } from "@/lib/pricing";
 
 /**
@@ -306,6 +308,62 @@ export default async function PortalWerk({ params, searchParams }: Props) {
         {andere.length > 0 && (
           <>
             <h2 className="mt-16 border-t border-[#e5e5e5] pt-8 text-[13px] font-semibold uppercase tracking-[0.18em] text-[#777]">{T.weitereWerke}</h2>
+            {kaufBar ? (
+              /* ── DIE ANDEREN ALS POSTER, NICHT ALS ORIGINAL (Owner 28.09.2026: „alte lucrări muss
+                 auch die Poster zeigen, nicht die Originale") — dieselbe Kachel wie in der Galerie
+                 seiner Seite: Blatt mit Titel, darunter Titel und ab-Preis. Auf der Shirt-Seite
+                 dieselben Werke auf dem Shirt, sofern er sie dafür angehakt hat. */
+              <ul className="mt-6 grid list-none grid-cols-2 gap-x-5 gap-y-10 p-0 md:grid-cols-4">
+                {andere
+                  .filter(x => {
+                    const wx = m.werkInfo?.[x.i < 0 ? "standard" : String(x.i)];
+                    if (textilSeite) return !!wx?.textil && !wx?.produkt;
+                    return !wx?.produkt || !istTextil(wx.produkt);
+                  })
+                  .map(x => {
+                    const nrx = x.i < 0 ? "standard" : String(x.i);
+                    const wx = m.werkInfo?.[nrx];
+                    const zeilen = blattZeilen(m.name, wx, L, m.sprache);
+                    const basis = werkLink(x.i);
+                    const href = `${basis}${basis.includes("?") ? "&" : "?"}${textilSeite ? "art=textil&" : ""}lang=${L}`;
+                    const ab = textilSeite
+                      ? druckPreisCents("tricou", druckGroessenFuer("tricou")[0] ?? "")
+                      : wx?.produkt
+                      ? druckPreisCents(wx.produkt, druckGroessenFuer(wx.produkt)[0] ?? "")
+                      : druckPreisCents("poster", "A3", !m.reproduktion && !m.kunstAn, posterPreisA3Cents(wx?.posterPreis));
+                    return (
+                      <li key={x.i} className="lb-poster-block">
+                        <a href={href} className="block text-[#111] no-underline">
+                          {textilSeite ? (
+                            /* eslint-disable-next-line @next/next/no-img-element */
+                            <img src={mitAdmin(`/api/portal-textil?m=${encodeURIComponent(kuenstler)}&i=${nrx}&art=tricou&w=600`)}
+                              alt={zeilen.gross} loading="lazy" className="block aspect-square w-full bg-[#f3f3f3] object-cover" />
+                          ) : wx?.produkt ? (
+                            <div className="flex aspect-[1/1.4142] items-center justify-center bg-[#f5f5f5]">
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img src={mitAdmin(P.werkBild(kuenstler, x.i, 500))} alt={zeilen.gross} loading="lazy" className="max-h-full max-w-full object-contain" />
+                            </div>
+                          ) : (
+                            <Poster
+                              klasse="lb-rahmen-fest"
+                              titel={zeilen.gross}
+                              siegel={!m.reproduktion}
+                              bild={
+                                <PosterWandFoto standard={mitAdmin(m.rahmenStil === "gotisch" ? P.werkBildGotisch(kuenstler, x.i, 600) : P.werkBild(kuenstler, x.i, 600))}
+                                  alt={zeilen.gross} className={wx?.quer ? "block h-auto w-full" : "block h-full w-auto"} />
+                              }
+                            />
+                          )}
+                          <p className="m-0 mt-3 text-[15px] font-semibold leading-[1.3]">{zeilen.gross}</p>
+                          {ab !== null ? (
+                            <p className="m-0 mt-1 text-[14.5px] text-[#555]">{T.druckAb.replace("{preis}", eur(ab, L))}</p>
+                          ) : null}
+                        </a>
+                      </li>
+                    );
+                  })}
+              </ul>
+            ) : (
             <ul className="mt-6 grid list-none grid-cols-2 gap-x-6 gap-y-8 p-0 md:grid-cols-4">
               {andere.map(x => (
                 <li key={x.i}>
@@ -331,6 +389,7 @@ export default async function PortalWerk({ params, searchParams }: Props) {
                 </li>
               ))}
             </ul>
+            )}
           </>
         )}
       </main>
