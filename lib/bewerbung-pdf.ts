@@ -158,7 +158,10 @@ type PdfWorte = {
   /* Die Herkunftszeile am Fuss JEDER Fassung (Owner 25.08.2026: „Mach unten ein Hinweis.
      Bewerbung erstellt mit luxurybandit.com") — anders als der Muster-Satz darueber steht
      sie auch in der bezahlten Fassung: leise Werbung auf einem Dokument, das herumgereicht
-     wird. Ersetzt den Muster-Satz nicht, sie steht daneben. */
+     wird. Ersetzt den Muster-Satz nicht, sie steht daneben.
+     SEIT 28.09.2026 IN JEDER SPRACHE ENGLISCH UND MIT versusforge.com (Owner: „auf
+     englisch bitte", nach der Domain-Korrektur in den Bewerbungstexten): die Zeile ist
+     Marken-Signatur, keine Uebersetzung — ein Satz, ueberall gleich. */
   erstelltMit: string;
 };
 const PDF_WORTE: Record<string, PdfWorte> = {
@@ -166,37 +169,37 @@ const PDF_WORTE: Record<string, PdfWorte> = {
         profil: "Profil", erfahrung: "Berufserfahrung", ausbildung: "Ausbildung",
         muster: "Muster-Fassung — die Vollversion ohne Wasserzeichen gibt es auf luxurybandit.com",
         bewerbungAls: "Bewerbung als", bewerbung: "Bewerbung", datumSchema: "de-DE",
-        erstelltMit: "Bewerbung erstellt mit luxurybandit.com" },
+        erstelltMit: "Application created with versusforge.com" },
   en: { kontakt: "Contact", kompetenzen: "Skills", schwerpunkte: "Focus areas", sprachen: "Languages",
         profil: "Profile", erfahrung: "Experience", ausbildung: "Education",
         muster: "Sample version — the full version without watermark is available at luxurybandit.com",
         bewerbungAls: "Application for", bewerbung: "Application", datumSchema: "en-GB",
-        erstelltMit: "Application created with luxurybandit.com" },
+        erstelltMit: "Application created with versusforge.com" },
   ro: { kontakt: "Contact", kompetenzen: "Competente", schwerpunkte: "Domenii cheie", sprachen: "Limbi",
         profil: "Profil", erfahrung: "Experienta profesionala", ausbildung: "Studii",
         muster: "Versiune demonstrativa — versiunea completa fara filigran este pe luxurybandit.com",
         bewerbungAls: "Candidatura pentru", bewerbung: "Candidatura", datumSchema: "ro-RO",
-        erstelltMit: "Candidatura creata cu luxurybandit.com" },
+        erstelltMit: "Application created with versusforge.com" },
   fr: { kontakt: "Contact", kompetenzen: "Competences", schwerpunkte: "Domaines cles", sprachen: "Langues",
         profil: "Profil", erfahrung: "Experience professionnelle", ausbildung: "Formation",
         muster: "Version d'essai — la version complete sans filigrane est sur luxurybandit.com",
         bewerbungAls: "Candidature au poste de", bewerbung: "Candidature", datumSchema: "fr-FR",
-        erstelltMit: "Candidature creee avec luxurybandit.com" },
+        erstelltMit: "Application created with versusforge.com" },
   es: { kontakt: "Contacto", kompetenzen: "Competencias", schwerpunkte: "Areas clave", sprachen: "Idiomas",
         profil: "Perfil", erfahrung: "Experiencia profesional", ausbildung: "Formacion",
         muster: "Version de muestra — la version completa sin marca de agua esta en luxurybandit.com",
         bewerbungAls: "Candidatura para", bewerbung: "Candidatura", datumSchema: "es-ES",
-        erstelltMit: "Candidatura creada con luxurybandit.com" },
+        erstelltMit: "Application created with versusforge.com" },
   it: { kontakt: "Contatti", kompetenzen: "Competenze", schwerpunkte: "Aree chiave", sprachen: "Lingue",
         profil: "Profilo", erfahrung: "Esperienza professionale", ausbildung: "Formazione",
         muster: "Versione di prova — la versione completa senza filigrana e su luxurybandit.com",
         bewerbungAls: "Candidatura per", bewerbung: "Candidatura", datumSchema: "it-IT",
-        erstelltMit: "Candidatura creata con luxurybandit.com" },
+        erstelltMit: "Application created with versusforge.com" },
   pt: { kontakt: "Contacto", kompetenzen: "Competencias", schwerpunkte: "Areas principais", sprachen: "Linguas",
         profil: "Perfil", erfahrung: "Experiencia profissional", ausbildung: "Formacao",
         muster: "Versao de amostra — a versao completa sem marca de agua esta em luxurybandit.com",
         bewerbungAls: "Candidatura para", bewerbung: "Candidatura", datumSchema: "pt-PT",
-        erstelltMit: "Candidatura criada com luxurybandit.com" },
+        erstelltMit: "Application created with versusforge.com" },
 };
 
 export async function bewerbungAlsPdf(
