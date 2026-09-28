@@ -81,7 +81,8 @@ export async function gotischGerahmt(
   const cx = B / 2;
   /* Rose mit Dreipass im Giebel. */
   const rose = Math.min(giebel * 0.3, w * 0.12);
-  const rcy = yBild - giebel * 0.4;
+  /* Mittig zwischen Querbalken und innerer Spitze (Owner 28.09.2026: muss der Kreis nicht in der Mitte sein?). */
+  const rcy = yBild - aI - (giebel + aI) / 2;
   const pass = rose * 0.47;
   const kreise = [0, 1, 2].map(n => {
     const winkel = -Math.PI / 2 + n * (2 * Math.PI / 3);
