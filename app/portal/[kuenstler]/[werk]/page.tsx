@@ -14,7 +14,7 @@ import KuenstlerAgent from "@/components/KuenstlerAgent";
 import PosterFilm from "@/components/PosterFilm";
 import PosterProdukt from "@/components/PosterProdukt";
 import PortalTeilen from "@/components/PortalTeilen";
-import BildVollbild from "@/components/BildVollbild";
+import ZoomBild from "@/components/ZoomBild";
 import { textilBild } from "@/lib/lakatosbandi-adressen";
 import { aboAktiv } from "@/lib/versusforge-abo";
 import { supabaseFetch, BUCKET, encodeStoragePath } from "@/lib/try-this-look-store";
@@ -166,12 +166,12 @@ export default async function PortalWerk({ params, searchParams }: Props) {
             <div className="mx-auto mt-6 grid max-w-[560px] gap-10">
               {[textilArt].map(art => (
                 <div key={art} className="text-center">
-                  {/* Per Klick gross (Owner 28.09.2026: „vergrössern, nicht ein Kreis") — der Druck
-                      auf dem Rücken ist klein; im Vollbild in echter Auflösung. */}
-                  <BildVollbild src={mitAdmin(textilBild(kuenstler, nr, art, 900, w?.textilZeile))}
+                  {/* Plus und Minus in der Ecke (Owner 28.09.2026) — der Druck auf dem Rücken ist
+                      klein; vergrössert kommt er in echter Auflösung. */}
+                  <ZoomBild src={mitAdmin(textilBild(kuenstler, nr, art, 900, w?.textilZeile))}
                     gross={mitAdmin(textilBild(kuenstler, nr, art, 2400, w?.textilZeile))}
                     alt={`${w?.titel || m.name} — ${art === "tricou" ? T.druckTricou : T.druckHanorac}`}
-                    className="block aspect-square w-full bg-[#f3f3f3] object-cover" knopfKlasse="block w-full" />
+                    fokusY={art === "tricou" ? 0.36 : 0.42} />
                   <p className="m-0 mt-4 text-[17px] font-semibold">{art === "tricou" ? T.druckTricou : T.druckHanorac}</p>
                   <div className="mt-3">
                     <KaufKnopf mandant={kuenstler} werk={nr} material={art} sprache={L} adminS={admin ? adminS : ""}
