@@ -40,7 +40,8 @@ export async function gotischGerahmt(
   const rand = breite * 0.07;
   /* Kein Kreuz auf der Spitze (Owner 28.09.2026: ohne Kreuz). */
   const kreuzH = 0;
-  const giebelAnteil = 0.52;
+  /* Der Bogen etwa ein Drittel flacher (Owner 28.09.2026: der Bogen nimmt zu viel Platz in der Hoehe). */
+  const giebelAnteil = 0.34;
   const verfuegbarH = hoch * 1.25 - 2 * rand - kreuzH;
   const probe = await sharp(motiv, { failOn: "none" }).rotate().metadata();
   const verh = (probe.width ?? 3) / Math.max(1, probe.height ?? 4);
@@ -79,8 +80,8 @@ export async function gotischGerahmt(
   const innen = umriss(aI);
   const cx = B / 2;
   /* Rose mit Dreipass im Giebel. */
-  const rose = Math.min(giebel * 0.32, w * 0.16);
-  const rcy = yBild - giebel * 0.42;
+  const rose = Math.min(giebel * 0.3, w * 0.12);
+  const rcy = yBild - giebel * 0.4;
   const pass = rose * 0.47;
   const kreise = [0, 1, 2].map(n => {
     const winkel = -Math.PI / 2 + n * (2 * Math.PI / 3);
