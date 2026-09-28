@@ -676,7 +676,7 @@ export default async function PortalKuenstler({ params, searchParams }: Props) {
            * Jetzt nur das Blatt, darunter Titel und „ab"-Preis — gekauft wird eine Seite weiter
            * (`[kuenstler]/[werk]`), wo derselbe Baustein `PosterProdukt` alles zeigt.
            */
-          <ul className="mt-10 grid list-none grid-cols-2 gap-x-5 gap-y-10 p-0 md:grid-cols-3">
+          <ul className="mt-10 grid list-none grid-cols-2 gap-x-5 gap-y-10 p-0 md:grid-cols-3 lg:grid-cols-4">
             {posterKacheln.map(k => {
               const nr = k.i < 0 ? "standard" : String(k.i);
               const wk = m.werkInfo?.[nr];
