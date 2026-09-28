@@ -67,6 +67,8 @@ export default function PortalKopf({ T, lang, login, start, preise, journal, spr
           <PortalMenue label={T.preiseWort} eintraege={[
             ...(preise ? [{ href: `${preise}?lang=${lang}`, wort: T.preiseWort }] : []),
             ...(journal ? [{ href: journal, wort: "Journal" }] : []),
+            /* Szidonias Kunstprojekt (Owner 28.09.2026: „in die lakatosbandi.com Webseite integriert"). */
+            { href: `${start === "/" ? "" : "/portal"}/${start === "/" ? "Szidonia-cactus-project" : "szidonia-cactus-project"}?lang=${lang}`, wort: ({ ro: "Proiect: Cactus", de: "Projekt: Kaktus" } as Record<string, string>)[lang] ?? "Project: Cactus" },
             { href: `${start === "/" ? "" : "/portal"}/despre?lang=${lang}`, wort: T.ueberUnsWort },
             { href: `/contact?reason=general&lang=${lang}`, wort: T.kontaktWort },
           ]} />

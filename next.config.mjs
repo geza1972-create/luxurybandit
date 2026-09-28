@@ -105,6 +105,10 @@ const nextConfig = {
         /* „Über uns" (Owner 18.09.2026) — wie die anderen Hausnamen VOR `/:kuenstler`, sonst
            wäre „despre" ein Künstlername. */
         { source: "/despre", has: [{ type: "host", value: "(www\\.)?lakatosbandi\\.com" }], destination: "/portal/despre" },
+        /* Szidonias Doktorats-Installation „What Remains When Water Disappears?" (Owner 28.09.2026:
+           „Lakatosbandi.com/Szidonia-cactus-project") — VOR `/:kuenstler`, sonst wäre es ein
+           Künstlername. Gross- und kleingeschrieben, weil der Owner die Adresse mit grossem S nennt. */
+        { source: "/:p(Szidonia-cactus-project|szidonia-cactus-project)", has: [{ type: "host", value: "(www\\.)?lakatosbandi\\.com" }], destination: "/portal/szidonia-cactus-project" },
         /* Löschen auf lakatosbandi.com statt auf der Firmen-Anzeigenseite (Owner 11.09.2026). */
         { source: "/:kuenstler/loeschen", has: [{ type: "host", value: "(www\\.)?lakatosbandi\\.com" }], destination: "/portal/:kuenstler/loeschen" },
         /* ── SEIN DASHBOARD (Owner 18.09.2026: „Link zum Dashboard geht nicht") ──────────────
@@ -128,7 +132,7 @@ const nextConfig = {
            `/engine`, und diese Zeile machte daraus `/portal/engine` — die Anmeldung für Künstler
            war eine 404. Wer hier eine neue Umschreibung auf EINEN Pfadteil einträgt, muss ihn in
            dieser Liste ausnehmen. */
-        { source: "/:kuenstler((?!portal$|engine$|api$|_next$|journal$)[^/]+)", has: [{ type: "host", value: "(www\\.)?lakatosbandi\\.com" }], destination: "/portal/:kuenstler" },
+        { source: "/:kuenstler((?!portal$|engine$|api$|_next$|journal$|[Ss]zidonia-cactus-project$)[^/]+)", has: [{ type: "host", value: "(www\\.)?lakatosbandi\\.com" }], destination: "/portal/:kuenstler" },
       ],
     };
   },

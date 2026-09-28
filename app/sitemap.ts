@@ -52,6 +52,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${BASE}/themes/versusforge/de`, changeFrequency: "weekly", priority: 0.9 },
     /* lakatosbandi.com — Startseite und Journal (10.09.2026). Eigene Domain, deshalb absolute Adressen. */
     { url: "https://lakatosbandi.com/", changeFrequency: "weekly", priority: 0.9 },
+    { url: "https://lakatosbandi.com/Szidonia-cactus-project", changeFrequency: "monthly", priority: 0.8 },
     ...JOURNAL_SPRACHEN.flatMap(l => [
       { url: `https://lakatosbandi.com/journal/${l}`, changeFrequency: "weekly" as const, priority: 0.8 },
       ...ARTIKEL.map(a => ({ url: `https://lakatosbandi.com/journal/${l}/${a.slug}`, changeFrequency: "monthly" as const, priority: 0.7 })),
