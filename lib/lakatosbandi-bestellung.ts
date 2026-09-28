@@ -196,7 +196,7 @@ async function dateiAnhaenge(b: Bestellung, materialien: (p: BestellPosten) => b
         const druck = await textilDruckBauen({
           motiv: Buffer.from(await r.arrayBuffer()),
           spruch: textilSpruch(String((nrT === "standard" ? mT.hook : mT.hooks?.[Number(nrT)]) ?? "")),
-          breite: 2300, hoch: 2900,
+          breite: 2760, hoch: 3480, schrift: 2300,
         });
         raus.push({
           name: `${p.mandant}-${nrT} · ${p.material} ${p.groesse} · ${bestellNummer(b.sitzung)}.png`,

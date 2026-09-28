@@ -19,9 +19,11 @@ export const runtime = "nodejs";
 /* Fläche fürs Werk je Stück, in Pixeln der 1254er Vorlage: Mitte x, Oberkante y, grösste
    Breite/Höhe. Zweimal verkleinert (Owner 28.09.2026: „35 % kleiner" · „das Motiv kleiner") —
    darunter steht der Spruch. */
+/* Das Bild danach wieder 20 % grösser (Owner 28.09.2026) — der Spruch bleibt so gross wie er war
+   (`schrift` ist die alte Breite). */
 const FLAECHE = {
-  tricou: { vorlage: "/lakatosbandi/shirt-schwarz.png", mitte: 627, oben: 250, breit: 230, hoch: 290 },
-  hanorac: { vorlage: "/lakatosbandi/hoodie-schwarz.png", mitte: 627, oben: 385, breit: 225, hoch: 255 },
+  tricou: { vorlage: "/lakatosbandi/shirt-schwarz.png", mitte: 627, oben: 230, breit: 276, hoch: 348, schrift: 230 },
+  hanorac: { vorlage: "/lakatosbandi/hoodie-schwarz.png", mitte: 627, oben: 370, breit: 270, hoch: 306, schrift: 225 },
 } as const;
 
 export async function GET(request: Request) {
@@ -51,7 +53,7 @@ export async function GET(request: Request) {
   const druck = await textilDruckBauen({
     motiv: motivRoh,
     spruch: textilSpruch(String((nr === "standard" ? m.hook : m.hooks?.[Number(nr)]) ?? "")),
-    breite: f.breit, hoch: f.hoch,
+    breite: f.breit, hoch: f.hoch, schrift: f.schrift,
   });
   const links = Math.round(f.mitte - druck.breite / 2);
 

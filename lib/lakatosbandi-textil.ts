@@ -113,22 +113,25 @@ export async function textilDruckBauen(o: {
   spruch: string;
   breite: number;
   hoch: number;
+  /** Bezugsbreite für die Schrift — fehlt sie, folgt die Schrift `breite`. So kann das Bild wachsen, ohne dass der Spruch mitwächst. */
+  schrift?: number;
 }): Promise<{ bild: Buffer; breite: number; hoehe: number }> {
   const sharp = (await import("sharp")).default;
+  const sb = o.schrift ?? o.breite;
   const m = await gotischGerahmt(sharp, o.motiv, o.breite, o.hoch);
 
   const roh = await readFile(path.join(process.cwd(), "public", "fonts", "CrimsonText.ttf"));
   const serif = fontkit.create(roh);
 
   /* Der Spruch darf breiter laufen als das Werk — sonst wären es sechs kurze Zeilen. */
-  const groesse = o.breite * 0.11;
-  const zeilenBreite = o.breite * 1.55;
+  const groesse = sb * 0.11;
+  const zeilenBreite = sb * 1.55;
   const zeilen = umbrechen(String(o.spruch ?? "").trim(), serif, groesse, zeilenBreite);
   const breiten = zeilen.map(z => textBreite(serif, z, groesse));
   const breite = Math.ceil(Math.max(m.info.width, ...breiten, 1));
 
   const teile: string[] = [];
-  let y = m.info.height + (zeilen.length ? o.breite * 0.08 : 0);
+  let y = m.info.height + (zeilen.length ? sb * 0.08 : 0);
   zeilen.forEach((z, i) => {
     y += groesse * (i === 0 ? 0.85 : 1.3);
     teile.push(`<g fill="#ffffff">${textPfad(serif, z, groesse, (breite - breiten[i]) / 2, y)}</g>`);
