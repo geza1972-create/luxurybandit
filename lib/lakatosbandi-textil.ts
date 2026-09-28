@@ -30,13 +30,16 @@ import { textPfad, textBreite, umbrechen } from "@/lib/lakatosbandi-blattbild";
  * Die Figur passt in `breite` × `hoch` — der Rahmen macht das Werk kleiner, nicht den Druck grösser.
  * (Der Name `gotischGerahmt` bleibt, weil Schirm, Shirt und Druckdatei ihn schon rufen.)
  */
+/** Die Rahmenlinie auf Schwarz — hellgrau, nicht weiss (Owner 28.09.2026). */
+export const RAHMEN_HELLGRAU = "#9c978e";
+
 export async function gotischGerahmt(
   sharp: typeof import("sharp"),
   motiv: Buffer,
   breite: number,
   hoch: number,
-  /** Weiss auf dem schwarzen Shirt, Tinte auf dem Papier des Posters. */
-  farbe = "#ffffff",
+  /** Hellgrau auf dem schwarzen Shirt/Blatt (Owner 28.09.2026: „die Linie ist zu hell, es muss hellgrau sein"), Tinte auf hellem Papier. */
+  farbe = RAHMEN_HELLGRAU,
 ): Promise<{ data: Buffer; info: { width: number; height: number } }> {
   const abstand = breite * 0.05;
   const linie = Math.max(1, breite * 0.0035);

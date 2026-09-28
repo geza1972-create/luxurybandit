@@ -13,7 +13,7 @@ import { motivPfad } from "@/lib/versusforge-moderation";
 import { filmSeite } from "@/lib/lakatosbandi-film";
 import { portalTexte, portalSprache } from "@/lib/lakatosbandi-texte";
 import { druckdateiBauen } from "@/lib/lakatosbandi-druckdatei";
-import { textilDruckBauen, gotischGerahmt } from "@/lib/lakatosbandi-textil";
+import { textilDruckBauen, gotischGerahmt, RAHMEN_HELLGRAU } from "@/lib/lakatosbandi-textil";
 
 /**
  * WAS NACH EINER BESTELLUNG PASSIERT (Owner 16.09.2026: „ich will nicht wissen was nach
@@ -242,7 +242,7 @@ async function dateiAnhaenge(b: Bestellung, materialien: (p: BestellPosten) => b
       /* Sein Werk im gotischen Rahmen, wie auf dem Schirm (Owner 28.09.2026) — nicht das Foto
          eines Kunden, das gehört ihm und bekommt keinen fremden Rahmen. */
       const gotisch = !eigenes && m.rahmenStil === "gotisch"
-        ? await gotischGerahmt((await import("sharp")).default, Buffer.from(bild), 2400, 3840, m.posterDunkel ? "#ffffff" : "#1f1c17")
+        ? await gotischGerahmt((await import("sharp")).default, Buffer.from(bild), 2400, 3840, m.posterDunkel ? RAHMEN_HELLGRAU : "#1f1c17")
         : null;
       const bytes = await druckdateiBauen({
         bild: gotisch ? new Uint8Array(gotisch.data) : bild,

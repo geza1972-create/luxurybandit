@@ -210,7 +210,7 @@ export default function PosterProdukt({
               /* Im gotischen Rahmen, wenn der Künstler ihn hat (Owner 28.09.2026) — dasselbe
                  Kirchenfenster wie auf dem Shirt, in Tinte. */
               <PosterWandFoto standard={mitAdmin(m.rahmenStil === "gotisch"
-                ? `/api/portal-werk-gotisch?m=${encodeURIComponent(kuenstler)}&i=${nr}&w=1100&v=${m.posterDunkel ? "d" : "h"}4`
+                ? `/api/portal-werk-gotisch?m=${encodeURIComponent(kuenstler)}&i=${nr}&w=1100&v=${m.posterDunkel ? "d" : "h"}5`
                 : werkBild(kuenstler, k.i, 1100))}
                 className="block h-auto max-h-full w-auto max-w-full object-contain" />
             }
@@ -392,7 +392,7 @@ export default function PosterProdukt({
                 /* Auch hier im gotischen Rahmen, wenn er ihn hat (Owner 28.09.2026) — das grosse
                    Blatt muss dasselbe zeigen wie Miniatur und Zimmer. */
                 bild={mitAdmin(m.rahmenStil === "gotisch"
-                  ? `/api/portal-werk-gotisch?m=${encodeURIComponent(kuenstler)}&i=${nr}&w=1100&v=${m.posterDunkel ? "d" : "h"}4`
+                  ? `/api/portal-werk-gotisch?m=${encodeURIComponent(kuenstler)}&i=${nr}&w=1100&v=${m.posterDunkel ? "d" : "h"}5`
                   : werkBild(kuenstler, k.i, 1100))} alt={m.name}
                 quer={!!wi?.quer}
                 profil={m.profilBild ? mitAdmin(`/api/portal-werk?m=${encodeURIComponent(kuenstler)}&i=profil`) : undefined}
