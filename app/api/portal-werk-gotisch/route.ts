@@ -33,7 +33,7 @@ export async function GET(request: Request) {
   if (!res.ok) return new Response("Not found", { status: 404 });
 
   const sharp = (await import("sharp")).default;
-  const gerahmt = await gotischGerahmt(sharp, Buffer.from(await res.arrayBuffer()), breite, breite * 1.6, TINTE);
+  const gerahmt = await gotischGerahmt(sharp, Buffer.from(await res.arrayBuffer()), breite, breite * 1.6, m.posterDunkel ? "#ffffff" : TINTE);
   const bild = await sharp(gerahmt.data).webp({ quality: 86, alphaQuality: 90 }).toBuffer();
   return new Response(new Uint8Array(bild), {
     headers: {

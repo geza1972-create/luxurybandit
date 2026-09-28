@@ -2,7 +2,7 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import QRCode from "qrcode";
 import fontkit from "@pdf-lib/fontkit";
-import { POSTER, POSTER_FORMATE, POSTER_HOCHKANT, posterHochkant } from "@/lib/lakatosbandi-poster";
+import { POSTER, POSTER_FORMATE, POSTER_HOCHKANT, posterHochkant, posterFarben } from "@/lib/lakatosbandi-poster";
 import type { DruckAngaben } from "@/lib/lakatosbandi-druckdatei";
 import { werkMessen } from "@/lib/lakatosbandi-feldschnitt";
 
@@ -101,7 +101,7 @@ export function umbrechen(text: string, font: Schrift, groesse: number, breite: 
 export async function blattBildBauen(a: DruckAngaben & { dpi?: number }): Promise<Uint8Array> {
   const sharp = (await import("sharp")).default;
   const P = POSTER;
-  const f = P.farben;
+  const f = posterFarben(a.dunkel);
   const fmt = POSTER_FORMATE[a.format ?? "A3"];
   const B = fmt.breite * MM;
   const H = fmt.hoehe * MM;
@@ -205,7 +205,7 @@ export async function blattBildBauen(a: DruckAngaben & { dpi?: number }): Promis
 
   /* ── Der Code ────────────────────────────────────────────────────────────────────────── */
   const qrPng = a.qrZiel
-    ? await QRCode.toBuffer(a.qrZiel, { type: "png", margin: 1, scale: 12, color: { dark: f.tinte, light: f.papier } })
+    ? await QRCode.toBuffer(a.qrZiel, { type: "png", margin: 1, scale: 12, color: a.dunkel ? { dark: "#0f0e0d", light: "#ffffff" } : { dark: f.tinte, light: f.papier } })
     : null;
 
   /* ── Die Schrift, von unten nach oben gesetzt ─────────────────────────────────────────── */
@@ -253,7 +253,7 @@ export async function blattBildBauen(a: DruckAngaben & { dpi?: number }): Promis
     const kante = cqw(P.qr.breit * 1.35);
     const px = Math.max(1, Math.round(kante * S));
     bilder.push({
-      input: await sharp(stempel).resize(px, px, { fit: "inside" }).png().toBuffer(),
+      input: await (a.dunkel ? sharp(stempel).negate({ alpha: false }) : sharp(stempel)).resize(px, px, { fit: "inside" }).png().toBuffer(),
       left: Math.round((leiste + cqw(P.randUnten / 2)) * S),
       top: Math.round((H - (leisteUnten + cqw(P.randUnten / 2 - 0.4)) - kante) * S),
     });

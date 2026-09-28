@@ -138,11 +138,12 @@ export async function GET(request: NextRequest) {
      */
     /* Sein Werk im gotischen Rahmen, wie auf dem Schirm (Owner 28.09.2026) — nie um das Bild eines Kunden. */
     const gotisch = !eigenes && m.rahmenStil === "gotisch"
-      ? await gotischGerahmt((await import("sharp")).default, Buffer.from(quelle), 2400, 3840, "#1f1c17")
+      ? await gotischGerahmt((await import("sharp")).default, Buffer.from(quelle), 2400, 3840, m.posterDunkel ? "#ffffff" : "#1f1c17")
       : null;
     const angaben: DruckAngaben = {
       bild: gotisch ? new Uint8Array(gotisch.data) : quelle,
       ...(gotisch ? { bildTyp: "png" as const } : {}),
+      ...(m.posterDunkel ? { dunkel: true } : {}),
       titel: seinTitel || [info.titel, info.jahr].filter(Boolean).join(", ") || (m.name ?? ""),
       text: seinSatz || (m.kunstAn ? kunstBlattSatz(m.kunstStil) : posterZeile(info, kachel?.hook ?? "")),
       qrZiel: filmSeite(mandant, kachel?.i ?? -1),

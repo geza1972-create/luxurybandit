@@ -228,6 +228,23 @@ export const POSTER = {
 export type PosterRaster = typeof POSTER;
 
 /**
+ * ── DAS SCHWARZE BLATT (Owner 28.09.2026: „zeig mir die Poster schwarz, nicht weiss, wie auf dem
+ * T-Shirt") ──────────────────────────────────────────────────────────────────────────────────
+ * Dieselben Rollen wie `POSTER.farben`, umgekehrt: schwarzes Papier, weisse Schrift und weisser
+ * Rahmen — wie der Druck auf dem Shirt. Je Künstler (`posterDunkel`), Schirm und Druckdatei gleich.
+ */
+export const POSTER_FARBEN_DUNKEL = {
+  papier: "#0f0e0d",
+  tinte: "#ffffff",
+  grau: "#bdb7ab",
+  leise: "#9a948a",
+  kante: "#2b2926",
+} as const;
+
+export const posterFarben = (dunkel?: boolean): { papier: string; tinte: string; grau: string; leise: string; kante: string } =>
+  dunkel ? POSTER_FARBEN_DUNKEL : POSTER.farben;
+
+/**
  * ── EIN STEHENDES WERK BEKOMMT MEHR BLATT, DIE SCHRIFT WENIGER (Owner 20.09.2026: „das Bild muss
  * noch grösser werden und die Schrift dann kleiner bei den Hochkant-Bildern. Das Bild muss
  * 18 Prozent grösser werden") ──────────────────────────────────────────────────────────────────

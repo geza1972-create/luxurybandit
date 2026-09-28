@@ -673,6 +673,7 @@ export default async function PortalStart({ searchParams }: { searchParams: Prom
                   steht das Siegel in der Ecke. Zwei Fassungen desselben Produkts sind eine zu
                   viel — wer hier klickt, muss dasselbe wiederfinden. */}
               <Poster
+                dunkel={!!m.posterDunkel}
                 klasse="lb-rahmen-fest"
                 titel={blattZeilen(m.name, wi, L, m.sprache).gross}
                 stil={blattZeilen(m.name, wi, L, m.sprache).klein}
@@ -684,7 +685,7 @@ export default async function PortalStart({ searchParams }: { searchParams: Prom
                 bild={
                   /* `PosterWandFoto` statt `<img>`: Es meldet dem Blatt, ob das Werk stehend ist —
                      dann wird es hier genauso grösser wie auf der Künstlerseite (Owner 20.09.2026). */
-                  <PosterWandFoto standard={m.rahmenStil === "gotisch" ? P.werkBildGotisch(m.kennung, k.i, 900) : P.werkBild(m.kennung, k.i, 900)} alt={m.name}
+                  <PosterWandFoto standard={m.rahmenStil === "gotisch" ? P.werkBildGotisch(m.kennung, k.i, 900, m.posterDunkel) : P.werkBild(m.kennung, k.i, 900)} alt={m.name}
                     className={wi?.quer ? "block h-auto w-full" : "block h-full w-auto"} />
                 }
               />
@@ -808,6 +809,7 @@ export default async function PortalStart({ searchParams }: { searchParams: Prom
             const wi = neuestesPoster.m.werkInfo?.[nr];
             return (
               <Poster
+                dunkel={!!neuestesPoster.m.posterDunkel}
                 klasse="lb-rahmen-fest"
                 titel={blattZeilen(neuestesPoster.m.name, wi, L, neuestesPoster.m.sprache).gross}
                 stil={blattZeilen(neuestesPoster.m.name, wi, L, neuestesPoster.m.sprache).klein}
@@ -817,7 +819,7 @@ export default async function PortalStart({ searchParams }: { searchParams: Prom
                 siegel={!neuestesPoster.m.reproduktion}
                 recht={`lakatosbandi.com/${neuestesPoster.m.kennung}`}
                 bild={
-                  <PosterWandFoto standard={neuestesPoster.m.rahmenStil === "gotisch" ? P.werkBildGotisch(neuestesPoster.m.kennung, neuestesPoster.k.i, 900) : P.werkBild(neuestesPoster.m.kennung, neuestesPoster.k.i, 900)}
+                  <PosterWandFoto standard={neuestesPoster.m.rahmenStil === "gotisch" ? P.werkBildGotisch(neuestesPoster.m.kennung, neuestesPoster.k.i, 900, neuestesPoster.m.posterDunkel) : P.werkBild(neuestesPoster.m.kennung, neuestesPoster.k.i, 900)}
                     className={wi?.quer ? "block h-auto w-full" : "block h-full w-auto"} />
                 }
               />

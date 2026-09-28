@@ -497,6 +497,8 @@ export type MandantAngaben = {
    * dem Shirt, in Tinte statt Weiss. Von Hand gesetzt, je Künstler. Leer: das Werk ohne Rahmen.
    */
   rahmenStil?: "gotisch";
+  /** Schwarzes Poster mit weisser Schrift und weissem Rahmen, wie auf dem Shirt (Owner 28.09.2026). Von Hand gesetzt. */
+  posterDunkel?: boolean;
   posterViu?: boolean;
   /**
    * Sein Stil als Rezept (siehe `StilRezept`) — die Vorlage für erzeugte Porträts „im Stil von".

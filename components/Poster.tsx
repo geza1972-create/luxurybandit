@@ -1,4 +1,4 @@
-import { POSTER, POSTER_VERHAELTNIS, posterTextBreit } from "@/lib/lakatosbandi-poster";
+import { POSTER, POSTER_VERHAELTNIS, posterTextBreit, posterFarben } from "@/lib/lakatosbandi-poster";
 import ArtistFair from "@/components/ArtistFair";
 
 /** Das Aussehen der Stilzeile („BY ADRIAN ROȘU") — EINE Quelle für Blatt und `PosterStil`. */
@@ -26,7 +26,7 @@ export const posterStilStil: React.CSSProperties = {
  * Poster mit Pixelschrift wäre in drei Rasterbreiten drei verschiedene Entwürfe.
  */
 export default function Poster({ bildHoch, nameBreit, qrEcke, qrLink, bildKnopf, textKnopf, stil, bildEcke,
-  kopf, bild, profil, name, leben, titel, text, qr, scan, marke, recht, siegel, klasse = "",
+  kopf, bild, profil, name, leben, titel, text, qr, scan, marke, recht, siegel, klasse = "", dunkel = false,
 }: {
   kopf?: string;
   /** Das Werk — kommt von aussen, weil in der Kachel ein Film daran hängt. */
@@ -42,6 +42,8 @@ export default function Poster({ bildHoch, nameBreit, qrEcke, qrLink, bildKnopf,
   stil?: React.ReactNode;
   /** Das Artist-Fair-Siegel unten neben der Adresse (Owner 18.09.2026). */
   siegel?: boolean;
+  /** Schwarzes Blatt, weisse Schrift — wie auf dem Shirt (Owner 28.09.2026). */
+  dunkel?: boolean;
   /** Etwas in der unteren rechten Bildecke — der Vergrössern-Knopf (Owner 17.09.2026). */
   bildEcke?: React.ReactNode;
   text?: React.ReactNode;
@@ -83,7 +85,7 @@ export default function Poster({ bildHoch, nameBreit, qrEcke, qrLink, bildKnopf,
   textKnopf?: boolean;
 }) {
   const P = POSTER;
-  const f = P.farben;
+  const f = posterFarben(dunkel);
 
   /* Die Schriftgrösse des Satzes hängt an seiner LÄNGE, die Fläche steht fest — die Rechnung
      steht bei den Maßen (`posterTextBreit`), weil Blatt, Eingabefeld und Druckdatei dieselbe
@@ -260,6 +262,8 @@ export default function Poster({ bildHoch, nameBreit, qrEcke, qrLink, bildKnopf,
             left: `${P.randUnten / 2}cqw`, bottom: `${P.randUnten / 2 - 0.4}cqw`,
             /* Grösser als der Code gegenüber (Owner 18.09.2026: „grösser"). */
             width: `${P.qr.breit * 1.35}cqw`, height: `${P.qr.breit * 1.35}cqw`,
+            /* Der Stempel ist dunkle Tinte — auf dem schwarzen Blatt weiss. */
+            ...(dunkel ? { filter: "invert(1)" } : {}),
           }}>
             <ArtistFair groesse={0} klasse="block h-full w-full" />
           </span>
@@ -354,7 +358,7 @@ export default function Poster({ bildHoch, nameBreit, qrEcke, qrLink, bildKnopf,
           ) : null}
 
           {typeof stil === "string" ? (
-            <p className="m-0 font-serif" style={posterStilStil}>{stil}</p>
+            <p className="m-0 font-serif" style={{ ...posterStilStil, color: f.grau }}>{stil}</p>
           ) : (stil ?? null)}
 
           {text ? (
@@ -458,12 +462,12 @@ export default function Poster({ bildHoch, nameBreit, qrEcke, qrLink, bildKnopf,
                 <a href={qrLink} className="block shrink-0"
                   style={{ width: `${P.qr.klein}cqw`, height: `${P.qr.klein}cqw` }}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={qr} alt="" loading="lazy" className="block h-full w-full" />
+                  <img src={qr} alt="" loading="lazy" className="block h-full w-full" style={dunkel ? { background: "#fff", padding: "4%" } : undefined} />
                 </a>
                 ) : (
                   /* eslint-disable-next-line @next/next/no-img-element */
                   <img src={qr} alt="" loading="lazy" className="block shrink-0"
-                    style={{ width: `${P.qr.klein}cqw`, height: `${P.qr.klein}cqw` }} />
+                    style={{ width: `${P.qr.klein}cqw`, height: `${P.qr.klein}cqw`, ...(dunkel ? { background: "#fff", padding: "0.3cqw" } : {}) }} />
                 )
               ) : null}
               {recht}

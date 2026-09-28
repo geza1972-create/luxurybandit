@@ -174,6 +174,7 @@ export default function PosterProdukt({
         blatt={
 
           <Poster
+            dunkel={!!m.posterDunkel}
             klasse="lb-rahmen-fest"
             /* Seine Zeilen hängen mit an der Wand (Owner 19.09.2026: „der Name ist nicht
                an der Wand") — sonst steht dort „Numele tău", während auf dem Blatt
@@ -209,7 +210,7 @@ export default function PosterProdukt({
               /* Im gotischen Rahmen, wenn der Künstler ihn hat (Owner 28.09.2026) — dasselbe
                  Kirchenfenster wie auf dem Shirt, in Tinte. */
               <PosterWandFoto standard={mitAdmin(m.rahmenStil === "gotisch"
-                ? `/api/portal-werk-gotisch?m=${encodeURIComponent(kuenstler)}&i=${nr}&w=1100`
+                ? `/api/portal-werk-gotisch?m=${encodeURIComponent(kuenstler)}&i=${nr}&w=1100&v=${m.posterDunkel ? "d" : "h"}`
                 : werkBild(kuenstler, k.i, 1100))}
                 className="block h-auto max-h-full w-auto max-w-full object-contain" />
             }
@@ -235,6 +236,7 @@ export default function PosterProdukt({
           /* Der Name ist in jeder Sprache derselbe (Owner 16.09.2026: „A" · „auch die
              kategorie heisst so in allen 3 sprachen"). */
           <Poster
+            dunkel={!!m.posterDunkel}
             /* Kein Kopf über dem Werk (Owner 17.09.2026: „raus") — die Adresse steht
                in der Rechtezeile am Fuss. */
             /* Auch kein Künstlername und kein Profilbild auf dem Blatt (Owner
@@ -390,7 +392,7 @@ export default function PosterProdukt({
                 /* Auch hier im gotischen Rahmen, wenn er ihn hat (Owner 28.09.2026) — das grosse
                    Blatt muss dasselbe zeigen wie Miniatur und Zimmer. */
                 bild={mitAdmin(m.rahmenStil === "gotisch"
-                  ? `/api/portal-werk-gotisch?m=${encodeURIComponent(kuenstler)}&i=${nr}&w=1100`
+                  ? `/api/portal-werk-gotisch?m=${encodeURIComponent(kuenstler)}&i=${nr}&w=1100&v=${m.posterDunkel ? "d" : "h"}`
                   : werkBild(kuenstler, k.i, 1100))} alt={m.name}
                 quer={!!wi?.quer}
                 profil={m.profilBild ? mitAdmin(`/api/portal-werk?m=${encodeURIComponent(kuenstler)}&i=profil`) : undefined}

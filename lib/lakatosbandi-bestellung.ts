@@ -242,11 +242,12 @@ async function dateiAnhaenge(b: Bestellung, materialien: (p: BestellPosten) => b
       /* Sein Werk im gotischen Rahmen, wie auf dem Schirm (Owner 28.09.2026) — nicht das Foto
          eines Kunden, das gehört ihm und bekommt keinen fremden Rahmen. */
       const gotisch = !eigenes && m.rahmenStil === "gotisch"
-        ? await gotischGerahmt((await import("sharp")).default, Buffer.from(bild), 2400, 3840, "#1f1c17")
+        ? await gotischGerahmt((await import("sharp")).default, Buffer.from(bild), 2400, 3840, m.posterDunkel ? "#ffffff" : "#1f1c17")
         : null;
       const bytes = await druckdateiBauen({
         bild: gotisch ? new Uint8Array(gotisch.data) : bild,
         ...(gotisch ? { bildTyp: "png" as const } : {}),
+        ...(m.posterDunkel && !eigenes ? { dunkel: true } : {}),
         /* Kein Name und kein Profilbild auf dem Blatt (Owner 17.09.2026: „Gerry Louisett raus")
            — dieselbe Zeile wie auf dem Schirm: oben der TITEL, unten nur die Adresse. Fehlt der
            Titel, trägt die grosse Zeile den Namen. */

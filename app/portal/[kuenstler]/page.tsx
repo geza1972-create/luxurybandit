@@ -739,11 +739,12 @@ export default async function PortalKuenstler({ params, searchParams }: Props) {
                          Hier reicht der Titel") — Name, Satz, Adresse und Code stehen auf der
                          Produktseite, wo das Blatt gross ist. */
                       <Poster
+                        dunkel={!!m.posterDunkel}
                         klasse="lb-rahmen-fest"
                         titel={zeilen.gross}
                         siegel={!m.reproduktion}
                         bild={
-                          <PosterWandFoto standard={mitAdmin(m.rahmenStil === "gotisch" ? P.werkBildGotisch(kuenstler, k.i, 700) : P.werkBild(kuenstler, k.i, 700))} alt={zeilen.gross}
+                          <PosterWandFoto standard={mitAdmin(m.rahmenStil === "gotisch" ? P.werkBildGotisch(kuenstler, k.i, 700, m.posterDunkel) : P.werkBild(kuenstler, k.i, 700))} alt={zeilen.gross}
                             className={wk?.quer ? "block h-auto w-full" : "block h-full w-auto"} />
                         }
                       />
@@ -878,6 +879,7 @@ export default async function PortalKuenstler({ params, searchParams }: Props) {
               /* Dasselbe Blatt wie in der Kachel, nur klein — kein nachgebautes Aussehen. */
               vorschau: (
                 <Poster
+                  dunkel={!!m.posterDunkel}
                   kopf={POSTER_TITEL}
                   profil={m.profilBild ? mitAdmin(`/api/portal-werk?m=${encodeURIComponent(kuenstler)}&i=profil`) : undefined}
                   name={m.name}

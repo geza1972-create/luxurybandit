@@ -345,11 +345,12 @@ export default async function PortalWerk({ params, searchParams }: Props) {
                             </div>
                           ) : (
                             <Poster
+                              dunkel={!!m.posterDunkel}
                               klasse="lb-rahmen-fest"
                               titel={zeilen.gross}
                               siegel={!m.reproduktion}
                               bild={
-                                <PosterWandFoto standard={mitAdmin(m.rahmenStil === "gotisch" ? P.werkBildGotisch(kuenstler, x.i, 600) : P.werkBild(kuenstler, x.i, 600))}
+                                <PosterWandFoto standard={mitAdmin(m.rahmenStil === "gotisch" ? P.werkBildGotisch(kuenstler, x.i, 600, m.posterDunkel) : P.werkBild(kuenstler, x.i, 600))}
                                   alt={zeilen.gross} className={wx?.quer ? "block h-auto w-full" : "block h-full w-auto"} />
                               }
                             />

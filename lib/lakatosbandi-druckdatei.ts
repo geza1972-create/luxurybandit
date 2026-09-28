@@ -4,7 +4,7 @@ import { PDFDocument, rgb, type PDFFont, type PDFPage } from "pdf-lib";
 import fontkit from "@pdf-lib/fontkit";
 import { werkMessen } from "@/lib/lakatosbandi-feldschnitt";
 import QRCode from "qrcode";
-import { POSTER, POSTER_VERHAELTNIS, POSTER_FORMATE, POSTER_HOCHKANT, posterHochkant } from "@/lib/lakatosbandi-poster";
+import { POSTER, POSTER_VERHAELTNIS, POSTER_FORMATE, POSTER_HOCHKANT, posterHochkant, posterFarben } from "@/lib/lakatosbandi-poster";
 
 /**
  * DIE DRUCKDATEI ENTSTEHT AUF DEM SERVER (Owner 16.09.2026: „das muss aber automatisch generiert
@@ -37,6 +37,8 @@ export type DruckAngaben = {
   /** Das Werk als Bilddaten (JPEG oder PNG) in voller Auflösung. */
   bild: Uint8Array;
   bildTyp?: "jpg" | "png";
+  /** Schwarzes Blatt, weisse Schrift (Owner 28.09.2026) — wie `Poster dunkel` auf dem Schirm. */
+  dunkel?: boolean;
   /** Das Profilbild des Künstlers, rund neben dem Namen. */
   profil?: Uint8Array;
   profilTyp?: "jpg" | "png";
@@ -106,7 +108,7 @@ function sperrZeichnen(seite: PDFPage, text: string, font: PDFFont, groesse: num
  */
 export async function druckdateiBauen(a: DruckAngaben): Promise<Uint8Array> {
   const P = POSTER;
-  const f = P.farben;
+  const f = posterFarben(a.dunkel);
   const fmt = POSTER_FORMATE[a.format ?? "A3"];
   /* 1 mm = 2.8346 pt. Das PDF trägt echte Millimeter, egal mit wie viel dpi gedruckt wird. */
   const MM = 2.83465;
@@ -253,7 +255,7 @@ export async function druckdateiBauen(a: DruckAngaben): Promise<Uint8Array> {
   /* ── Der Textblock, von unten nach oben gesetzt ───────────────────────────────────────── */
   const qrBild = a.qrZiel
     ? await pdf.embedPng(await QRCode.toBuffer(a.qrZiel, {
-        type: "png", margin: 1, scale: 12, color: { dark: f.tinte, light: f.papier },
+        type: "png", margin: 1, scale: 12, color: a.dunkel ? { dark: "#0f0e0d", light: "#ffffff" } : { dark: f.tinte, light: f.papier },
       }))
     : null;
   let y = untenY + blockHoehe;
@@ -336,7 +338,11 @@ export async function druckdateiBauen(a: DruckAngaben): Promise<Uint8Array> {
    * derselbe nach unten minus 0,4, Kantenlänge `qr.breit * 1.35`.
    */
   try {
-    const stempel = await readFile(path.join(process.cwd(), "public", "lakatosbandi", "artist-fair-stempel.png"));
+    const stempelRoh = await readFile(path.join(process.cwd(), "public", "lakatosbandi", "artist-fair-stempel.png"));
+    /* Auf dem schwarzen Blatt ist der Stempel weiss — dieselbe Umkehrung wie auf dem Schirm. */
+    const stempel = a.dunkel
+      ? await (await import("sharp")).default(stempelRoh).negate({ alpha: false }).png().toBuffer()
+      : stempelRoh;
     const bildS = await pdf.embedPng(stempel);
     const seite2 = cqw(P.qr.breit * 1.35);
     seite.drawImage(bildS, {
