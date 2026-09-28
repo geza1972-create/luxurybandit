@@ -448,6 +448,7 @@ const TEXTE = {
     tabTextil: "T-shirts & hoodies",
     tabTricou: "T-shirts",
     tabHanorac: "Hoodies",
+    tabKleidung: "Clothes",
     kunstWerk: "Customers can generate their own picture in this style",
     kunstPremium: "Premium",
     /* Der Stilnachweis auf einem erzeugten Blatt (Owner 18.09.2026: „auf jedem erzeugten
@@ -817,6 +818,7 @@ const TEXTE = {
     tabTextil: "Tricouri și hanorace",
     tabTricou: "Tricouri",
     tabHanorac: "Hanorace",
+    tabKleidung: "Clothes",
     kunstWerk: "Clienții pot genera propria imagine în acest stil",
     kunstPremium: "Premium",
     stilNachweis: "după stilul lui {name}",
@@ -1137,6 +1139,7 @@ const TEXTE = {
     tabTextil: "T-Shirts & Hoodies",
     tabTricou: "T-Shirts",
     tabHanorac: "Hoodies",
+    tabKleidung: "Clothes",
     kunstWerk: "Kunden erzeugen ihr eigenes Bild in diesem Stil",
     kunstPremium: "Premium",
     stilNachweis: "im Stil von {name}",

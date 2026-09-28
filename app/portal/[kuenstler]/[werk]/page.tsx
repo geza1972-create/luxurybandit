@@ -14,6 +14,8 @@ import KuenstlerAgent from "@/components/KuenstlerAgent";
 import PosterFilm from "@/components/PosterFilm";
 import PosterProdukt from "@/components/PosterProdukt";
 import PortalTeilen from "@/components/PortalTeilen";
+import BildVollbild from "@/components/BildVollbild";
+import { textilBild } from "@/lib/lakatosbandi-adressen";
 import { aboAktiv } from "@/lib/versusforge-abo";
 import { supabaseFetch, BUCKET, encodeStoragePath } from "@/lib/try-this-look-store";
 import { filmPosterPfad } from "@/lib/lakatosbandi-film";
@@ -164,10 +166,12 @@ export default async function PortalWerk({ params, searchParams }: Props) {
             <div className="mx-auto mt-6 grid max-w-[560px] gap-10">
               {[textilArt].map(art => (
                 <div key={art} className="text-center">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={mitAdmin(`/api/portal-textil?m=${encodeURIComponent(kuenstler)}&i=${nr}&art=${art}&w=900`)}
+                  {/* Per Klick gross (Owner 28.09.2026: „vergrössern, nicht ein Kreis") — der Druck
+                      auf dem Rücken ist klein; im Vollbild in echter Auflösung. */}
+                  <BildVollbild src={mitAdmin(textilBild(kuenstler, nr, art, 900, w?.textilZeile))}
+                    gross={mitAdmin(textilBild(kuenstler, nr, art, 2400, w?.textilZeile))}
                     alt={`${w?.titel || m.name} — ${art === "tricou" ? T.druckTricou : T.druckHanorac}`}
-                    className="block aspect-square w-full bg-[#f3f3f3] object-cover" />
+                    className="block aspect-square w-full bg-[#f3f3f3] object-cover" knopfKlasse="block w-full" />
                   <p className="m-0 mt-4 text-[17px] font-semibold">{art === "tricou" ? T.druckTricou : T.druckHanorac}</p>
                   <div className="mt-3">
                     <KaufKnopf mandant={kuenstler} werk={nr} material={art} sprache={L} adminS={admin ? adminS : ""}
@@ -340,7 +344,7 @@ export default async function PortalWerk({ params, searchParams }: Props) {
                         <a href={href} className="block text-[#111] no-underline">
                           {textilSeite ? (
                             /* eslint-disable-next-line @next/next/no-img-element */
-                            <img src={mitAdmin(`/api/portal-textil?m=${encodeURIComponent(kuenstler)}&i=${nrx}&art=${textilArt}&w=600`)}
+                            <img src={mitAdmin(textilBild(kuenstler, nrx, textilArt, 600, wx?.textilZeile))}
                               alt={zeilen.gross} loading="lazy" className="block aspect-square w-full bg-[#f3f3f3] object-cover" />
                           ) : wx?.produkt ? (
                             <div className="flex aspect-[1/1.4142] items-center justify-center bg-[#f5f5f5]">

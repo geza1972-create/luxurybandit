@@ -32,7 +32,10 @@ export async function GET(request: Request) {
   const i = String(sp.get("i") ?? "-1").slice(0, 12);
   const art = sp.get("art") === "hanorac" ? "hanorac" : "tricou";
   const wRoh = Math.round(Number(sp.get("w")) || 0);
-  const breite = wRoh >= 200 && wRoh <= 1254 ? wRoh : 900;
+  /* Bis 2500 px — für die Lupe (Owner 28.09.2026) muss der Druck scharf sein, nicht nur gross. */
+  const breite = wRoh >= 200 && wRoh <= 2500 ? wRoh : 900;
+  /* Über der Vorlagengrösse wird alles hochgerechnet gebaut — Motiv und Schrift in echter Auflösung. */
+  const s = Math.max(1, breite / 1254);
 
   const m = kennung ? await mandantLesen(kennung) : null;
   const nr = i === "-1" || i === "standard" ? "standard" : i;
@@ -47,21 +50,21 @@ export async function GET(request: Request) {
   const f = FLAECHE[art];
   const vorlageRes = await fetch(new URL(f.vorlage, request.url));
   if (!vorlageRes.ok) return new Response("Vorlage fehlt", { status: 500 });
-  const vorlage = Buffer.from(await vorlageRes.arrayBuffer());
-
   const sharp = (await import("sharp")).default;
+  const vorlageRoh = Buffer.from(await vorlageRes.arrayBuffer());
+  const vorlage = s > 1 ? await sharp(vorlageRoh).resize({ width: Math.round(1254 * s) }).png().toBuffer() : vorlageRoh;
   const druck = await textilDruckBauen({
     motiv: motivRoh,
     /* Nur seine kurze Shirt-Zeile — nie der lange Poster-Spruch (Owner 28.09.2026). */
     spruch: String(m.werkInfo?.[nr]?.textilZeile ?? ""),
-    breite: f.breit, hoch: f.hoch, schrift: f.schrift,
+    breite: f.breit * s, hoch: f.hoch * s, schrift: f.schrift * s,
   });
-  const links = Math.round(f.mitte - druck.breite / 2);
+  const links = Math.round(f.mitte * s - druck.breite / 2);
 
   /* Erst zusammensetzen, DANN verkleinern — in einem Durchgang verkleinert sharp die Vorlage vor
      dem Aufsetzen, und das Motiv sässe an den Koordinaten des grossen Bildes (rechts unten). */
   const ganz = await sharp(vorlage)
-    .composite([{ input: druck.bild, left: links, top: f.oben }])
+    .composite([{ input: druck.bild, left: links, top: Math.round(f.oben * s) }])
     .png()
     .toBuffer();
   const bild = await sharp(ganz).resize({ width: breite }).jpeg({ quality: 84, mozjpeg: true }).toBuffer();

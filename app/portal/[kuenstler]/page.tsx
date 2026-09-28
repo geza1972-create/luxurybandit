@@ -19,6 +19,7 @@ import { POSTER_TITEL } from "@/lib/lakatosbandi-poster";
 import KaufKnopf from "@/components/KaufKnopf";
 import MehrText from "@/components/MehrText";
 import BildVollbild from "@/components/BildVollbild";
+import { textilBild } from "@/lib/lakatosbandi-adressen";
 import Korb from "@/components/Korb";
 import { preisSatz, preisText } from "@/lib/lakatosbandi-preis";
 import { druckPreisCents, druckGroessenFuer, druckSpanneCents, posterPreisA3Cents, DRUCK_KUENSTLER_CENTS, DRUCK_VERSAND_CENTS, KLEIDUNG_AN, KUNST_CENTS, istTextil } from "@/lib/lakatosbandi-druck";
@@ -618,7 +619,7 @@ export default async function PortalKuenstler({ params, searchParams }: Props) {
             Ein Shirt mit QR-Code und der Zeile „VIDEOPOSTER" behauptet etwas, was es nicht ist.
             Deshalb zwei Abschnitte: oben die Poster im Posterlayout, darunter die Kleidung in
             einem schlichten Raster. */}
-        <h2 className="mt-14 border-t border-[#e5e5e5] pt-8 text-[13px] font-semibold uppercase tracking-[0.18em] text-[#777]">{textilArt === "hanorac" ? T.tabHanorac : textilArt === "tricou" ? T.tabTricou : alsPoster ? T.werkeReproduktionen : T.werke}</h2>
+        <h2 className="mt-14 border-t border-[#e5e5e5] pt-8 text-[13px] font-semibold uppercase tracking-[0.18em] text-[#777]">{textilAnsicht ? T.tabKleidung : alsPoster ? T.werkeReproduktionen : T.werke}</h2>
         {/* ── WIE ES AN DER WAND AUSSIEHT (Owner 15.09.2026: „ich habe dir zwei bilder abgelegt.
             die müssen wir zeigen") ────────────────────────────────────────────────────────────
             Das zweite Foto erklärt das Produkt ohne ein einziges Wort: jemand steht davor und
@@ -654,11 +655,10 @@ export default async function PortalKuenstler({ params, searchParams }: Props) {
           <PortalReiter reiter={[
             { label: T.tabReproduktionen, aktiv: posterAnsicht,
               href: `${P.kuenstler(kuenstler)}?ansicht=poster${L === "en" ? "" : `&lang=${L}`}` },
+            /* EIN Reiter „Clothes", darunter T-Shirts und Hoodies (Owner 28.09.2026). */
             ...(textilKacheln.length ? [
-              { label: T.tabTricou, aktiv: textilArt === "tricou",
+              { label: T.tabKleidung, aktiv: textilAnsicht,
                 href: `${P.kuenstler(kuenstler)}?ansicht=tricou${L === "en" ? "" : `&lang=${L}`}` },
-              { label: T.tabHanorac, aktiv: textilArt === "hanorac",
-                href: `${P.kuenstler(kuenstler)}?ansicht=hanorac${L === "en" ? "" : `&lang=${L}`}` },
             ] : []),
             { label: T.tabWerke, aktiv: !posterAnsicht && !textilAnsicht,
               href: `${P.kuenstler(kuenstler)}?ansicht=werke${L === "en" ? "" : `&lang=${L}`}` },
@@ -688,9 +688,21 @@ export default async function PortalKuenstler({ params, searchParams }: Props) {
           * Schirm und es entstünde eine Spalte mit Löchern daneben.
           */}
         {textilAnsicht ? (
-          /* ── T-SHIRTS & HOODIES (Owner 28.09.2026) — dieselbe Galerie wie bei den Postern, nur
+          <>
+          {/* Die zweite Reihe unter „Clothes": T-Shirts | Hoodies — kleiner als die Hauptreiter. */}
+          <nav className="mt-5 flex flex-wrap gap-2">
+            {(["tricou", "hanorac"] as const).map(art => (
+              <a key={art} href={`${P.kuenstler(kuenstler)}?ansicht=${art}${L === "en" ? "" : `&lang=${L}`}`}
+                aria-current={textilArt === art ? "page" : undefined}
+                className={`rounded-full border px-4 py-1.5 text-[14px] font-semibold no-underline transition ${
+                  textilArt === art ? "border-[#111] bg-[#111] text-white" : "border-[#dfe4e9] bg-white text-[#555] hover:border-[#111] hover:text-[#111]"}`}>
+                {art === "tricou" ? T.tabTricou : T.tabHanorac}
+              </a>
+            ))}
+          </nav>
+          {/* ── T-SHIRTS & HOODIES (Owner 28.09.2026) — dieselbe Galerie wie bei den Postern, nur
              zeigt jede Kachel das Motiv auf dem Rücken des Shirts. Gekauft wird auf der Seite
-             des Werks (`?art=textil`), mit Wahl zwischen Shirt und Hoodie. */
+             des Werks (`?art=tricou` / `?art=hanorac`). */}
           <ul className="mt-10 grid list-none grid-cols-2 gap-x-5 gap-y-10 p-0 md:grid-cols-3 lg:grid-cols-4">
             {textilKacheln.map(k => {
               const nr = k.i < 0 ? "standard" : String(k.i);
@@ -704,7 +716,7 @@ export default async function PortalKuenstler({ params, searchParams }: Props) {
                 <li key={k.i} id={`t-${nr}`}>
                   <a href={href} className="block text-[#111] no-underline">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={mitAdmin(`/api/portal-textil?m=${encodeURIComponent(kuenstler)}&i=${nr}&art=${stueck}&w=600`)}
+                    <img src={mitAdmin(textilBild(kuenstler, nr, stueck, 600, wk?.textilZeile))}
                       alt={titel} loading="lazy" className="block aspect-square w-full bg-[#f3f3f3] object-cover" />
                     <p className="m-0 mt-3 text-[15px] font-semibold leading-[1.3]">{titel}</p>
                     {ab !== null ? (
@@ -715,6 +727,7 @@ export default async function PortalKuenstler({ params, searchParams }: Props) {
               );
             })}
           </ul>
+          </>
         ) : kaufBar ? (
           /**
            * ── EINE GALERIE, KEIN LADENREGAL (Owner 28.09.2026: „auf dieser Seite muss ich nicht

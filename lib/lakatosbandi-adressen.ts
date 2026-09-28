@@ -17,6 +17,16 @@ export const kuenstlerUrl = (kennung: string) => `${PORTAL_URL}/${encodeURICompo
 export const kuenstlerDashboardUrl = (kennung: string, k: string) =>
   `${PORTAL_URL}/${encodeURIComponent(kennung)}/dashboard?k=${encodeURIComponent(k)}`;
 
+/**
+ * DAS MOTIV AUF SHIRT/HOODIE (`api/portal-textil`). `v` trägt die Fassung des Drucks und seine
+ * Zeile: Die Bilder dürfen im Browser einen Tag lang veraltet gezeigt werden
+ * (`stale-while-revalidate`) — ohne Wechsel der Adresse sah man nach einer Änderung stundenlang
+ * den alten Druck (Owner 28.09.2026).
+ */
+export const TEXTIL_FASSUNG = "6";
+export const textilBild = (name: string, nr: string, art: string, w: number, zeile?: string) =>
+  `/api/portal-textil?m=${encodeURIComponent(name)}&i=${nr}&art=${art}&w=${w}&v=${TEXTIL_FASSUNG}-${encodeURIComponent(String(zeile ?? "").slice(0, 40))}`;
+
 export function portalPfade(host?: string | null) {
   const p = imPortal(host);
   const n = (name: string) => encodeURIComponent(name);
