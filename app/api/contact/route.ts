@@ -20,7 +20,7 @@ const esc = (s: string) => s.replace(/[&<>"']/g, c => (
 
 export async function POST(request: Request) {
   const body = await request.json().catch(() => null) as
-    | { name?: string; email?: string; reason?: string; message?: string; company?: string }
+    | { name?: string; email?: string; reason?: string; message?: string; company?: string; ziel?: string }
     | null;
   if (!body) return NextResponse.json({ error: "Bad request." }, { status: 400 });
 
@@ -54,7 +54,13 @@ export async function POST(request: Request) {
     : /(^|\.)versusforge\.com$/.test(host) ? "VersusForge" : "";
   const vfPostfach = (process.env.VERSUSFORGE_MAIL ?? process.env.VERSUSFORGE_SMTP_USER ?? "").trim();
   const eigenesPostfach = !!marke && !!vfPostfach;
-  const empfaenger = eigenesPostfach ? vfPostfach : SUPPORT_TO;
+  /* SZIDONIAS KUNSTPROJEKT (Owner 28.09.2026: „die E-Mail soll an service@lakatosbandi.com gehen").
+     Der Browser sagt nur WELCHES Formular (`ziel`), nie eine Adresse — sonst wäre das hier ein
+     offenes Relais, über das jeder an jeden schreiben lässt. Die Adresse steht nur hier. */
+  const kunstprojekt = body.ziel === "kunstprojekt";
+  const empfaenger = kunstprojekt
+    ? (process.env.KUNSTPROJEKT_MAIL?.trim() || "service@lakatosbandi.com")
+    : eigenesPostfach ? vfPostfach : SUPPORT_TO;
   const konto = eigenesPostfach ? ("versusforge" as const) : undefined;
   const absenderName = marke === "lakatosbandi.com" ? "lakatosbandi.com" : marke === "VersusForge" ? "VersusForge" : "LuxuryBandit";
   const unterschrift = marke === "lakatosbandi.com" ? "— Geza &amp; Szidonia, lakatosbandi.com" : marke === "VersusForge" ? "— The VersusForge Team" : "— The LuxuryBandit Team";

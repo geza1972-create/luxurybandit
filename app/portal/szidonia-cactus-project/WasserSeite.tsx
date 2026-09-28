@@ -408,7 +408,7 @@ function PartnerFormular({ T, sprache }: { T: Texte; sprache: Sprache }) {
       const r = await fetch("/api/contact", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, reason: "general", message: `${kopf.join("\n")}\n\n${nachricht}`, company: String(f.get("company") ?? "") }),
+        body: JSON.stringify({ name, email, reason: "general", ziel: "kunstprojekt", message: `${kopf.join("\n")}\n\n${nachricht}`, company: String(f.get("company") ?? "") }),
       });
       if (!r.ok) {
         setFehler({ form: T.eSenden });

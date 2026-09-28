@@ -31,6 +31,7 @@ export const TEXTE = {
     absenz: [
       "There is no real water in the installation.",
       "A mirror replaces the pool. An artificial image reconstructs the visual presence of water.",
+      "The ceiling is not a print. It is an LED surface or a projection: moving water that slowly turns into desert — and the mirror below repeats the change.",
       "The viewer sees water without having access to water.",
     ],
     absenzBetont: "The image becomes a memory of a resource that is physically absent.",
@@ -86,7 +87,7 @@ export const TEXTE = {
       "Support may be financial, material, technical or institutional. Every partnership is discussed individually and credited in the exhibition and its documentation.",
     ],
     bedarf: [
-      { titel: "Production", punkte: ["Sculptural production", "Materials", "Reflective surfaces", "Large-scale printing"] },
+      { titel: "Production", punkte: ["Sculptural production", "Materials", "Reflective surfaces", "LED wall or ceiling projection"] },
       { titel: "Exhibition", punkte: ["Lighting technology", "Exhibition construction", "Transport and installation", "Exhibition space"] },
       { titel: "Research", punkte: ["Photo and video documentation", "Support for the doctoral research", "Funding and sponsorship"] },
     ],
@@ -146,6 +147,7 @@ export const TEXTE = {
     absenz: [
       "În instalație nu există apă reală.",
       "O oglindă înlocuiește bazinul. O imagine artificială reconstruiește prezența vizuală a apei.",
+      "Tavanul nu este un print. Este o suprafață LED sau o proiecție: apă în mișcare care se transformă încet în deșert — iar oglinda de dedesubt repetă schimbarea.",
       "Privitorul vede apă fără a avea acces la apă.",
     ],
     absenzBetont: "Imaginea devine amintirea unei resurse care lipsește fizic.",
@@ -201,7 +203,7 @@ export const TEXTE = {
       "Sprijinul poate fi financiar, material, tehnic sau instituțional. Fiecare parteneriat este discutat individual și menționat în expoziție și în documentația acesteia.",
     ],
     bedarf: [
-      { titel: "Producție", punkte: ["Producția sculpturilor", "Materiale", "Suprafețe reflectorizante", "Print de mari dimensiuni"] },
+      { titel: "Producție", punkte: ["Producția sculpturilor", "Materiale", "Suprafețe reflectorizante", "Perete LED sau proiecție pe tavan"] },
       { titel: "Expoziție", punkte: ["Tehnică de iluminat", "Construcția expoziției", "Transport și instalare", "Spațiu expozițional"] },
       { titel: "Cercetare", punkte: ["Documentație foto și video", "Sprijin pentru cercetarea doctorală", "Finanțare și sponsorizare"] },
     ],
@@ -260,6 +262,7 @@ export const TEXTE = {
     absenz: [
       "In der Installation gibt es kein echtes Wasser.",
       "Ein Spiegel ersetzt das Becken. Ein künstliches Bild rekonstruiert die sichtbare Gegenwart von Wasser.",
+      "Die Decke ist kein Druck. Sie ist eine LED-Fläche oder eine Projektion: bewegtes Wasser, das sich langsam in Wüste verwandelt — und der Spiegel darunter wiederholt den Wandel.",
       "Man sieht Wasser, ohne Zugang zu Wasser zu haben.",
     ],
     absenzBetont: "Das Bild wird zur Erinnerung an eine Ressource, die physisch fehlt.",
@@ -315,7 +318,7 @@ export const TEXTE = {
       "Unterstützung kann finanziell, materiell, technisch oder institutionell sein. Jede Partnerschaft wird einzeln besprochen und in der Ausstellung und ihrer Dokumentation genannt.",
     ],
     bedarf: [
-      { titel: "Produktion", punkte: ["Herstellung der Skulpturen", "Material", "Spiegelflächen", "Grossformatdruck"] },
+      { titel: "Produktion", punkte: ["Herstellung der Skulpturen", "Material", "Spiegelflächen", "LED-Wand oder Deckenprojektion"] },
       { titel: "Ausstellung", punkte: ["Lichttechnik", "Ausstellungsbau", "Transport und Aufbau", "Ausstellungsraum"] },
       { titel: "Forschung", punkte: ["Foto- und Videodokumentation", "Unterstützung der Promotion", "Förderung und Sponsoring"] },
     ],
