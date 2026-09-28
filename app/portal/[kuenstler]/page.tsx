@@ -165,6 +165,7 @@ export default async function PortalKuenstler({ params, searchParams }: Props) {
           /* Sein Häkchen je Werk (Owner 16.09.2026) — ohne diese Zeile stünde es beim Öffnen wieder leer. */
           poster: !!w.poster,
           textil: !!w.textil,
+          textilZeile: w.textilZeile ?? "",
           /* Vorlage erlaubt (Owner 17.09.2026) — fehlt das Feld, ist es an; so verliert niemand
              den Knopf, nur weil sein Datensatz älter ist als das Häkchen. */
           kunst: w.kunst !== false,

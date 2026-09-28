@@ -2,7 +2,7 @@ import { BUCKET, encodeStoragePath, supabaseFetch } from "@/lib/try-this-look-st
 import { mandantLesen } from "@/lib/versusforge-mandanten";
 import { motivPfad } from "@/lib/versusforge-moderation";
 import { istKuenstler } from "@/lib/lakatosbandi";
-import { textilDruckBauen, textilSpruch } from "@/lib/lakatosbandi-textil";
+import { textilDruckBauen } from "@/lib/lakatosbandi-textil";
 
 /**
  * DAS MOTIV AUF DEM RÜCKEN (Owner 28.09.2026: „alle Motive auf T-Shirts und Hoodies" · „genauso
@@ -52,7 +52,8 @@ export async function GET(request: Request) {
   const sharp = (await import("sharp")).default;
   const druck = await textilDruckBauen({
     motiv: motivRoh,
-    spruch: textilSpruch(String((nr === "standard" ? m.hook : m.hooks?.[Number(nr)]) ?? "")),
+    /* Nur seine kurze Shirt-Zeile — nie der lange Poster-Spruch (Owner 28.09.2026). */
+    spruch: String(m.werkInfo?.[nr]?.textilZeile ?? ""),
     breite: f.breit, hoch: f.hoch, schrift: f.schrift,
   });
   const links = Math.round(f.mitte - druck.breite / 2);

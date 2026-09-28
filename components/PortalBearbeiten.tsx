@@ -50,7 +50,7 @@ import { eur } from "@/lib/pricing";
  * BILDER GEHEN SOFORT HOCH (über `api/versusforge-bild`, mit der Inhaltsprüfung). Die Texte sammelt „Speichern".
  */
 
-type Kachel = { i: number; spruch: string; titel: string; technik: string; groesse: string; jahr: string; geschichte: string; preis: string; detalii: string; posterPreis: string; vertritt: boolean; poster: boolean; textil?: boolean; kunst: boolean; stimme?: boolean; stimmeAm?: string; sprecher?: boolean; nurStimme?: boolean; youtube?: string;
+type Kachel = { i: number; spruch: string; titel: string; technik: string; groesse: string; jahr: string; geschichte: string; preis: string; detalii: string; posterPreis: string; vertritt: boolean; poster: boolean; textil?: boolean; textilZeile?: string; kunst: boolean; stimme?: boolean; stimmeAm?: string; sprecher?: boolean; nurStimme?: boolean; youtube?: string;
   /* Ob an diesem Werk schon ein Film hängt (Owner 20.09.2026) — die Geschichte und „an die Wand". */
   film?: boolean; filmAm?: string; wandFilm?: boolean; wandFilmAm?: string };
 
@@ -1165,6 +1165,13 @@ export default function PortalBearbeiten({ mandant, k, T, lang, aufbau = false, 
                   <input type="checkbox" checked={!!kc.textil} onChange={e => textilSetzen(kc.i, e.target.checked)} />
                   {T.textilWerk}
                 </label>
+              ) : null}
+              {posterViu && kc.textil ? (
+                <span className="flex items-center gap-1.5">
+                  <span className="text-[13.5px] font-semibold text-[#555]">{T.textilZeileWort}</span>
+                  <input value={kc.textilZeile ?? ""} onChange={e => aendern(kc.i, "textilZeile", e.target.value)} maxLength={60}
+                    placeholder={T.textilZeilePlatzhalter} className={`${feld} w-[220px] py-0.5 text-[14px] text-[#444]`} />
+                </span>
               ) : null}
               {/* Sein eigener Preis für das Poster (Owner 25.09.2026) — nur wo das Poster angeboten wird. */}
               {posterViu && kc.poster ? (

@@ -209,6 +209,8 @@ export type WerkInfo = {
    * `poster` — das Motiv wird auf den Rücken gedruckt, die Vorschau baut `api/portal-textil`.
    */
   textil?: boolean;
+  /** Die kurze Zeile auf dem Shirt, englisch, 2–5 Wörter (Owner 28.09.2026: die langen Sprüche sind nicht cool). Leer: kein Text. */
+  textilZeile?: string;
   poster?: boolean;
   /**
    * OB DAS WERK IM QUERFORMAT IST (Owner 16.09.2026: „wir müssen die DIN formate einhalten" ·

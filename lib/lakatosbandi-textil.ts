@@ -2,7 +2,6 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import fontkit from "@pdf-lib/fontkit";
 import { textPfad, textBreite, umbrechen } from "@/lib/lakatosbandi-blattbild";
-import { posterAnriss } from "@/lib/lakatosbandi";
 
 /**
  * ── DER DRUCK FÜR SHIRT UND HOODIE (Owner 28.09.2026: „das Motiv muss 35 % kleiner sein und der
@@ -12,7 +11,7 @@ import { posterAnriss } from "@/lib/lakatosbandi";
  * der Bestellung an die Druckerei geht (`lib/lakatosbandi-bestellung.ts`). Sonst sähe der Käufer
  * etwas anderes als das, was gedruckt wird.
  *
- * Oben das Werk im eigenen Seitenverhältnis (nie beschnitten), darunter NUR der Spruch, gross
+ * Oben das Werk im gotischen Rahmen, darunter die kurze Shirt-Zeile (`WerkInfo.textilZeile`), gross
  * und weiss (Owner 28.09.2026: „ohne Titel, nur der Spruch, und der muss viel grösser sein und
  * das Motiv kleiner"). Die Buchstaben sind Umrisse (dieselbe Schrift und derselbe Weg wie `blattbild`), damit
  * der Server keine Systemschrift braucht. Hintergrund durchsichtig.
@@ -99,13 +98,6 @@ async function gotischGerahmt(
 </svg>`;
   const data = await sharp(Buffer.from(svg)).png().toBuffer();
   return { data, info: { width: B, height: H } };
-}
-
-/** Der Spruch fürs Shirt: der erste ganze Satz — ohne Auslassungspunkte, wenn er nicht zu lang ist. */
-export function textilSpruch(hook: string): string {
-  const t = String(hook ?? "").trim();
-  const erster = (t.match(/[^.!?…]+[.!?…]+/)?.[0] ?? t).trim();
-  return erster.length <= 150 ? erster : posterAnriss(t, 150);
 }
 
 export async function textilDruckBauen(o: {

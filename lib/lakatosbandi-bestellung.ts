@@ -13,7 +13,7 @@ import { motivPfad } from "@/lib/versusforge-moderation";
 import { filmSeite } from "@/lib/lakatosbandi-film";
 import { portalTexte, portalSprache } from "@/lib/lakatosbandi-texte";
 import { druckdateiBauen } from "@/lib/lakatosbandi-druckdatei";
-import { textilDruckBauen, textilSpruch } from "@/lib/lakatosbandi-textil";
+import { textilDruckBauen } from "@/lib/lakatosbandi-textil";
 
 /**
  * WAS NACH EINER BESTELLUNG PASSIERT (Owner 16.09.2026: „ich will nicht wissen was nach
@@ -195,7 +195,7 @@ async function dateiAnhaenge(b: Bestellung, materialien: (p: BestellPosten) => b
         /* Dieselbe Komposition wie die Vorschau — Werk und Spruch — gross und durchsichtig. */
         const druck = await textilDruckBauen({
           motiv: Buffer.from(await r.arrayBuffer()),
-          spruch: textilSpruch(String((nrT === "standard" ? mT.hook : mT.hooks?.[Number(nrT)]) ?? "")),
+          spruch: String(mT.werkInfo?.[nrT]?.textilZeile ?? ""),
           breite: 2760, hoch: 3480, schrift: 2300,
         });
         raus.push({
