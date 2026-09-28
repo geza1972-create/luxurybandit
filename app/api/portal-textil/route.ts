@@ -2,7 +2,7 @@ import { BUCKET, encodeStoragePath, supabaseFetch } from "@/lib/try-this-look-st
 import { mandantLesen } from "@/lib/versusforge-mandanten";
 import { motivPfad } from "@/lib/versusforge-moderation";
 import { istKuenstler } from "@/lib/lakatosbandi";
-import { textilDruckBauen } from "@/lib/lakatosbandi-textil";
+import { textilDruckBauen, textilSpruch } from "@/lib/lakatosbandi-textil";
 
 /**
  * DAS MOTIV AUF DEM RÜCKEN (Owner 28.09.2026: „alle Motive auf T-Shirts und Hoodies" · „genauso
@@ -17,10 +17,11 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 /* Fläche fürs Werk je Stück, in Pixeln der 1254er Vorlage: Mitte x, Oberkante y, grösste
-   Breite/Höhe. 35 % kleiner als zuerst (Owner 28.09.2026) — der Text steht darunter. */
+   Breite/Höhe. Zweimal verkleinert (Owner 28.09.2026: „35 % kleiner" · „das Motiv kleiner") —
+   darunter steht der Spruch. */
 const FLAECHE = {
-  tricou: { vorlage: "/lakatosbandi/shirt-schwarz.png", mitte: 627, oben: 250, breit: 312, hoch: 390 },
-  hanorac: { vorlage: "/lakatosbandi/hoodie-schwarz.png", mitte: 627, oben: 490, breit: 306, hoch: 338 },
+  tricou: { vorlage: "/lakatosbandi/shirt-schwarz.png", mitte: 627, oben: 250, breit: 230, hoch: 290 },
+  hanorac: { vorlage: "/lakatosbandi/hoodie-schwarz.png", mitte: 627, oben: 470, breit: 225, hoch: 255 },
 } as const;
 
 export async function GET(request: Request) {
@@ -48,7 +49,8 @@ export async function GET(request: Request) {
 
   const sharp = (await import("sharp")).default;
   const druck = await textilDruckBauen({
-    motiv: motivRoh, titel: String(m.werkInfo?.[nr]?.titel ?? ""), name: String(m.name ?? ""),
+    motiv: motivRoh,
+    spruch: textilSpruch(String((nr === "standard" ? m.hook : m.hooks?.[Number(nr)]) ?? "")),
     breite: f.breit, hoch: f.hoch,
   });
   const links = Math.round(f.mitte - druck.breite / 2);

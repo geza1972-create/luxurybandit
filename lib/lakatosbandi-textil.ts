@@ -1,7 +1,8 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import fontkit from "@pdf-lib/fontkit";
-import { textPfad, textBreite } from "@/lib/lakatosbandi-blattbild";
+import { textPfad, textBreite, umbrechen } from "@/lib/lakatosbandi-blattbild";
+import { posterAnriss } from "@/lib/lakatosbandi";
 
 /**
  * ── DER DRUCK FÜR SHIRT UND HOODIE (Owner 28.09.2026: „das Motiv muss 35 % kleiner sein und der
@@ -11,18 +12,24 @@ import { textPfad, textBreite } from "@/lib/lakatosbandi-blattbild";
  * der Bestellung an die Druckerei geht (`lib/lakatosbandi-bestellung.ts`). Sonst sähe der Käufer
  * etwas anderes als das, was gedruckt wird.
  *
- * Oben das Werk im eigenen Seitenverhältnis (nie beschnitten), darunter wie auf dem Poster der
- * Titel kursiv und der Name gesperrt in Versalien — weiss bzw. hellgrau, weil das Shirt schwarz
- * ist. Die Buchstaben sind Umrisse (dieselbe Schrift und derselbe Weg wie `blattbild`), damit
+ * Oben das Werk im eigenen Seitenverhältnis (nie beschnitten), darunter NUR der Spruch, gross
+ * und weiss (Owner 28.09.2026: „ohne Titel, nur der Spruch, und der muss viel grösser sein und
+ * das Motiv kleiner"). Die Buchstaben sind Umrisse (dieselbe Schrift und derselbe Weg wie `blattbild`), damit
  * der Server keine Systemschrift braucht. Hintergrund durchsichtig.
  *
  * `breite`/`hoch` ist die grösste Fläche fürs Werk in Pixeln; alle Schriftgrössen folgen der
  * Breite, so ist die kleine Vorschau und die grosse Druckdatei dasselbe Bild.
  */
+/** Der Spruch fürs Shirt: der erste ganze Satz — ohne Auslassungspunkte, wenn er nicht zu lang ist. */
+export function textilSpruch(hook: string): string {
+  const t = String(hook ?? "").trim();
+  const erster = (t.match(/[^.!?…]+[.!?…]+/)?.[0] ?? t).trim();
+  return erster.length <= 150 ? erster : posterAnriss(t, 150);
+}
+
 export async function textilDruckBauen(o: {
   motiv: Buffer;
-  titel: string;
-  name: string;
+  spruch: string;
   breite: number;
   hoch: number;
 }): Promise<{ bild: Buffer; breite: number; hoehe: number }> {
@@ -33,37 +40,23 @@ export async function textilDruckBauen(o: {
     .png()
     .toBuffer({ resolveWithObject: true });
 
-  const ort = path.join(process.cwd(), "public", "fonts");
-  const [roh, rohKursiv] = await Promise.all([
-    readFile(path.join(ort, "CrimsonText.ttf")),
-    readFile(path.join(ort, "CrimsonText-Italic.ttf")),
-  ]);
+  const roh = await readFile(path.join(process.cwd(), "public", "fonts", "CrimsonText.ttf"));
   const serif = fontkit.create(roh);
-  const kursiv = fontkit.create(rohKursiv);
 
-  const titel = String(o.titel ?? "").trim();
-  const name = String(o.name ?? "").trim().toUpperCase();
-  const gTitel = o.breite * 0.075;
-  const gName = o.breite * 0.034;
-  const sperre = gName * 0.2;
-  const luft = o.breite * 0.05;
-  const bTitel = titel ? textBreite(kursiv, titel, gTitel) : 0;
-  const bName = name ? textBreite(serif, name, gName, sperre) : 0;
+  /* Der Spruch darf breiter laufen als das Werk — sonst wären es sechs kurze Zeilen. */
+  const groesse = o.breite * 0.11;
+  const zeilenBreite = o.breite * 1.55;
+  const zeilen = umbrechen(String(o.spruch ?? "").trim(), serif, groesse, zeilenBreite);
+  const breiten = zeilen.map(z => textBreite(serif, z, groesse));
+  const breite = Math.ceil(Math.max(m.info.width, ...breiten, 1));
 
-  const breite = Math.ceil(Math.max(m.info.width, bTitel, bName));
   const teile: string[] = [];
-  let y = m.info.height;
-  if (titel) {
-    y += luft + gTitel * 0.8;
-    teile.push(`<g fill="#ffffff">${textPfad(kursiv, titel, gTitel, (breite - bTitel) / 2, y)}</g>`);
-    y += gTitel * 0.3;
-  }
-  if (name) {
-    y += (titel ? luft * 0.45 : luft) + gName * 0.8;
-    teile.push(`<g fill="#cfcac0">${textPfad(serif, name, gName, (breite - bName) / 2, y, sperre)}</g>`);
-    y += gName * 0.3;
-  }
-  const hoehe = Math.ceil(y + gName * 0.2);
+  let y = m.info.height + (zeilen.length ? o.breite * 0.08 : 0);
+  zeilen.forEach((z, i) => {
+    y += groesse * (i === 0 ? 0.85 : 1.3);
+    teile.push(`<g fill="#ffffff">${textPfad(serif, z, groesse, (breite - breiten[i]) / 2, y)}</g>`);
+  });
+  const hoehe = Math.ceil(y + groesse * 0.35);
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${breite}" height="${hoehe}">${teile.join("")}</svg>`;
 
   const bild = await sharp({ create: { width: breite, height: hoehe, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } } })

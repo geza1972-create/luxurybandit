@@ -13,7 +13,7 @@ import { motivPfad } from "@/lib/versusforge-moderation";
 import { filmSeite } from "@/lib/lakatosbandi-film";
 import { portalTexte, portalSprache } from "@/lib/lakatosbandi-texte";
 import { druckdateiBauen } from "@/lib/lakatosbandi-druckdatei";
-import { textilDruckBauen } from "@/lib/lakatosbandi-textil";
+import { textilDruckBauen, textilSpruch } from "@/lib/lakatosbandi-textil";
 
 /**
  * WAS NACH EINER BESTELLUNG PASSIERT (Owner 16.09.2026: „ich will nicht wissen was nach
@@ -192,11 +192,11 @@ async function dateiAnhaenge(b: Bestellung, materialien: (p: BestellPosten) => b
       const r = await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(motivPfad(p.mandant, nrT))}`).catch(() => null);
       const mT = r?.ok ? await mandantLesen(p.mandant) : null;
       if (r?.ok && mT) {
-        /* Dieselbe Komposition wie die Vorschau — Werk, Titel, Name — gross und durchsichtig. */
+        /* Dieselbe Komposition wie die Vorschau — Werk und Spruch — gross und durchsichtig. */
         const druck = await textilDruckBauen({
           motiv: Buffer.from(await r.arrayBuffer()),
-          titel: String(mT.werkInfo?.[nrT]?.titel ?? ""), name: String(mT.name ?? ""),
-          breite: 3000, hoch: 3750,
+          spruch: textilSpruch(String((nrT === "standard" ? mT.hook : mT.hooks?.[Number(nrT)]) ?? "")),
+          breite: 2300, hoch: 2900,
         });
         raus.push({
           name: `${p.mandant}-${nrT} · ${p.material} ${p.groesse} · ${bestellNummer(b.sitzung)}.png`,

@@ -78,7 +78,7 @@ export function textBreite(font: Schrift, text: string, groesse: number, sperre 
 }
 
 /** Umbruch an echten Zeichenbreiten — das Gegenstück zu `umbrechen` in der Druckdatei. */
-function umbrechen(text: string, font: Schrift, groesse: number, breite: number): string[] {
+export function umbrechen(text: string, font: Schrift, groesse: number, breite: number): string[] {
   const woerter = String(text ?? "").split(/\s+/).filter(Boolean);
   const zeilen: string[] = [];
   let jetzt = "";
