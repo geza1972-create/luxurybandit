@@ -22,7 +22,7 @@ import MehrText from "@/components/MehrText";
 import BildVollbild from "@/components/BildVollbild";
 import Korb from "@/components/Korb";
 import { preisSatz, preisText } from "@/lib/lakatosbandi-preis";
-import { druckPreisCents, druckGroessenFuer, druckSpanneCents, DRUCK_KUENSTLER_CENTS, DRUCK_VERSAND_CENTS, KLEIDUNG_AN, KUNST_CENTS, istTextil } from "@/lib/lakatosbandi-druck";
+import { druckPreisCents, druckGroessenFuer, druckSpanneCents, posterPreisA3Cents, DRUCK_KUENSTLER_CENTS, DRUCK_VERSAND_CENTS, KLEIDUNG_AN, KUNST_CENTS, istTextil } from "@/lib/lakatosbandi-druck";
 import { eur } from "@/lib/pricing";
 import PreisLabel from "@/components/PreisLabel";
 import { mandantPruefen } from "@/lib/versusforge-mandant";
@@ -311,6 +311,18 @@ export default async function PortalKuenstler({ params, searchParams }: Props) {
   const posterAnsicht = !!m.posterViu && premium && sp.ansicht !== "werke";
   const kaufBar = !!m.reproduktion || posterAnsicht;
   const alsPoster = kaufBar;
+  /**
+   * ── DER GESCANNTE CODE FÜHRT AUF DIE PRODUKTSEITE (Owner 28.09.2026: „auf dieser Seite muss ich
+   * nicht direkt kaufen. Mir ist wichtiger, das als Galerie zu haben") ──────────────────────────
+   *
+   * Seit die Künstlerseite eine Galerie ist, steht hier kein Filmfenster mehr. Die gedruckten Codes
+   * tragen aber `…/{künstler}?film=<nr>` — also geht es von hier auf die Seite des Werks, wo das
+   * Fenster mit demselben `?film=` sofort aufgeht. Alles andere in der Adresse reist mit.
+   */
+  if (kaufBar && filmOffen && kacheln.some(k => (k.i < 0 ? "standard" : String(k.i)) === filmOffen)) {
+    const eintraege = Object.entries(sp).filter(([, v]) => typeof v === "string") as [string, string][];
+    redirect(`${P.kuenstler(kuenstler)}/${filmOffen}?${new URLSearchParams(eintraege).toString()}`);
+  }
   /**
    * ── DAS LEBENDE BLATT GIBT ES NICHT BEI JEDEM (Owner 19.09.2026: „wir müssen das nur bei
    * bestimmten Künstlern anbieten, also bei Caricaturist. Jetzt nur bei Caricaturist") ────────
@@ -653,6 +665,63 @@ export default async function PortalKuenstler({ params, searchParams }: Props) {
           * Tablet behält zwei Spalten — dort ist ein bildschirmhohes Blatt breiter als der halbe
           * Schirm und es entstünde eine Spalte mit Löchern daneben.
           */}
+        {kaufBar ? (
+          /**
+           * ── EINE GALERIE, KEIN LADENREGAL (Owner 28.09.2026: „auf dieser Seite muss ich nicht
+           * direkt kaufen. Mir ist wichtiger, das als Galerie zu haben. Wenn ich drauf klicke,
+           * kann sich die Produktseite öffnen, wo ich kaufen kann" · „für das gesamte Portal") ──
+           *
+           * Bis heute stand hier jedes Werk als ganzer Kaufblock untereinander: Blatt, Zimmer-
+           * Slider, Rahmenwahl, Grössen, Kaufknopf. Sechs Werke waren sechs Bildschirme Formular.
+           * Jetzt nur das Blatt, darunter Titel und „ab"-Preis — gekauft wird eine Seite weiter
+           * (`[kuenstler]/[werk]`), wo derselbe Baustein `PosterProdukt` alles zeigt.
+           */
+          <ul className="mt-10 grid list-none grid-cols-2 gap-x-5 gap-y-10 p-0 md:grid-cols-3">
+            {posterKacheln.map(k => {
+              const nr = k.i < 0 ? "standard" : String(k.i);
+              const wk = m.werkInfo?.[nr];
+              const href = `${werkLink(k.i)}${werkLink(k.i).includes("?") ? "&" : "?"}lang=${L}`;
+              const zeilen = blattZeilen(m.name, wk, L, m.sprache);
+              /* Der kleinste Preis: das Poster A3 ohne Rahmen — mit seinem eigenen Preis, wenn er
+                 einen gesetzt hat. Dieselbe Rechnung wie am Kaufknopf der Produktseite. */
+              const ab = wk?.produkt
+                ? druckPreisCents(wk.produkt, druckGroessenFuer(wk.produkt)[0] ?? "")
+                : druckPreisCents("poster", "A3", !m.reproduktion && !m.kunstAn, posterPreisA3Cents(wk?.posterPreis));
+              return (
+                <li key={k.i} id={`w-${nr}`} className="lb-poster-block">
+                  <a href={href} className="block text-[#111] no-underline">
+                    {wk?.produkt ? (
+                      <div className="flex aspect-[1/1.4142] items-center justify-center bg-[#f5f5f5]">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={mitAdmin(P.werkBild(kuenstler, k.i, 700))} alt={zeilen.gross} loading="lazy"
+                          className="max-h-full max-w-full object-contain" />
+                      </div>
+                    ) : (
+                      <Poster
+                        klasse="lb-rahmen-fest"
+                        titel={zeilen.gross}
+                        stil={zeilen.klein}
+                        text={m.kunstAn ? kunstBlattSatz(m.kunstStil) : posterAnriss(k.hook)}
+                        qrEcke
+                        qr="/api/portal-qr"
+                        siegel={!m.reproduktion}
+                        recht={`lakatosbandi.com/${kuenstler}`}
+                        bild={
+                          <PosterWandFoto standard={mitAdmin(P.werkBild(kuenstler, k.i, 700))} alt={zeilen.gross}
+                            className={wk?.quer ? "block h-auto w-full" : "block h-full w-auto"} />
+                        }
+                      />
+                    )}
+                    <p className="m-0 mt-3 text-[15px] font-semibold leading-[1.3]">{zeilen.gross}</p>
+                    {ab !== null ? (
+                      <p className="m-0 mt-1 text-[14.5px] text-[#555]">{T.druckAb.replace("{preis}", eur(ab, L))}</p>
+                    ) : null}
+                  </a>
+                </li>
+              );
+            })}
+          </ul>
+        ) : (
         <ul className="mt-10 grid list-none grid-cols-1 justify-items-center gap-x-8 gap-y-12 p-0 sm:grid-cols-2 lg:grid-cols-1">
           {posterKacheln.map(k => (
             /* `lb-poster-block` grenzt die Rahmenwahl auf DIESE Kachel ein (globals.css) —
@@ -704,7 +773,7 @@ export default async function PortalKuenstler({ params, searchParams }: Props) {
             </li>
           ))}
         </ul>
-
+        )}
 
         {kleidungKacheln.length > 0 && (
           <>
