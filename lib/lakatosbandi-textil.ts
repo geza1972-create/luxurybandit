@@ -20,6 +20,91 @@ import { posterAnriss } from "@/lib/lakatosbandi";
  * `breite`/`hoch` ist die grösste Fläche fürs Werk in Pixeln; alle Schriftgrössen folgen der
  * Breite, so ist die kleine Vorschau und die grosse Druckdatei dasselbe Bild.
  */
+/**
+ * ── DER GOTISCHE WEISSE RAHMEN (Owner 28.09.2026: „mach einen weissen Rahmen bei den Bildern" ·
+ * „kannst du einen gotischen weissen Rahmen machen?") ──────────────────────────────────────
+ *
+ * Ein Kirchenfenster: Das Werk steht GANZ (nichts wird abgeschnitten) in einem weissen Rahmen,
+ * darüber ein Spitzbogen-Giebel mit Dreipass im Kreis (Masswerk) und einem kleinen Kreuz auf der
+ * Spitze. Zwei Linien wie beim Masswerk — kräftig aussen, fein innen. Alles SVG, keine Datei.
+ *
+ * Die Figur passt in `breite` × `hoch` (der Giebel darf die Fläche um ein Viertel nach oben
+ * verlängern) — der Rahmen macht das Werk kleiner, nicht den Druck grösser.
+ */
+async function gotischGerahmt(
+  sharp: typeof import("sharp"),
+  motiv: Buffer,
+  breite: number,
+  hoch: number,
+): Promise<{ data: Buffer; info: { width: number; height: number } }> {
+  const rand = breite * 0.07;
+  const kreuzH = breite * 0.11;
+  const giebelAnteil = 0.52;
+  const verfuegbarH = hoch * 1.25 - 2 * rand - kreuzH;
+  const probe = await sharp(motiv, { failOn: "none" }).rotate().metadata();
+  const verh = (probe.width ?? 3) / Math.max(1, probe.height ?? 4);
+  /* w + Giebel: h + giebelAnteil·w ≤ verfuegbarH, w ≤ breite − 2·rand */
+  let w = breite - 2 * rand;
+  let h = w / verh;
+  if (h + giebelAnteil * w > verfuegbarH) {
+    h = verfuegbarH / (1 + giebelAnteil * verh);
+    w = h * verh;
+  }
+  w = Math.round(w); h = Math.round(h);
+  const bild = await sharp(motiv, { failOn: "none" }).rotate().resize({ width: w, height: h, fit: "fill" }).png().toBuffer();
+
+  const giebel = giebelAnteil * w;
+  const dick = breite * 0.026;
+  const fein = breite * 0.008;
+  const aA = rand * 0.55;
+  const aI = rand * 0.18;
+  /* Oben Platz für den äusseren Bogen (er wächst mit dem Abstand zweimal) und das Kreuz. */
+  const oben = 2 * aA + kreuzH * 1.15 + dick;
+  const B = Math.round(w + 2 * rand);
+  const H = Math.round(oben + giebel + h + rand);
+  const x = rand;
+  const yBild = oben + giebel;
+
+  /* Umriss: unten gerade, oben ein Spitzbogen, dessen Kämpfer auf Höhe der Bild-Oberkante liegt. */
+  const umriss = (a: number) => {
+    const l = x - a, r = x + w + a, u = yBild + h + a, k = yBild - a;
+    const spitze = k - (giebel + a);
+    /* Radius grösser als die halbe Sehne → zwei Bögen, die sich in einer SPITZE treffen. */
+    const rad = Math.hypot((r - l) / 2, k - spitze) * 0.95;
+    return { d: `M ${l} ${u} L ${l} ${k} A ${rad} ${rad} 0 0 1 ${(l + r) / 2} ${spitze} A ${rad} ${rad} 0 0 1 ${r} ${k} L ${r} ${u} Z`, spitze, k, l, r };
+  };
+  const aussen = umriss(aA);
+  const innen = umriss(aI);
+  const cx = B / 2;
+  /* Rose mit Dreipass im Giebel. */
+  const rose = Math.min(giebel * 0.32, w * 0.16);
+  const rcy = yBild - giebel * 0.42;
+  const pass = rose * 0.47;
+  const kreise = [0, 1, 2].map(n => {
+    const winkel = -Math.PI / 2 + n * (2 * Math.PI / 3);
+    return `<circle cx="${cx + Math.cos(winkel) * pass * 0.95}" cy="${rcy + Math.sin(winkel) * pass * 0.95}" r="${pass}"/>`;
+  }).join("");
+  const kOben = aussen.spitze - kreuzH * 0.95;
+
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${B}" height="${H}">
+  <image x="${x}" y="${yBild}" width="${w}" height="${h}" preserveAspectRatio="none"
+    xlink:href="data:image/png;base64,${bild.toString("base64")}"/>
+  <g fill="none" stroke="#ffffff" stroke-linejoin="miter">
+    <path d="${aussen.d}" stroke-width="${dick}"/>
+    <path d="${innen.d}" stroke-width="${fein}"/>
+    <line x1="${innen.l}" y1="${yBild - aI}" x2="${innen.r}" y2="${yBild - aI}" stroke-width="${fein}"/>
+    <circle cx="${cx}" cy="${rcy}" r="${rose}" stroke-width="${fein}"/>
+    <g stroke-width="${fein}">${kreise}</g>
+  </g>
+  <g stroke="#ffffff" stroke-width="${fein * 1.7}" stroke-linecap="square">
+    <line x1="${cx}" y1="${aussen.spitze - dick / 2}" x2="${cx}" y2="${kOben}"/>
+    <line x1="${cx - kreuzH * 0.28}" y1="${kOben + kreuzH * 0.3}" x2="${cx + kreuzH * 0.28}" y2="${kOben + kreuzH * 0.3}"/>
+  </g>
+</svg>`;
+  const data = await sharp(Buffer.from(svg)).png().toBuffer();
+  return { data, info: { width: B, height: H } };
+}
+
 /** Der Spruch fürs Shirt: der erste ganze Satz — ohne Auslassungspunkte, wenn er nicht zu lang ist. */
 export function textilSpruch(hook: string): string {
   const t = String(hook ?? "").trim();
@@ -34,15 +119,7 @@ export async function textilDruckBauen(o: {
   hoch: number;
 }): Promise<{ bild: Buffer; breite: number; hoehe: number }> {
   const sharp = (await import("sharp")).default;
-  /* WEISSER RAHMEN UMS WERK (Owner 28.09.2026: „mach einen weissen Rahmen bei den Bildern") —
-     innerhalb der Fläche, damit das Ganze nicht grösser wird. Die Stärke folgt der Breite. */
-  const rand = Math.max(2, Math.round(o.breite * 0.035));
-  const m = await sharp(o.motiv, { failOn: "none" })
-    .rotate()
-    .resize({ width: Math.round(o.breite) - 2 * rand, height: Math.round(o.hoch) - 2 * rand, fit: "inside" })
-    .extend({ top: rand, bottom: rand, left: rand, right: rand, background: { r: 255, g: 255, b: 255, alpha: 1 } })
-    .png()
-    .toBuffer({ resolveWithObject: true });
+  const m = await gotischGerahmt(sharp, o.motiv, o.breite, o.hoch);
 
   const roh = await readFile(path.join(process.cwd(), "public", "fonts", "CrimsonText.ttf"));
   const serif = fontkit.create(roh);
