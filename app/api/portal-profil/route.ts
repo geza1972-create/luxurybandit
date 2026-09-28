@@ -116,6 +116,8 @@ export async function POST(request: Request) {
         /* Welche Werke er als Poster viu anbietet (Owner 16.09.2026: „auch bei jedem bild") —
            dieselbe Whitelist-Regel wie bei `vertritt`: nicht mitgeführt hiesse gelöscht. */
         poster: x.poster === true,
+        /* Auch auf T-Shirt & Hoodie (Owner 28.09.2026) — dieselbe Whitelist-Regel. */
+        textil: x.textil === true,
         /* „YOU AS A PICTURE" SCHALTET NICHT DER KÜNSTLER (Owner 17.09.2026: „die künstler können
            das gar nicht einschalten. das ist ein premium feature") — `kunst` steht deshalb nicht
            in dieser Liste, sondern kommt aus dem Spread oben, also aus dem Datensatz. Ein

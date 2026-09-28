@@ -164,6 +164,7 @@ export default async function PortalKuenstler({ params, searchParams }: Props) {
           vertritt: !!w.vertritt,
           /* Sein Häkchen je Werk (Owner 16.09.2026) — ohne diese Zeile stünde es beim Öffnen wieder leer. */
           poster: !!w.poster,
+          textil: !!w.textil,
           /* Vorlage erlaubt (Owner 17.09.2026) — fehlt das Feld, ist es an; so verliert niemand
              den Knopf, nur weil sein Datensatz älter ist als das Häkchen. */
           kunst: w.kunst !== false,
@@ -307,7 +308,10 @@ export default async function PortalKuenstler({ params, searchParams }: Props) {
    * dort gilt Premium immer.
    */
   const premium = !!m.reproduktion || aboAktiv(m as Parameters<typeof aboAktiv>[0]);
-  const posterAnsicht = !!m.posterViu && premium && sp.ansicht !== "werke";
+  /* T-Shirts & Hoodies (Owner 28.09.2026) — eine dritte Ansicht neben Poster und Originalen,
+     mit derselben Voraussetzung wie der Postershop: sein Ja (`posterViu`) und Premium. */
+  const textilAnsicht = !!m.posterViu && premium && !m.reproduktion && sp.ansicht === "textil";
+  const posterAnsicht = !!m.posterViu && premium && sp.ansicht !== "werke" && !textilAnsicht;
   const kaufBar = !!m.reproduktion || posterAnsicht;
   const alsPoster = kaufBar;
   /**
@@ -388,6 +392,11 @@ export default async function PortalKuenstler({ params, searchParams }: Props) {
     .sort((a, b) => Number(vertritt(b.i)) - Number(vertritt(a.i)));
   /* Kleidung ist abgeschaltet (Owner 18.09.2026) — Begründung an `KLEIDUNG_AN`. */
   const kleidungKacheln = KLEIDUNG_AN ? kacheln.filter(k => istKleidung(k.i)) : [];
+  /* Die Werke, die er zusätzlich auf T-Shirt & Hoodie anbietet — sein Häkchen je Werk. */
+  const textilKacheln = kacheln.filter(k => {
+    const w = m.werkInfo?.[k.i < 0 ? "standard" : String(k.i)];
+    return !!w?.textil && !w?.produkt;
+  });
   /* Die Seite eines Werks: lakatosbandi.com/{name}/{nr} („standard" = das erste). */
   const werkLink = (i: number) =>
     `${P.kuenstler(kuenstler)}/${i < 0 ? "standard" : i}${admin ? `?s=${encodeURIComponent(adminS)}` : ""}`;
@@ -601,7 +610,7 @@ export default async function PortalKuenstler({ params, searchParams }: Props) {
             Ein Shirt mit QR-Code und der Zeile „VIDEOPOSTER" behauptet etwas, was es nicht ist.
             Deshalb zwei Abschnitte: oben die Poster im Posterlayout, darunter die Kleidung in
             einem schlichten Raster. */}
-        <h2 className="mt-14 border-t border-[#e5e5e5] pt-8 text-[13px] font-semibold uppercase tracking-[0.18em] text-[#777]">{alsPoster ? T.werkeReproduktionen : T.werke}</h2>
+        <h2 className="mt-14 border-t border-[#e5e5e5] pt-8 text-[13px] font-semibold uppercase tracking-[0.18em] text-[#777]">{textilAnsicht ? T.tabTextil : alsPoster ? T.werkeReproduktionen : T.werke}</h2>
         {/* ── WIE ES AN DER WAND AUSSIEHT (Owner 15.09.2026: „ich habe dir zwei bilder abgelegt.
             die müssen wir zeigen") ────────────────────────────────────────────────────────────
             Das zweite Foto erklärt das Produkt ohne ein einziges Wort: jemand steht davor und
@@ -637,7 +646,9 @@ export default async function PortalKuenstler({ params, searchParams }: Props) {
           <PortalReiter reiter={[
             { label: T.tabReproduktionen, aktiv: posterAnsicht,
               href: `${P.kuenstler(kuenstler)}?ansicht=poster${L === "en" ? "" : `&lang=${L}`}` },
-            { label: T.tabWerke, aktiv: !posterAnsicht,
+            ...(textilKacheln.length ? [{ label: T.tabTextil, aktiv: textilAnsicht,
+              href: `${P.kuenstler(kuenstler)}?ansicht=textil${L === "en" ? "" : `&lang=${L}`}` }] : []),
+            { label: T.tabWerke, aktiv: !posterAnsicht && !textilAnsicht,
               href: `${P.kuenstler(kuenstler)}?ansicht=werke${L === "en" ? "" : `&lang=${L}`}` },
           ]} />
         ) : null}
@@ -664,7 +675,34 @@ export default async function PortalKuenstler({ params, searchParams }: Props) {
           * Tablet behält zwei Spalten — dort ist ein bildschirmhohes Blatt breiter als der halbe
           * Schirm und es entstünde eine Spalte mit Löchern daneben.
           */}
-        {kaufBar ? (
+        {textilAnsicht ? (
+          /* ── T-SHIRTS & HOODIES (Owner 28.09.2026) — dieselbe Galerie wie bei den Postern, nur
+             zeigt jede Kachel das Motiv auf dem Rücken des Shirts. Gekauft wird auf der Seite
+             des Werks (`?art=textil`), mit Wahl zwischen Shirt und Hoodie. */
+          <ul className="mt-10 grid list-none grid-cols-2 gap-x-5 gap-y-10 p-0 md:grid-cols-3 lg:grid-cols-4">
+            {textilKacheln.map(k => {
+              const nr = k.i < 0 ? "standard" : String(k.i);
+              const wk = m.werkInfo?.[nr];
+              const basis = werkLink(k.i);
+              const href = `${basis}${basis.includes("?") ? "&" : "?"}art=textil&lang=${L}`;
+              const titel = blattZeilen(m.name, wk, L, m.sprache).gross;
+              const ab = druckPreisCents("tricou", druckGroessenFuer("tricou")[0] ?? "");
+              return (
+                <li key={k.i} id={`t-${nr}`}>
+                  <a href={href} className="block text-[#111] no-underline">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={mitAdmin(`/api/portal-textil?m=${encodeURIComponent(kuenstler)}&i=${nr}&art=tricou&w=600`)}
+                      alt={titel} loading="lazy" className="block aspect-square w-full bg-[#f3f3f3] object-cover" />
+                    <p className="m-0 mt-3 text-[15px] font-semibold leading-[1.3]">{titel}</p>
+                    {ab !== null ? (
+                      <p className="m-0 mt-1 text-[14.5px] text-[#555]">{T.druckAb.replace("{preis}", eur(ab, L))}</p>
+                    ) : null}
+                  </a>
+                </li>
+              );
+            })}
+          </ul>
+        ) : kaufBar ? (
           /**
            * ── EINE GALERIE, KEIN LADENREGAL (Owner 28.09.2026: „auf dieser Seite muss ich nicht
            * direkt kaufen. Mir ist wichtiger, das als Galerie zu haben. Wenn ich drauf klicke,

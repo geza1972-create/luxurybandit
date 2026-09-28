@@ -50,7 +50,7 @@ import { eur } from "@/lib/pricing";
  * BILDER GEHEN SOFORT HOCH (über `api/versusforge-bild`, mit der Inhaltsprüfung). Die Texte sammelt „Speichern".
  */
 
-type Kachel = { i: number; spruch: string; titel: string; technik: string; groesse: string; jahr: string; geschichte: string; preis: string; detalii: string; posterPreis: string; vertritt: boolean; poster: boolean; kunst: boolean; stimme?: boolean; stimmeAm?: string; sprecher?: boolean; nurStimme?: boolean; youtube?: string;
+type Kachel = { i: number; spruch: string; titel: string; technik: string; groesse: string; jahr: string; geschichte: string; preis: string; detalii: string; posterPreis: string; vertritt: boolean; poster: boolean; textil?: boolean; kunst: boolean; stimme?: boolean; stimmeAm?: string; sprecher?: boolean; nurStimme?: boolean; youtube?: string;
   /* Ob an diesem Werk schon ein Film hängt (Owner 20.09.2026) — die Geschichte und „an die Wand". */
   film?: boolean; filmAm?: string; wandFilm?: boolean; wandFilmAm?: string };
 
@@ -418,7 +418,11 @@ export default function PortalBearbeiten({ mandant, k, T, lang, aufbau = false, 
     setKacheln(v => v.map(x => (x.i === i ? { ...x, poster: an } : x)));
     setStatus("");
   };
-  const aendern = (i: number, feld: Exclude<keyof Kachel, "i" | "vertritt" | "poster" | "kunst" | "nurStimme">, wert: string) => {
+  const textilSetzen = (i: number, an: boolean) => {
+    setKacheln(v => v.map(x => (x.i === i ? { ...x, textil: an } : x)));
+    setStatus("");
+  };
+  const aendern = (i: number, feld: Exclude<keyof Kachel, "i" | "vertritt" | "poster" | "textil" | "kunst" | "nurStimme">, wert: string) => {
     setKacheln(v => v.map(x => (x.i === i ? { ...x, [feld]: wert } : x)));
     setStatus("");
   };
@@ -1153,6 +1157,13 @@ export default function PortalBearbeiten({ mandant, k, T, lang, aufbau = false, 
                 <label className="flex items-center gap-1.5 text-[13.5px] text-[#555]">
                   <input type="checkbox" checked={kc.poster} onChange={e => posterSetzen(kc.i, e.target.checked)} />
                   {T.posterViuWerk}
+                </label>
+              ) : null}
+              {/* Auch auf T-Shirt & Hoodie (Owner 28.09.2026) — gleich neben dem Poster-Häkchen. */}
+              {posterViu ? (
+                <label className="flex items-center gap-1.5 text-[13.5px] text-[#555]">
+                  <input type="checkbox" checked={!!kc.textil} onChange={e => textilSetzen(kc.i, e.target.checked)} />
+                  {T.textilWerk}
                 </label>
               ) : null}
               {/* Sein eigener Preis für das Poster (Owner 25.09.2026) — nur wo das Poster angeboten wird. */}

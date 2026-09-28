@@ -442,6 +442,8 @@ const TEXTE = {
     posterViuJa: "I want to sell my works as Living Posters too.",
     /* Am einzelnen Werk (Owner 16.09.2026: „auch bei jedem bild"). */
     posterViuWerk: "Offer as Living Poster",
+    textilWerk: "Also offer on T-shirt & hoodie",
+    tabTextil: "T-shirts & hoodies",
     kunstWerk: "Customers can generate their own picture in this style",
     kunstPremium: "Premium",
     /* Der Stilnachweis auf einem erzeugten Blatt (Owner 18.09.2026: „auf jedem erzeugten
@@ -805,6 +807,8 @@ const TEXTE = {
     mehrLesen: "Citește mai mult",
     posterViuJa: "Vreau să-mi vând lucrările și ca Living Poster.",
     posterViuWerk: "Oferă ca Living Poster",
+    textilWerk: "Oferă și pe tricou și hanorac",
+    tabTextil: "Tricouri și hanorace",
     kunstWerk: "Clienții pot genera propria imagine în acest stil",
     kunstPremium: "Premium",
     stilNachweis: "după stilul lui {name}",
@@ -1119,6 +1123,8 @@ const TEXTE = {
     mehrLesen: "Mehr lesen",
     posterViuJa: "Ich will meine Werke auch als Living Poster verkaufen.",
     posterViuWerk: "Als Living Poster anbieten",
+    textilWerk: "Auch auf T-Shirt & Hoodie anbieten",
+    tabTextil: "T-Shirts & Hoodies",
     kunstWerk: "Kunden erzeugen ihr eigenes Bild in diesem Stil",
     kunstPremium: "Premium",
     stilNachweis: "im Stil von {name}",

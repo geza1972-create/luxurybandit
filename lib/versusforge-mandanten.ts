@@ -203,6 +203,12 @@ export type WerkInfo = {
    * Werke gedruckt werden dürfen, entscheidet er hier Bild für Bild — manche Arbeiten will man
    * als Druck sehen, andere nie. Ohne Häkchen bleibt ein Werk ein Original und sonst nichts.
    */
+  /**
+   * AUCH AUF T-SHIRT UND HOODIE (Owner 28.09.2026: „genauso wie ich die Kunstwerke als Poster
+   * anbiete, auch auf Produkte anbieten, dann erscheinen sie dort"). Sein Häkchen je Werk, wie
+   * `poster` — das Motiv wird auf den Rücken gedruckt, die Vorschau baut `api/portal-textil`.
+   */
+  textil?: boolean;
   poster?: boolean;
   /**
    * OB DAS WERK IM QUERFORMAT IST (Owner 16.09.2026: „wir müssen die DIN formate einhalten" ·

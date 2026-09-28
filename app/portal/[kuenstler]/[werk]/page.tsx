@@ -131,6 +131,8 @@ export default async function PortalWerk({ params, searchParams }: Props) {
   const premium = !!m.reproduktion || aboAktiv(m as Parameters<typeof aboAktiv>[0]);
   const kaufBar = !!m.reproduktion || (!!m.posterViu && premium);
   const lebend = premium && m.kunstAn === true;
+  /* Dasselbe Werk als T-Shirt & Hoodie (Owner 28.09.2026) — nur, wenn er es angehakt hat. */
+  const textilSeite = String(sp.art ?? "") === "textil" && !!w?.textil && !m.reproduktion && !!m.posterViu && premium;
   const kariStil = !!String(m.kunstStil ?? "").trim();
   const istKleidung = (x: number) => istTextil(m.werkInfo?.[x < 0 ? "standard" : String(x)]?.produkt ?? "");
   const anhang = `${sp.lang ? `&lang=${encodeURIComponent(String(sp.lang))}` : ""}${admin ? `&s=${encodeURIComponent(adminS)}` : ""}`;
@@ -143,7 +145,39 @@ export default async function PortalWerk({ params, searchParams }: Props) {
       <main className="mx-auto w-full max-w-[1120px] px-5 pb-20 pt-8 md:pt-12">
         <a href={mitAdmin(P.kuenstler(kuenstler))} className="text-[14px] text-[#555] underline">← {n(T.alleWerkeVon)}</a>
 
-        {kaufBar && (!w?.produkt || !istTextil(w.produkt)) ? (
+        {textilSeite ? (
+          /**
+           * ── DAS MOTIV AUF SHIRT UND HOODIE (Owner 28.09.2026: „genauso wie ich die Kunstwerke als
+           * Poster anbiete, auch auf Produkte anbieten") ─────────────────────────────────────────
+           * Beide Stücke nebeneinander, jedes mit eigener Grösse und eigenem Kaufknopf — dieselbe
+           * Kasse wie beim Poster (`api/druck-kasse` prüft `textil` am Werk).
+           */
+          <div className="mx-auto mt-6 w-full max-w-[900px]">
+            <h1 className="m-0 font-serif text-[30px] font-normal leading-[1.15] md:text-[40px]">{w?.titel || m.name}</h1>
+            <p className="m-0 mt-1 text-[15px] text-[#555]">{m.name}</p>
+            <div className="mt-6 grid gap-10 md:grid-cols-2">
+              {(["tricou", "hanorac"] as const).map(art => (
+                <div key={art} className="text-center">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={mitAdmin(`/api/portal-textil?m=${encodeURIComponent(kuenstler)}&i=${nr}&art=${art}&w=900`)}
+                    alt={`${w?.titel || m.name} — ${art === "tricou" ? T.druckTricou : T.druckHanorac}`}
+                    className="block aspect-square w-full bg-[#f3f3f3] object-cover" />
+                  <p className="m-0 mt-4 text-[17px] font-semibold">{art === "tricou" ? T.druckTricou : T.druckHanorac}</p>
+                  <div className="mt-3">
+                    <KaufKnopf mandant={kuenstler} werk={nr} material={art} sprache={L} adminS={admin ? adminS : ""}
+                      texte={{ kaufen: T.kaufKaufen, korb: T.kaufKorb, groesse: T.kaufGroesse, fehler: T.korbFehler,
+                        ohneRahmen: T.druckOhneRahmen, ohneRahmenWahl: T.ohneRahmenWahl,
+                        mitRahmen: T.druckMitRahmen, mitRahmenWahl: T.mitRahmenWahl,
+                        versand: T.druckVersandDrin, rahmenSchwarz: T.druckRahmenSchwarz }} />
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="mt-8 flex justify-center">
+              <PortalTeilen adresse={`${produktAdresse}${produktAdresse.includes("?") ? "&" : "?"}art=textil`} name={`${w?.titel || m.name} — ${m.name}`} T={T} />
+            </div>
+          </div>
+        ) : kaufBar && (!w?.produkt || !istTextil(w.produkt)) ? (
           <div className="mx-auto mt-6 w-full lg:w-[min(92vw,calc(88svh/1.4142))]">
             <PosterProdukt
               kuenstler={kuenstler} m={m} k={k} L={L} T={T}

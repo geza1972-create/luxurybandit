@@ -4,7 +4,7 @@ import { mandantLesen } from "@/lib/versusforge-mandanten";
 import { mandantPruefen } from "@/lib/versusforge-mandant";
 import { EIGENER_MANDANT } from "@/lib/versusforge-namen";
 import { werkKacheln, portalPfade } from "@/lib/lakatosbandi";
-import { druckPreisCents, druckAbzugCents, istDatei, istEigenesStueck, druckVersandCents, posterPreisA3Cents, DRUCK_LAENDER } from "@/lib/lakatosbandi-druck";
+import { druckPreisCents, druckAbzugCents, istDatei, istEigenesStueck, istTextil, druckVersandCents, posterPreisA3Cents, DRUCK_LAENDER } from "@/lib/lakatosbandi-druck";
 import { kundenbildZettel } from "@/lib/lakatosbandi-kundenbild";
 import { korbAblegen } from "@/lib/lakatosbandi-bestellung";
 import { createPackCheckout, stripeConfigured } from "@/lib/stripe";
@@ -146,7 +146,15 @@ export async function POST(request: Request) {
 
     /* Und nur die Werke, die er angehakt hat (Owner 16.09.2026: „auch bei jedem bild"). Hat er
        noch keines gewählt, gelten alle — dieselbe Regel wie auf seiner Seite. */
-    if (!m.reproduktion) {
+    /* SHIRT UND HOODIE NUR FÜR WERKE, DIE ER DAFÜR ANGEHAKT HAT (Owner 28.09.2026) — oder für ein
+       Stück, das selbst ein Kleidungsstück ist (`produkt`). Sonst wäre jedes Werk über die
+       Adresse als Shirt bestellbar. */
+    if (istTextil(material)) {
+      const wiT = m.werkInfo?.[schluessel];
+      if (!wiT?.textil && wiT?.produkt !== material) {
+        return NextResponse.json({ ok: false, grund: "kein-druck" }, { status: 404 });
+      }
+    } else if (!m.reproduktion) {
       const auswahl = kacheln.some(x => m.werkInfo?.[String(x.i) === "-1" ? "standard" : String(x.i)]?.poster);
       if (auswahl && !m.werkInfo?.[schluessel]?.poster) {
         return NextResponse.json({ ok: false, grund: "kein-druck" }, { status: 404 });

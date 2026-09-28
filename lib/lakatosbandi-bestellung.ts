@@ -184,6 +184,20 @@ async function dateiAnhaenge(b: Bestellung, materialien: (p: BestellPosten) => b
   const raus: MailAnhang[] = [];
   for (const p of b.posten.filter(materialien)) {
     const blatt = blattFuer(p);
+    /* SHIRT UND HOODIE (Owner 28.09.2026): kein Blatt, aber die Druckerei braucht das Motiv —
+       das Werk in voller Auflösung, so wie es abgelegt ist. */
+    if (!blatt && (p.material === "tricou" || p.material === "hanorac")) {
+      const nrT = p.werk === "-1" || p.werk === "" ? "standard" : p.werk;
+      const r = await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(motivPfad(p.mandant, nrT))}`).catch(() => null);
+      if (r?.ok) {
+        raus.push({
+          name: `${p.mandant}-${nrT} · ${p.material} ${p.groesse} · ${bestellNummer(b.sitzung)}.jpg`,
+          inhalt: Buffer.from(await r.arrayBuffer()),
+          typ: "image/jpeg",
+        });
+      } else console.warn(`[bestellung] Motiv für Textil fehlt: ${p.mandant}/${nrT}`);
+      continue;
+    }
     if (!blatt) continue;
     try {
       const m = await mandantLesen(p.mandant);
