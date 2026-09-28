@@ -51,7 +51,7 @@ export function portalPfade(host?: string | null) {
     /* `v`: die Farbe der Linien steht in der Adresse — sonst behält der Browser nach dem Umschalten
        hell/dunkel bis zu fünf Minuten das alte Bild. */
     werkBildGotisch: (name: string, i: number, w?: number, dunkel?: boolean) =>
-      `/api/portal-werk-gotisch?m=${n(name)}&i=${i < 0 ? "standard" : i}${w ? `&w=${Math.round(w)}` : ""}&v=${dunkel ? "d" : "h"}3`,
+      `/api/portal-werk-gotisch?m=${n(name)}&i=${i < 0 ? "standard" : i}${w ? `&w=${Math.round(w)}` : ""}&v=${dunkel ? "d" : "h"}4`,
     werkBild2: (name: string, i: number, w?: number) =>
       `/api/portal-werk?m=${n(name)}&i=${i < 0 ? "standard" : i}-2${w ? `&w=${Math.round(w)}` : ""}`,
     /* Das Journal — je Sprache eine eigene Adresse (für Google). */
