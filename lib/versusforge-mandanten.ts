@@ -209,7 +209,7 @@ export type WerkInfo = {
    * `poster` — das Motiv wird auf den Rücken gedruckt, die Vorschau baut `api/portal-textil`.
    */
   textil?: boolean;
-  /** Die kurze Zeile auf dem Shirt, englisch, 2–5 Wörter (Owner 28.09.2026: die langen Sprüche sind nicht cool). Leer: kein Text. */
+  /** Die kurze Zeile auf Shirt UND Poster, englisch, 2–5 Wörter (Owner 28.09.2026). Leer: Shirt ohne Text, Poster mit dem Spruch. */
   textilZeile?: string;
   poster?: boolean;
   /**
@@ -491,6 +491,12 @@ export type MandantAngaben = {
    * Künstler anbieten."
    */
   kunstStil?: string;
+  /**
+   * DER RAHMEN UMS WERK AUF DEM POSTER (Owner 28.09.2026: der Rahmen auf den T-Shirts, so hätte
+   * ich das gerne auch auf Poster) — gotisch setzt das Werk in dasselbe Kirchenfenster wie auf
+   * dem Shirt, in Tinte statt Weiss. Von Hand gesetzt, je Künstler. Leer: das Werk ohne Rahmen.
+   */
+  rahmenStil?: "gotisch";
   posterViu?: boolean;
   /**
    * Sein Stil als Rezept (siehe `StilRezept`) — die Vorlage für erzeugte Porträts „im Stil von".

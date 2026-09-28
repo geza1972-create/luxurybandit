@@ -743,7 +743,7 @@ export default async function PortalKuenstler({ params, searchParams }: Props) {
                         titel={zeilen.gross}
                         siegel={!m.reproduktion}
                         bild={
-                          <PosterWandFoto standard={mitAdmin(P.werkBild(kuenstler, k.i, 700))} alt={zeilen.gross}
+                          <PosterWandFoto standard={mitAdmin(m.rahmenStil === "gotisch" ? P.werkBildGotisch(kuenstler, k.i, 700) : P.werkBild(kuenstler, k.i, 700))} alt={zeilen.gross}
                             className={wk?.quer ? "block h-auto w-full" : "block h-full w-auto"} />
                         }
                       />

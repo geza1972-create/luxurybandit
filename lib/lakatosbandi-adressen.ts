@@ -40,6 +40,18 @@ export function portalPfade(host?: string | null) {
      */
     werkBild: (name: string, i: number, w?: number) =>
       `/api/portal-werk?m=${n(name)}&i=${i}${w ? `&w=${Math.round(w)}` : ""}`,
+    /**
+     * ── DIE ZWEITE PRODUKTANSICHT (Owner 21.09.2026, Sonnenbrille) ─────────────────────────
+     *
+     * Dieselbe Ablage wie `werkBild`, unter demselben Schlüssel mit dem Zusatz „-2"
+     * (`WerkInfo.produktBild2` sagt, ob sie existiert) — kein zweites Feld, keine zweite
+     * Route, nur ein zweiter Platz in derselben Ablage.
+     */
+    /* Das Werk im gotischen Rahmen, fürs Poster (Owner 28.09.2026) — `api/portal-werk-gotisch`. */
+    werkBildGotisch: (name: string, i: number, w?: number) =>
+      `/api/portal-werk-gotisch?m=${n(name)}&i=${i < 0 ? "standard" : i}${w ? `&w=${Math.round(w)}` : ""}`,
+    werkBild2: (name: string, i: number, w?: number) =>
+      `/api/portal-werk?m=${n(name)}&i=${i < 0 ? "standard" : i}-2${w ? `&w=${Math.round(w)}` : ""}`,
     /* Das Journal — je Sprache eine eigene Adresse (für Google). */
     journal: (lang: string, slug?: string) => `${p ? "" : "/portal"}/journal/${lang}${slug ? `/${encodeURIComponent(slug)}` : ""}`,
   };

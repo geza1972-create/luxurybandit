@@ -1,7 +1,8 @@
 import { NextRequest } from "next/server";
 import { kundenbildLesen } from "@/lib/lakatosbandi-kundenbild";
 import { mandantOeffentlich } from "@/lib/versusforge-mandanten";
-import { werkKacheln, posterAnriss, kuenstlerUrl } from "@/lib/lakatosbandi";
+import { werkKacheln, posterZeile, kuenstlerUrl } from "@/lib/lakatosbandi";
+import { gotischGerahmt } from "@/lib/lakatosbandi-textil";
 import { druckdateiBauen, type DruckAngaben } from "@/lib/lakatosbandi-druckdatei";
 import { hausherrDarf } from "@/lib/lakatosbandi-hausherr";
 import { kunstBlattSatz } from "@/lib/lakatosbandi-kunst";
@@ -135,10 +136,15 @@ export async function GET(request: NextRequest) {
      * Beide holen ihre Werte jetzt aus derselben Quelle wie die Seite. Wer die Datei neben den
      * Bildschirm legt, muss dasselbe Blatt sehen — sonst ist die Vorschau eine Behauptung.
      */
+    /* Sein Werk im gotischen Rahmen, wie auf dem Schirm (Owner 28.09.2026) — nie um das Bild eines Kunden. */
+    const gotisch = !eigenes && m.rahmenStil === "gotisch"
+      ? await gotischGerahmt((await import("sharp")).default, Buffer.from(quelle), 2400, 3840, "#1f1c17")
+      : null;
     const angaben: DruckAngaben = {
-      bild: quelle,
+      bild: gotisch ? new Uint8Array(gotisch.data) : quelle,
+      ...(gotisch ? { bildTyp: "png" as const } : {}),
       titel: seinTitel || [info.titel, info.jahr].filter(Boolean).join(", ") || (m.name ?? ""),
-      text: seinSatz || (m.kunstAn ? kunstBlattSatz(m.kunstStil) : posterAnriss(kachel?.hook ?? "")),
+      text: seinSatz || (m.kunstAn ? kunstBlattSatz(m.kunstStil) : posterZeile(info, kachel?.hook ?? "")),
       qrZiel: filmSeite(mandant, kachel?.i ?? -1),
       recht: kuenstlerUrl(mandant).replace(/^https?:\/\//, ""),
       format,

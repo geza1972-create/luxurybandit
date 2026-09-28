@@ -29,11 +29,13 @@ import { textPfad, textBreite, umbrechen } from "@/lib/lakatosbandi-blattbild";
  * Die Figur passt in `breite` × `hoch` (der Giebel darf die Fläche um ein Viertel nach oben
  * verlängern) — der Rahmen macht das Werk kleiner, nicht den Druck grösser.
  */
-async function gotischGerahmt(
+export async function gotischGerahmt(
   sharp: typeof import("sharp"),
   motiv: Buffer,
   breite: number,
   hoch: number,
+  /** Weiss auf dem schwarzen Shirt, Tinte auf dem Papier des Posters. */
+  farbe = "#ffffff",
 ): Promise<{ data: Buffer; info: { width: number; height: number } }> {
   const rand = breite * 0.07;
   /* Kein Kreuz auf der Spitze (Owner 28.09.2026: ohne Kreuz). */
@@ -86,9 +88,7 @@ async function gotischGerahmt(
   }).join("");
 
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${B}" height="${H}">
-  <image x="${x}" y="${yBild}" width="${w}" height="${h}" preserveAspectRatio="none"
-    xlink:href="data:image/png;base64,${bild.toString("base64")}"/>
-  <g fill="none" stroke="#ffffff" stroke-linejoin="miter">
+  <g fill="none" stroke="${farbe}" stroke-linejoin="miter">
     <path d="${aussen.d}" stroke-width="${dick}"/>
     <path d="${innen.d}" stroke-width="${fein}"/>
     <line x1="${innen.l}" y1="${yBild - aI}" x2="${innen.r}" y2="${yBild - aI}" stroke-width="${fein}"/>
@@ -96,7 +96,15 @@ async function gotischGerahmt(
     <g stroke-width="${fein}">${kreise}</g>
   </g>
 </svg>`;
-  const data = await sharp(Buffer.from(svg)).png().toBuffer();
+  /* Das Werk NICHT ins SVG einbetten: In Druckgrösse wären das über 10 MB Text, daran scheitert
+     der SVG-Leser. Also Bild und Linien getrennt auf eine durchsichtige Fläche legen. */
+  const data = await sharp({ create: { width: B, height: H, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } } })
+    .composite([
+      { input: bild, left: Math.round(x), top: Math.round(yBild) },
+      { input: Buffer.from(svg), left: 0, top: 0 },
+    ])
+    .png()
+    .toBuffer();
   return { data, info: { width: B, height: H } };
 }
 

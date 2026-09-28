@@ -2,7 +2,7 @@ import type { MandantOeffentlich } from "@/lib/versusforge-mandanten";
 import type { Lang } from "@/lib/lang";
 import type { PortalTexte } from "@/lib/lakatosbandi-texte";
 import { platzhalterName } from "@/lib/lakatosbandi-texte";
-import { blattZeilen, posterAnriss, ueberMichFuer } from "@/lib/lakatosbandi";
+import { blattZeilen, posterAnriss, posterZeile, ueberMichFuer } from "@/lib/lakatosbandi";
 import { kunstBlattSatz } from "@/lib/lakatosbandi-kunst";
 import Poster from "@/components/Poster";
 import PosterGross, { PosterGrossKnopf } from "@/components/PosterGross";
@@ -182,7 +182,7 @@ export default function PosterProdukt({
               standard={blattZeilen(m.name, wi, L, m.sprache).gross} />}
             stil={blattZeilen(m.name, wi, L, m.sprache).klein}
             text={<PosterWandZeile art="satz"
-              standard={m.kunstAn ? kunstBlattSatz(m.kunstStil) : posterAnriss(k.hook)} />}
+              standard={m.kunstAn ? kunstBlattSatz(m.kunstStil) : posterZeile(wi, k.hook)} />}
             qrEcke
             qr="/api/portal-qr"
             siegel={!m.reproduktion}
@@ -206,7 +206,11 @@ export default function PosterProdukt({
                * scheidung mehr: Es zwingt das Werk in JEDEM Verhältnis vollständig ins
                * Feld, an der jeweils engeren Kante.
                */
-              <PosterWandFoto standard={mitAdmin(werkBild(kuenstler, k.i, 1100))}
+              /* Im gotischen Rahmen, wenn der Künstler ihn hat (Owner 28.09.2026) — dasselbe
+                 Kirchenfenster wie auf dem Shirt, in Tinte. */
+              <PosterWandFoto standard={mitAdmin(m.rahmenStil === "gotisch"
+                ? `/api/portal-werk-gotisch?m=${encodeURIComponent(kuenstler)}&i=${nr}&w=1100`
+                : werkBild(kuenstler, k.i, 1100))}
                 className="block h-auto max-h-full w-auto max-w-full object-contain" />
             }
           />
@@ -279,8 +283,8 @@ export default function PosterProdukt({
                gehört auf die Seite, nicht über ein fremdes Gesicht an der Wand. Der
                Rückfall sagt, was das Bild IST — überschreiben kann er ihn im Fenster. */
             text={lebend
-              ? <PosterDeinText satz={m.kunstAn ? kunstBlattSatz(m.kunstStil) : posterAnriss(k.hook)} qrEcke />
-              : posterAnriss(k.hook)}
+              ? <PosterDeinText satz={m.kunstAn ? kunstBlattSatz(m.kunstStil) : posterZeile(wi, k.hook)} qrEcke />
+              : posterZeile(wi, k.hook)}
             /* Der Knopf „You as a picture" sitzt jetzt IM Bildfeld, weil er das Bild
                tauscht (`PosterDeinBild` weiter unten) — nicht mehr hier am Blatt. */
             qrEcke
@@ -383,7 +387,11 @@ export default function PosterProdukt({
                   : m.werkInfo?.profil?.sprecher
                   ? `/api/portal-film?m=${encodeURIComponent(kuenstler)}&i=profil&art=sprecherbild&v=${encodeURIComponent(m.werkInfo?.profil?.sprecherAm ?? "1")}`
                   : undefined}
-                bild={mitAdmin(werkBild(kuenstler, k.i, 1100))} alt={m.name}
+                /* Auch hier im gotischen Rahmen, wenn er ihn hat (Owner 28.09.2026) — das grosse
+                   Blatt muss dasselbe zeigen wie Miniatur und Zimmer. */
+                bild={mitAdmin(m.rahmenStil === "gotisch"
+                  ? `/api/portal-werk-gotisch?m=${encodeURIComponent(kuenstler)}&i=${nr}&w=1100`
+                  : werkBild(kuenstler, k.i, 1100))} alt={m.name}
                 quer={!!wi?.quer}
                 profil={m.profilBild ? mitAdmin(`/api/portal-werk?m=${encodeURIComponent(kuenstler)}&i=profil`) : undefined}
                 sofort={filmOffen}

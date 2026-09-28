@@ -1166,7 +1166,7 @@ export default function PortalBearbeiten({ mandant, k, T, lang, aufbau = false, 
                   {T.textilWerk}
                 </label>
               ) : null}
-              {posterViu && kc.textil ? (
+              {posterViu ? (
                 <span className="flex items-center gap-1.5">
                   <span className="text-[13.5px] font-semibold text-[#555]">{T.textilZeileWort}</span>
                   <input value={kc.textilZeile ?? ""} onChange={e => aendern(kc.i, "textilZeile", e.target.value)} maxLength={60}

@@ -7,13 +7,13 @@ import { DRUCK_KUENSTLER_CENTS } from "@/lib/lakatosbandi-druck";
 import { kundenbildLesen } from "@/lib/lakatosbandi-kundenbild";
 import type { MailAnhang } from "@/lib/email-send";
 import { mandantLesen, mandantSpeichern } from "@/lib/versusforge-mandanten";
-import { werkKacheln, posterAnriss } from "@/lib/lakatosbandi";
+import { werkKacheln, posterZeile } from "@/lib/lakatosbandi";
 import { supabaseFetch, BUCKET, encodeStoragePath } from "@/lib/try-this-look-store";
 import { motivPfad } from "@/lib/versusforge-moderation";
 import { filmSeite } from "@/lib/lakatosbandi-film";
 import { portalTexte, portalSprache } from "@/lib/lakatosbandi-texte";
 import { druckdateiBauen } from "@/lib/lakatosbandi-druckdatei";
-import { textilDruckBauen } from "@/lib/lakatosbandi-textil";
+import { textilDruckBauen, gotischGerahmt } from "@/lib/lakatosbandi-textil";
 
 /**
  * WAS NACH EINER BESTELLUNG PASSIERT (Owner 16.09.2026: „ich will nicht wissen was nach
@@ -239,13 +239,19 @@ async function dateiAnhaenge(b: Bestellung, materialien: (p: BestellPosten) => b
        * Es bleibt das blanke Blatt mit der Adresse des Hauses.
        */
       const ohneKuenstler = !!eigenes && !eigenes.zettel.stil;
+      /* Sein Werk im gotischen Rahmen, wie auf dem Schirm (Owner 28.09.2026) — nicht das Foto
+         eines Kunden, das gehört ihm und bekommt keinen fremden Rahmen. */
+      const gotisch = !eigenes && m.rahmenStil === "gotisch"
+        ? await gotischGerahmt((await import("sharp")).default, Buffer.from(bild), 2400, 3840, "#1f1c17")
+        : null;
       const bytes = await druckdateiBauen({
-        bild,
+        bild: gotisch ? new Uint8Array(gotisch.data) : bild,
+        ...(gotisch ? { bildTyp: "png" as const } : {}),
         /* Kein Name und kein Profilbild auf dem Blatt (Owner 17.09.2026: „Gerry Louisett raus")
            — dieselbe Zeile wie auf dem Schirm: oben der TITEL, unten nur die Adresse. Fehlt der
            Titel, trägt die grosse Zeile den Namen. */
         titel: ohneKuenstler ? "" : ([info.titel, info.jahr].filter(Boolean).join(", ") || (m.name ?? "")),
-        text: ohneKuenstler ? "" : posterAnriss(kachel?.hook ?? ""),
+        text: ohneKuenstler ? "" : posterZeile(info, kachel?.hook ?? ""),
         qrZiel: ohneKuenstler ? undefined : filmSeite(p.mandant, kachel?.i ?? -1),
         /* Nur die Adresse (Owner 17.09.2026: „hier soll stehen nur lakatosbandi.com"). */
         recht: "lakatosbandi.com",

@@ -167,6 +167,14 @@ export const imPortalSichtbar = (m: MandantAngaben) => m.freigabe === "frei" && 
  * Ist schon der erste Satz länger als das Mass, bleibt er trotzdem stehen — lieber drei Zeilen
  * als ein zerhackter Satz.
  */
+/**
+ * DIE ZEILE AUF DEM BLATT (Owner 28.09.2026: dasselbe auf Poster auch) — seine kurze Zeile
+ * (`WerkInfo.textilZeile`), wenn er eine hat, sonst wie bisher der Anfang seines Spruchs.
+ */
+export function posterZeile(wi: { textilZeile?: string } | null | undefined, hook: string): string {
+  return String(wi?.textilZeile ?? "").trim() || posterAnriss(hook);
+}
+
 export function posterAnriss(text: string, hoechstens = 100): string {
   const t = String(text ?? "").trim();
   if (t.length <= hoechstens) return t;
