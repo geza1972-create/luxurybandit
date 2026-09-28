@@ -54,7 +54,8 @@ async function gotischGerahmt(
   const bild = await sharp(motiv, { failOn: "none" }).rotate().resize({ width: w, height: h, fit: "fill" }).png().toBuffer();
 
   const giebel = giebelAnteil * w;
-  const dick = breite * 0.026;
+  /* Die äussere Linie etwas dünner (Owner 28.09.2026). */
+  const dick = breite * 0.017;
   const fein = breite * 0.008;
   const aA = rand * 0.55;
   const aI = rand * 0.18;
