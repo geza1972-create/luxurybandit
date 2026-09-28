@@ -134,7 +134,11 @@ export default async function PortalWerk({ params, searchParams }: Props) {
   const kaufBar = !!m.reproduktion || (!!m.posterViu && premium);
   const lebend = premium && m.kunstAn === true;
   /* Dasselbe Werk als T-Shirt & Hoodie (Owner 28.09.2026) — nur, wenn er es angehakt hat. */
-  const textilSeite = String(sp.art ?? "") === "textil" && !!w?.textil && !m.reproduktion && !!m.posterViu && premium;
+  /* Shirt ODER Hoodie (Owner 28.09.2026: getrennt) — `art=textil` (alte Adressen) ist das Shirt. */
+  const artRoh = String(sp.art ?? "");
+  const textilArt: "tricou" | "hanorac" = artRoh === "hanorac" ? "hanorac" : "tricou";
+  const textilSeite = (artRoh === "textil" || artRoh === "tricou" || artRoh === "hanorac")
+    && !!w?.textil && !m.reproduktion && !!m.posterViu && premium;
   const kariStil = !!String(m.kunstStil ?? "").trim();
   const istKleidung = (x: number) => istTextil(m.werkInfo?.[x < 0 ? "standard" : String(x)]?.produkt ?? "");
   const anhang = `${sp.lang ? `&lang=${encodeURIComponent(String(sp.lang))}` : ""}${admin ? `&s=${encodeURIComponent(adminS)}` : ""}`;
@@ -157,8 +161,8 @@ export default async function PortalWerk({ params, searchParams }: Props) {
           <div className="mx-auto mt-6 w-full max-w-[900px]">
             <h1 className="m-0 font-serif text-[30px] font-normal leading-[1.15] md:text-[40px]">{w?.titel || m.name}</h1>
             <p className="m-0 mt-1 text-[15px] text-[#555]">{m.name}</p>
-            <div className="mt-6 grid gap-10 md:grid-cols-2">
-              {(["tricou", "hanorac"] as const).map(art => (
+            <div className="mx-auto mt-6 grid max-w-[560px] gap-10">
+              {[textilArt].map(art => (
                 <div key={art} className="text-center">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={mitAdmin(`/api/portal-textil?m=${encodeURIComponent(kuenstler)}&i=${nr}&art=${art}&w=900`)}
@@ -176,7 +180,7 @@ export default async function PortalWerk({ params, searchParams }: Props) {
               ))}
             </div>
             <div className="mt-8 flex justify-center">
-              <PortalTeilen adresse={`${produktAdresse}${produktAdresse.includes("?") ? "&" : "?"}art=textil`} name={`${w?.titel || m.name} — ${m.name}`} T={T} />
+              <PortalTeilen adresse={`${produktAdresse}${produktAdresse.includes("?") ? "&" : "?"}art=${textilArt}`} name={`${w?.titel || m.name} — ${m.name}`} T={T} />
             </div>
           </div>
         ) : kaufBar && (!w?.produkt || !istTextil(w.produkt)) ? (
@@ -325,9 +329,9 @@ export default async function PortalWerk({ params, searchParams }: Props) {
                     const wx = m.werkInfo?.[nrx];
                     const zeilen = blattZeilen(m.name, wx, L, m.sprache);
                     const basis = werkLink(x.i);
-                    const href = `${basis}${basis.includes("?") ? "&" : "?"}${textilSeite ? "art=textil&" : ""}lang=${L}`;
+                    const href = `${basis}${basis.includes("?") ? "&" : "?"}${textilSeite ? `art=${textilArt}&` : ""}lang=${L}`;
                     const ab = textilSeite
-                      ? druckPreisCents("tricou", druckGroessenFuer("tricou")[0] ?? "")
+                      ? druckPreisCents(textilArt, druckGroessenFuer(textilArt)[0] ?? "")
                       : wx?.produkt
                       ? druckPreisCents(wx.produkt, druckGroessenFuer(wx.produkt)[0] ?? "")
                       : druckPreisCents("poster", "A3", !m.reproduktion && !m.kunstAn, posterPreisA3Cents(wx?.posterPreis));
@@ -336,7 +340,7 @@ export default async function PortalWerk({ params, searchParams }: Props) {
                         <a href={href} className="block text-[#111] no-underline">
                           {textilSeite ? (
                             /* eslint-disable-next-line @next/next/no-img-element */
-                            <img src={mitAdmin(`/api/portal-textil?m=${encodeURIComponent(kuenstler)}&i=${nrx}&art=tricou&w=600`)}
+                            <img src={mitAdmin(`/api/portal-textil?m=${encodeURIComponent(kuenstler)}&i=${nrx}&art=${textilArt}&w=600`)}
                               alt={zeilen.gross} loading="lazy" className="block aspect-square w-full bg-[#f3f3f3] object-cover" />
                           ) : wx?.produkt ? (
                             <div className="flex aspect-[1/1.4142] items-center justify-center bg-[#f5f5f5]">

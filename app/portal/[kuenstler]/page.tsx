@@ -311,7 +311,14 @@ export default async function PortalKuenstler({ params, searchParams }: Props) {
   const premium = !!m.reproduktion || aboAktiv(m as Parameters<typeof aboAktiv>[0]);
   /* T-Shirts & Hoodies (Owner 28.09.2026) — eine dritte Ansicht neben Poster und Originalen,
      mit derselben Voraussetzung wie der Postershop: sein Ja (`posterViu`) und Premium. */
-  const textilAnsicht = !!m.posterViu && premium && !m.reproduktion && sp.ansicht === "textil";
+  /* T-Shirts und Hoodies getrennt (Owner 28.09.2026: „T-Shirts und Hoodies getrennt") — zwei
+     Reiter, je eine Galerie. `?ansicht=textil` (alte Adressen) zeigt die Shirts. */
+  const textilArt: "tricou" | "hanorac" | null =
+    !m.posterViu || !premium || m.reproduktion ? null
+    : sp.ansicht === "hanorac" ? "hanorac"
+    : sp.ansicht === "tricou" || sp.ansicht === "textil" ? "tricou"
+    : null;
+  const textilAnsicht = textilArt !== null;
   const posterAnsicht = !!m.posterViu && premium && sp.ansicht !== "werke" && !textilAnsicht;
   const kaufBar = !!m.reproduktion || posterAnsicht;
   const alsPoster = kaufBar;
@@ -611,7 +618,7 @@ export default async function PortalKuenstler({ params, searchParams }: Props) {
             Ein Shirt mit QR-Code und der Zeile „VIDEOPOSTER" behauptet etwas, was es nicht ist.
             Deshalb zwei Abschnitte: oben die Poster im Posterlayout, darunter die Kleidung in
             einem schlichten Raster. */}
-        <h2 className="mt-14 border-t border-[#e5e5e5] pt-8 text-[13px] font-semibold uppercase tracking-[0.18em] text-[#777]">{textilAnsicht ? T.tabTextil : alsPoster ? T.werkeReproduktionen : T.werke}</h2>
+        <h2 className="mt-14 border-t border-[#e5e5e5] pt-8 text-[13px] font-semibold uppercase tracking-[0.18em] text-[#777]">{textilArt === "hanorac" ? T.tabHanorac : textilArt === "tricou" ? T.tabTricou : alsPoster ? T.werkeReproduktionen : T.werke}</h2>
         {/* ── WIE ES AN DER WAND AUSSIEHT (Owner 15.09.2026: „ich habe dir zwei bilder abgelegt.
             die müssen wir zeigen") ────────────────────────────────────────────────────────────
             Das zweite Foto erklärt das Produkt ohne ein einziges Wort: jemand steht davor und
@@ -647,8 +654,12 @@ export default async function PortalKuenstler({ params, searchParams }: Props) {
           <PortalReiter reiter={[
             { label: T.tabReproduktionen, aktiv: posterAnsicht,
               href: `${P.kuenstler(kuenstler)}?ansicht=poster${L === "en" ? "" : `&lang=${L}`}` },
-            ...(textilKacheln.length ? [{ label: T.tabTextil, aktiv: textilAnsicht,
-              href: `${P.kuenstler(kuenstler)}?ansicht=textil${L === "en" ? "" : `&lang=${L}`}` }] : []),
+            ...(textilKacheln.length ? [
+              { label: T.tabTricou, aktiv: textilArt === "tricou",
+                href: `${P.kuenstler(kuenstler)}?ansicht=tricou${L === "en" ? "" : `&lang=${L}`}` },
+              { label: T.tabHanorac, aktiv: textilArt === "hanorac",
+                href: `${P.kuenstler(kuenstler)}?ansicht=hanorac${L === "en" ? "" : `&lang=${L}`}` },
+            ] : []),
             { label: T.tabWerke, aktiv: !posterAnsicht && !textilAnsicht,
               href: `${P.kuenstler(kuenstler)}?ansicht=werke${L === "en" ? "" : `&lang=${L}`}` },
           ]} />
@@ -685,14 +696,15 @@ export default async function PortalKuenstler({ params, searchParams }: Props) {
               const nr = k.i < 0 ? "standard" : String(k.i);
               const wk = m.werkInfo?.[nr];
               const basis = werkLink(k.i);
-              const href = `${basis}${basis.includes("?") ? "&" : "?"}art=textil&lang=${L}`;
+              const stueck = textilArt ?? "tricou";
+              const href = `${basis}${basis.includes("?") ? "&" : "?"}art=${stueck}&lang=${L}`;
               const titel = blattZeilen(m.name, wk, L, m.sprache).gross;
-              const ab = druckPreisCents("tricou", druckGroessenFuer("tricou")[0] ?? "");
+              const ab = druckPreisCents(stueck, druckGroessenFuer(stueck)[0] ?? "");
               return (
                 <li key={k.i} id={`t-${nr}`}>
                   <a href={href} className="block text-[#111] no-underline">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={mitAdmin(`/api/portal-textil?m=${encodeURIComponent(kuenstler)}&i=${nr}&art=tricou&w=600`)}
+                    <img src={mitAdmin(`/api/portal-textil?m=${encodeURIComponent(kuenstler)}&i=${nr}&art=${stueck}&w=600`)}
                       alt={titel} loading="lazy" className="block aspect-square w-full bg-[#f3f3f3] object-cover" />
                     <p className="m-0 mt-3 text-[15px] font-semibold leading-[1.3]">{titel}</p>
                     {ab !== null ? (
