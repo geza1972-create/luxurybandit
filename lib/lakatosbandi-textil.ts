@@ -34,9 +34,13 @@ export async function textilDruckBauen(o: {
   hoch: number;
 }): Promise<{ bild: Buffer; breite: number; hoehe: number }> {
   const sharp = (await import("sharp")).default;
+  /* WEISSER RAHMEN UMS WERK (Owner 28.09.2026: „mach einen weissen Rahmen bei den Bildern") —
+     innerhalb der Fläche, damit das Ganze nicht grösser wird. Die Stärke folgt der Breite. */
+  const rand = Math.max(2, Math.round(o.breite * 0.035));
   const m = await sharp(o.motiv, { failOn: "none" })
     .rotate()
-    .resize({ width: Math.round(o.breite), height: Math.round(o.hoch), fit: "inside" })
+    .resize({ width: Math.round(o.breite) - 2 * rand, height: Math.round(o.hoch) - 2 * rand, fit: "inside" })
+    .extend({ top: rand, bottom: rand, left: rand, right: rand, background: { r: 255, g: 255, b: 255, alpha: 1 } })
     .png()
     .toBuffer({ resolveWithObject: true });
 
