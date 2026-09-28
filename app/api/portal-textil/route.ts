@@ -21,7 +21,7 @@ export const runtime = "nodejs";
    darunter steht der Spruch. */
 const FLAECHE = {
   tricou: { vorlage: "/lakatosbandi/shirt-schwarz.png", mitte: 627, oben: 250, breit: 230, hoch: 290 },
-  hanorac: { vorlage: "/lakatosbandi/hoodie-schwarz.png", mitte: 627, oben: 470, breit: 225, hoch: 255 },
+  hanorac: { vorlage: "/lakatosbandi/hoodie-schwarz.png", mitte: 627, oben: 385, breit: 225, hoch: 255 },
 } as const;
 
 export async function GET(request: Request) {
