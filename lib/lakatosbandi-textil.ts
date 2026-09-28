@@ -25,8 +25,7 @@ import { posterAnriss } from "@/lib/lakatosbandi";
  * „kannst du einen gotischen weissen Rahmen machen?") ──────────────────────────────────────
  *
  * Ein Kirchenfenster: Das Werk steht GANZ (nichts wird abgeschnitten) in einem weissen Rahmen,
- * darüber ein Spitzbogen-Giebel mit Dreipass im Kreis (Masswerk) und einem kleinen Kreuz auf der
- * Spitze. Zwei Linien wie beim Masswerk — kräftig aussen, fein innen. Alles SVG, keine Datei.
+ * darüber ein Spitzbogen-Giebel mit Dreipass im Kreis (Masswerk). Zwei Linien wie beim Masswerk — kräftig aussen, fein innen. Alles SVG, keine Datei.
  *
  * Die Figur passt in `breite` × `hoch` (der Giebel darf die Fläche um ein Viertel nach oben
  * verlängern) — der Rahmen macht das Werk kleiner, nicht den Druck grösser.
@@ -38,7 +37,8 @@ async function gotischGerahmt(
   hoch: number,
 ): Promise<{ data: Buffer; info: { width: number; height: number } }> {
   const rand = breite * 0.07;
-  const kreuzH = breite * 0.11;
+  /* Kein Kreuz auf der Spitze (Owner 28.09.2026: ohne Kreuz). */
+  const kreuzH = 0;
   const giebelAnteil = 0.52;
   const verfuegbarH = hoch * 1.25 - 2 * rand - kreuzH;
   const probe = await sharp(motiv, { failOn: "none" }).rotate().metadata();
@@ -84,7 +84,6 @@ async function gotischGerahmt(
     const winkel = -Math.PI / 2 + n * (2 * Math.PI / 3);
     return `<circle cx="${cx + Math.cos(winkel) * pass * 0.95}" cy="${rcy + Math.sin(winkel) * pass * 0.95}" r="${pass}"/>`;
   }).join("");
-  const kOben = aussen.spitze - kreuzH * 0.95;
 
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${B}" height="${H}">
   <image x="${x}" y="${yBild}" width="${w}" height="${h}" preserveAspectRatio="none"
@@ -95,10 +94,6 @@ async function gotischGerahmt(
     <line x1="${innen.l}" y1="${yBild - aI}" x2="${innen.r}" y2="${yBild - aI}" stroke-width="${fein}"/>
     <circle cx="${cx}" cy="${rcy}" r="${rose}" stroke-width="${fein}"/>
     <g stroke-width="${fein}">${kreise}</g>
-  </g>
-  <g stroke="#ffffff" stroke-width="${fein * 1.7}" stroke-linecap="square">
-    <line x1="${cx}" y1="${aussen.spitze - dick / 2}" x2="${cx}" y2="${kOben}"/>
-    <line x1="${cx - kreuzH * 0.28}" y1="${kOben + kreuzH * 0.3}" x2="${cx + kreuzH * 0.28}" y2="${kOben + kreuzH * 0.3}"/>
   </g>
 </svg>`;
   const data = await sharp(Buffer.from(svg)).png().toBuffer();
