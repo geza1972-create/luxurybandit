@@ -675,6 +675,7 @@ export default async function PortalStart({ searchParams }: { searchParams: Prom
               <Poster
                 dunkel={!!m.posterDunkel}
                 vollflaechig={!!m.posterVoll}
+                {...(m.posterVoll ? { name: m.name } : {})}
                 klasse="lb-rahmen-fest"
                 titel={blattZeilen(m.name, wi, L, m.sprache).gross}
                 stil={blattZeilen(m.name, wi, L, m.sprache).klein}
@@ -812,6 +813,7 @@ export default async function PortalStart({ searchParams }: { searchParams: Prom
               <Poster
                 dunkel={!!neuestesPoster.m.posterDunkel}
                 vollflaechig={!!neuestesPoster.m.posterVoll}
+                {...(neuestesPoster.m.posterVoll ? { name: neuestesPoster.m.name } : {})}
                 klasse="lb-rahmen-fest"
                 titel={blattZeilen(neuestesPoster.m.name, wi, L, neuestesPoster.m.sprache).gross}
                 stil={blattZeilen(neuestesPoster.m.name, wi, L, neuestesPoster.m.sprache).klein}

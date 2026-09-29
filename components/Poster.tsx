@@ -1,5 +1,6 @@
 import { POSTER, POSTER_VERHAELTNIS, posterTextBreit, posterFarben } from "@/lib/lakatosbandi-poster";
 import ArtistFair from "@/components/ArtistFair";
+import { didone } from "@/lib/schrift-didone";
 
 /** Das Aussehen der Stilzeile („BY ADRIAN ROȘU") — EINE Quelle für Blatt und `PosterStil`. */
 export const posterStilStil: React.CSSProperties = {
@@ -26,7 +27,7 @@ export const posterStilStil: React.CSSProperties = {
  * Poster mit Pixelschrift wäre in drei Rasterbreiten drei verschiedene Entwürfe.
  */
 export default function Poster({ bildHoch, nameBreit, qrEcke, qrLink, bildKnopf, textKnopf, stil, bildEcke,
-  kopf, bild, profil, name, leben, titel, text, qr, scan, marke, recht, siegel, klasse = "", dunkel = false, vollflaechig = false,
+  kopf, bild, profil, name, leben, titel, text, qr, scan, marke, recht, siegel, klasse = "", dunkel = false, vollflaechig = false, titelLaenge,
 }: {
   kopf?: string;
   /** Das Werk — kommt von aussen, weil in der Kachel ein Film daran hängt. */
@@ -46,6 +47,8 @@ export default function Poster({ bildHoch, nameBreit, qrEcke, qrLink, bildKnopf,
   dunkel?: boolean;
   /** Das Werk randlos über das ganze Blatt, nur der Titel darauf (Owner 29.09.2026). */
   vollflaechig?: boolean;
+  /** Zeichenzahl des Titels, wenn `titel` ein Baustein ist — für die Schriftgrösse im randlosen Blatt. */
+  titelLaenge?: number;
   /** Etwas in der unteren rechten Bildecke — der Vergrössern-Knopf (Owner 17.09.2026). */
   bildEcke?: React.ReactNode;
   text?: React.ReactNode;
@@ -102,23 +105,41 @@ export default function Poster({ bildHoch, nameBreit, qrEcke, qrLink, bildKnopf,
    * Dieselbe Regel in der Druckdatei (`lib/lakatosbandi-druckdatei.ts`, `vollflaechig`).
    */
   if (vollflaechig) {
+    /* Die Titelgrösse folgt der Länge: eine Zeile, möglichst gross, nie breiter als das Blatt. */
+    const t = typeof titel === "string" ? titel : "";
+    /* Immer EINE Zeile (Owner 29.09.2026: „muss nur in einer Reihe sein"), und das Band schmal. */
+    const tGroesse = Math.min(7.2, 84 / Math.max(1, (titelLaenge ?? t.length) * 0.72));
     return (
-      <div className={`lb-poster-karte relative overflow-hidden ${klasse}`}
-        style={{ aspectRatio: `1 / ${POSTER_VERHAELTNIS}`, containerType: "inline-size", background: "#111" }}>
-        <div className="absolute inset-0 [&_img]:!h-full [&_img]:!max-h-none [&_img]:!w-full [&_img]:!max-w-none [&_img]:!object-cover [&_video]:!h-full [&_video]:!w-full [&_video]:!object-cover">
+      <div className={`lb-poster-karte relative flex flex-col overflow-hidden ${klasse}`}
+        style={{ aspectRatio: `1 / ${POSTER_VERHAELTNIS}`, containerType: "inline-size", background: "#f4efe2" }}>
+        {/* Das Werk oben, randlos bis an drei Kanten; unten das Papierband mit Titel (Vorlage „HOLY CRAVINGS"). */}
+        <div className="relative min-h-0 flex-1 overflow-hidden [&_img]:!h-full [&_img]:!max-h-none [&_img]:!w-full [&_img]:!max-w-none [&_img]:!object-cover [&_video]:!h-full [&_video]:!w-full [&_video]:!object-cover">
           {bild}
+          {bildEcke ? <div className="absolute" style={{ right: "3cqw", bottom: "3cqw" }}>{bildEcke}</div> : null}
         </div>
-        {titel ? (
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 text-center"
-            style={{ padding: "18cqw 6cqw 7cqw", background: "linear-gradient(to top, rgba(0,0,0,.62), rgba(0,0,0,0))" }}>
-            <p className="m-0 font-serif italic leading-[1.1] text-white"
-              style={{ fontSize: "6.2cqw", textShadow: "0 1px 12px rgba(0,0,0,.35)" }}>{titel}</p>
+        <div className="shrink-0 text-center" style={{ padding: "2.2cqw 4cqw 2.4cqw" }}>
+          {titel ? (
+            <p className={`m-0 uppercase leading-[0.95] text-[#141210] ${didone.className}`}
+              style={{ fontSize: `${tGroesse}cqw`, letterSpacing: "0.01em", fontWeight: 500, whiteSpace: "nowrap", overflow: "hidden" }}>{titel}</p>
+          ) : null}
+          {/* Die feine Linie mit dem goldenen Stern in der Mitte. */}
+          <div className="mx-auto flex items-center justify-center" style={{ marginTop: "1.3cqw", width: "60%", gap: "1.3cqw" }}>
+            <span className="h-px flex-1" style={{ background: "#b9ad93" }} />
+            <svg viewBox="0 0 20 20" style={{ width: "1.9cqw", height: "1.9cqw" }} aria-hidden>
+              <path d="M10 0 L12 8 L20 10 L12 12 L10 20 L8 12 L0 10 L8 8 Z" fill="#c9a34a" />
+            </svg>
+            <span className="h-px flex-1" style={{ background: "#b9ad93" }} />
           </div>
-        ) : null}
-        {bildEcke ? <div className="absolute" style={{ right: "3cqw", bottom: "3cqw" }}>{bildEcke}</div> : null}
+          {name || stil ? (
+            <p className="m-0 uppercase text-[#5c554a]" style={{ marginTop: "1.1cqw", fontSize: "1.9cqw", letterSpacing: "0.3em", whiteSpace: "nowrap" }}>
+              {name ?? stil}
+            </p>
+          ) : null}
+        </div>
       </div>
     );
   }
+
 
   return (
     <div

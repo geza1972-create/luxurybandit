@@ -176,6 +176,7 @@ export default function PosterProdukt({
           <Poster
             dunkel={!!m.posterDunkel}
             vollflaechig={!!m.posterVoll}
+            {...(m.posterVoll ? { name: m.name, titelLaenge: blattZeilen(m.name, wi, L, m.sprache).gross.length } : {})}
             klasse="lb-rahmen-fest"
             /* Seine Zeilen hängen mit an der Wand (Owner 19.09.2026: „der Name ist nicht
                an der Wand") — sonst steht dort „Numele tău", während auf dem Blatt
@@ -239,6 +240,7 @@ export default function PosterProdukt({
           <Poster
             dunkel={!!m.posterDunkel}
             vollflaechig={!!m.posterVoll}
+            {...(m.posterVoll ? { name: m.name, titelLaenge: blattZeilen(m.name, wi, L, m.sprache).gross.length } : {})}
             /* Kein Kopf über dem Werk (Owner 17.09.2026: „raus") — die Adresse steht
                in der Rechtezeile am Fuss. */
             /* Auch kein Künstlername und kein Profilbild auf dem Blatt (Owner

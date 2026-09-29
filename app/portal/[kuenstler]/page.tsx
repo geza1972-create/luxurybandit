@@ -766,6 +766,7 @@ export default async function PortalKuenstler({ params, searchParams }: Props) {
                       <Poster
                         dunkel={!!m.posterDunkel}
                         vollflaechig={!!m.posterVoll}
+                        {...(m.posterVoll ? { name: m.name } : {})}
                         klasse="lb-rahmen-fest"
                         titel={zeilen.gross}
                         siegel={!m.reproduktion}
@@ -907,6 +908,7 @@ export default async function PortalKuenstler({ params, searchParams }: Props) {
                 <Poster
                   dunkel={!!m.posterDunkel}
                   vollflaechig={!!m.posterVoll}
+                  {...(m.posterVoll ? { name: m.name } : {})}
                   kopf={POSTER_TITEL}
                   profil={m.profilBild ? mitAdmin(`/api/portal-werk?m=${encodeURIComponent(kuenstler)}&i=profil`) : undefined}
                   name={m.name}
