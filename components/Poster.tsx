@@ -117,21 +117,13 @@ export default function Poster({ bildHoch, nameBreit, qrEcke, qrLink, bildKnopf,
           {bild}
           {bildEcke ? <div className="absolute" style={{ right: "3cqw", bottom: "3cqw" }}>{bildEcke}</div> : null}
         </div>
-        <div className="shrink-0 text-center" style={{ padding: "2.2cqw 4cqw 2.4cqw" }}>
+        <div className="shrink-0 text-center" style={{ padding: "1.8cqw 4cqw 2cqw" }}>
           {titel ? (
             <p className={`m-0 uppercase leading-[0.95] text-[#141210] ${didone.className}`}
               style={{ fontSize: `${tGroesse}cqw`, letterSpacing: "0.01em", fontWeight: 500, whiteSpace: "nowrap", overflow: "hidden" }}>{titel}</p>
           ) : null}
-          {/* Die feine Linie mit dem goldenen Stern in der Mitte. */}
-          <div className="mx-auto flex items-center justify-center" style={{ marginTop: "1.3cqw", width: "60%", gap: "1.3cqw" }}>
-            <span className="h-px flex-1" style={{ background: "#b9ad93" }} />
-            <svg viewBox="0 0 20 20" style={{ width: "1.9cqw", height: "1.9cqw" }} aria-hidden>
-              <path d="M10 0 L12 8 L20 10 L12 12 L10 20 L8 12 L0 10 L8 8 Z" fill="#c9a34a" />
-            </svg>
-            <span className="h-px flex-1" style={{ background: "#b9ad93" }} />
-          </div>
           {name || stil ? (
-            <p className="m-0 uppercase text-[#5c554a]" style={{ marginTop: "1.1cqw", fontSize: "1.9cqw", letterSpacing: "0.3em", whiteSpace: "nowrap" }}>
+            <p className="m-0 uppercase text-[#5c554a]" style={{ marginTop: "0.9cqw", fontSize: "1.9cqw", letterSpacing: "0.3em", whiteSpace: "nowrap" }}>
               {name ?? stil}
             </p>
           ) : null}
