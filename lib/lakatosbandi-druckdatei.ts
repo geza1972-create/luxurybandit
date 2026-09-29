@@ -108,6 +108,15 @@ function sperrZeichnen(seite: PDFPage, text: string, font: PDFFont, groesse: num
  * Baut das Poster als PDF. Gibt die fertigen Bytes zurück — der Aufrufer hängt sie an eine Mail
  * oder legt sie ab.
  */
+/** Auf B×H zuschneiden, dabei 22 % des Überstands OBEN weg, 78 % unten — der Kopf bleibt drauf (wie auf dem Schirm). */
+export async function obenBetontZuschneiden(sharp: typeof import("sharp"), bild: Buffer, B: number, H: number): Promise<Buffer> {
+  const m = await sharp(bild).metadata();
+  const s = Math.max(B / (m.width ?? B), H / (m.height ?? H));
+  const w = Math.ceil((m.width ?? B) * s), h = Math.ceil((m.height ?? H) * s);
+  const gross = await sharp(bild).resize(w, h).toBuffer();
+  return sharp(gross).extract({ left: Math.floor((w - B) / 2), top: Math.floor((h - H) * 0.22), width: B, height: H }).toBuffer();
+}
+
 export async function druckdateiBauen(a: DruckAngaben): Promise<Uint8Array> {
   const P = POSTER;
   const f = posterFarben(a.dunkel);
@@ -142,7 +151,7 @@ export async function druckdateiBauen(a: DruckAngaben): Promise<Uint8Array> {
        gestapelte durchsichtige Streifen im PDF zeigten sichtbare Bänder. */
     const ohneKante = await sharp(Buffer.from(a.bild), { failOn: "none" }).rotate().trim({ threshold: 40 }).toBuffer().catch(() => Buffer.from(a.bild));
     const verlauf = `<svg xmlns="http://www.w3.org/2000/svg" width="${pxB}" height="${pxH}"><defs><linearGradient id="v" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#000" stop-opacity=".62"/><stop offset="1" stop-color="#000" stop-opacity="0"/></linearGradient></defs><rect x="0" y="${pxH * 0.74}" width="${pxB}" height="${pxH * 0.26}" fill="url(#v)"/></svg>`;
-    const voll = await sharp(await sharp(ohneKante).resize(pxB, pxH, { fit: "cover", position: "centre" }).toBuffer())
+    const voll = await sharp(await obenBetontZuschneiden(sharp, ohneKante, pxB, pxH))
       .composite([{ input: Buffer.from(verlauf), left: 0, top: 0 }]).jpeg({ quality: 92 }).toBuffer();
     seite.drawImage(await pdf.embedJpg(voll), { x: 0, y: 0, width: B, height: H });
     const titel = String(a.titel ?? "").trim();

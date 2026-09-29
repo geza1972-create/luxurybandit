@@ -112,8 +112,10 @@ export default function Poster({ bildHoch, nameBreit, qrEcke, qrLink, bildKnopf,
     return (
       <div className={`lb-poster-karte relative flex flex-col overflow-hidden ${klasse}`}
         style={{ aspectRatio: `1 / ${POSTER_VERHAELTNIS}`, containerType: "inline-size", background: "#f4efe2" }}>
-        {/* Das Werk oben, randlos bis an drei Kanten; unten das Papierband mit Titel (Vorlage „HOLY CRAVINGS"). */}
-        <div className="relative min-h-0 flex-1 overflow-hidden [&_img]:!h-full [&_img]:!max-h-none [&_img]:!w-full [&_img]:!max-w-none [&_img]:!object-cover [&_video]:!h-full [&_video]:!w-full [&_video]:!object-cover">
+        {/* Das Werk oben, randlos bis an drei Kanten; unten das Papierband mit Titel (Vorlage „HOLY CRAVINGS").
+            Angeschnitten wird vor allem UNTEN (object-position 22 %): Bei Porträts sitzt oben der Kopf
+            (Owner 29.09.2026: „die Frau ist hier nicht ganz drauf"). */}
+        <div className="relative min-h-0 flex-1 overflow-hidden [&_img]:!h-full [&_img]:!max-h-none [&_img]:!w-full [&_img]:!max-w-none [&_img]:!object-cover [&_img]:!object-[50%_22%] [&_video]:!h-full [&_video]:!w-full [&_video]:!object-cover">
           {bild}
           {bildEcke ? <div className="absolute" style={{ right: "3cqw", bottom: "3cqw" }}>{bildEcke}</div> : null}
         </div>

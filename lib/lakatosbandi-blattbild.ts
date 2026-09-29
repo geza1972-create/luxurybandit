@@ -3,7 +3,7 @@ import path from "node:path";
 import QRCode from "qrcode";
 import fontkit from "@pdf-lib/fontkit";
 import { POSTER, POSTER_FORMATE, POSTER_HOCHKANT, posterHochkant, posterFarben } from "@/lib/lakatosbandi-poster";
-import type { DruckAngaben } from "@/lib/lakatosbandi-druckdatei";
+import { obenBetontZuschneiden, type DruckAngaben } from "@/lib/lakatosbandi-druckdatei";
 import { werkMessen } from "@/lib/lakatosbandi-feldschnitt";
 
 /**
@@ -131,7 +131,7 @@ export async function blattBildBauen(a: DruckAngaben & { dpi?: number }): Promis
     const schrift = titel ? `<g fill="#ffffff">${textPfad(kursiv, titel, g, (pxB - bT) / 2, pxH - cqw(7) * S - g * 0.25)}</g>` : "";
     const oben = `<svg xmlns="http://www.w3.org/2000/svg" width="${pxB}" height="${pxH}">${verlauf}${schrift}</svg>`;
     const ohneKante = await sharp(Buffer.from(a.bild), { failOn: "none" }).rotate().trim({ threshold: 40 }).toBuffer().catch(() => Buffer.from(a.bild));
-    const werk = await sharp(ohneKante).resize(pxB, pxH, { fit: "cover", position: "centre" }).toBuffer();
+    const werk = await obenBetontZuschneiden(sharp, ohneKante, pxB, pxH);
     return new Uint8Array(await sharp(werk).composite([{ input: Buffer.from(oben), left: 0, top: 0 }]).jpeg({ quality: 92, mozjpeg: true }).toBuffer());
   }
 
