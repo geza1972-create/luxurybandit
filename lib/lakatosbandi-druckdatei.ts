@@ -39,6 +39,8 @@ export type DruckAngaben = {
   bildTyp?: "jpg" | "png";
   /** Schwarzes Blatt, weisse Schrift (Owner 28.09.2026) — wie `Poster dunkel` auf dem Schirm. */
   dunkel?: boolean;
+  /** Randlos, nur der Titel (Owner 29.09.2026) — wie `Poster vollflaechig`. */
+  vollflaechig?: boolean;
   /** Das Profilbild des Künstlers, rund neben dem Namen. */
   profil?: Uint8Array;
   profilTyp?: "jpg" | "png";
@@ -128,6 +130,29 @@ export async function druckdateiBauen(a: DruckAngaben): Promise<Uint8Array> {
 
   const seite = pdf.addPage([B, H]);
   seite.drawRectangle({ x: 0, y: 0, width: B, height: H, color: farbe(f.papier) });
+
+  /* ── RANDLOS, NUR DER TITEL (Owner 29.09.2026) — dasselbe Blatt wie `Poster vollflaechig`:
+     das Werk auf das Blattformat zugeschnitten (Mitte), unten ein Verlauf, darauf der Titel. */
+  if (a.vollflaechig) {
+    const sharp = (await import("sharp")).default;
+    const pxB = Math.round((fmt.breite / 25.4) * 300);
+    const pxH = Math.round((fmt.hoehe / 25.4) * 300);
+    /* Eine dunkle Kante im Original (manche Werke tragen sie) wird vorher abgeschnitten, sonst
+       stünde sie als Rahmen auf dem randlosen Blatt. Der Verlauf wird INS Bild gerechnet —
+       gestapelte durchsichtige Streifen im PDF zeigten sichtbare Bänder. */
+    const ohneKante = await sharp(Buffer.from(a.bild), { failOn: "none" }).rotate().trim({ threshold: 40 }).toBuffer().catch(() => Buffer.from(a.bild));
+    const verlauf = `<svg xmlns="http://www.w3.org/2000/svg" width="${pxB}" height="${pxH}"><defs><linearGradient id="v" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#000" stop-opacity=".62"/><stop offset="1" stop-color="#000" stop-opacity="0"/></linearGradient></defs><rect x="0" y="${pxH * 0.74}" width="${pxB}" height="${pxH * 0.26}" fill="url(#v)"/></svg>`;
+    const voll = await sharp(await sharp(ohneKante).resize(pxB, pxH, { fit: "cover", position: "centre" }).toBuffer())
+      .composite([{ input: Buffer.from(verlauf), left: 0, top: 0 }]).jpeg({ quality: 92 }).toBuffer();
+    seite.drawImage(await pdf.embedJpg(voll), { x: 0, y: 0, width: B, height: H });
+    const titel = String(a.titel ?? "").trim();
+    if (titel) {
+      const g = cqw(6.2);
+      const w = kursiv.widthOfTextAtSize(titel, g);
+      seite.drawText(titel, { x: (B - w) / 2, y: cqw(7) + g * 0.25, size: g, font: kursiv, color: rgb(1, 1, 1) });
+    }
+    return pdf.save();
+  }
 
   /* ── Der gedruckte Rahmen ─────────────────────────────────────────────────────────────── */
   const leiste = a.rahmen ? cqw(P.rahmen.breit) : 0;

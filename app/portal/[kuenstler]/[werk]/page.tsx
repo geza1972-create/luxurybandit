@@ -354,6 +354,7 @@ export default async function PortalWerk({ params, searchParams }: Props) {
                           ) : (
                             <Poster
                               dunkel={!!m.posterDunkel}
+                              vollflaechig={!!m.posterVoll}
                               klasse="lb-rahmen-fest"
                               titel={zeilen.gross}
                               siegel={!m.reproduktion}

@@ -121,6 +121,20 @@ export async function blattBildBauen(a: DruckAngaben & { dpi?: number }): Promis
   const serif = fontkit.create(roh);
   const kursiv = fontkit.create(rohKursiv);
 
+  /* ── RANDLOS, NUR DER TITEL (Owner 29.09.2026) — wie `Poster vollflaechig` und die Druckdatei. */
+  if (a.vollflaechig) {
+    const titel = String(a.titel ?? "").trim();
+    const g = cqw(6.2) * S;
+    const bT = titel ? textBreite(kursiv, titel, g) : 0;
+    const verlauf = `<defs><linearGradient id="v" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#000" stop-opacity=".62"/><stop offset="1" stop-color="#000" stop-opacity="0"/></linearGradient></defs>`
+      + `<rect x="0" y="${pxH * 0.74}" width="${pxB}" height="${pxH * 0.26}" fill="url(#v)"/>`;
+    const schrift = titel ? `<g fill="#ffffff">${textPfad(kursiv, titel, g, (pxB - bT) / 2, pxH - cqw(7) * S - g * 0.25)}</g>` : "";
+    const oben = `<svg xmlns="http://www.w3.org/2000/svg" width="${pxB}" height="${pxH}">${verlauf}${schrift}</svg>`;
+    const ohneKante = await sharp(Buffer.from(a.bild), { failOn: "none" }).rotate().trim({ threshold: 40 }).toBuffer().catch(() => Buffer.from(a.bild));
+    const werk = await sharp(ohneKante).resize(pxB, pxH, { fit: "cover", position: "centre" }).toBuffer();
+    return new Uint8Array(await sharp(werk).composite([{ input: Buffer.from(oben), left: 0, top: 0 }]).jpeg({ quality: 92, mozjpeg: true }).toBuffer());
+  }
+
   /* ── Rahmen und Ränder — dieselben Zahlen wie im PDF ──────────────────────────────────── */
   const leiste = a.rahmen ? cqw(P.rahmen.breit) : 0;
   const leisteUnten = a.rahmen ? cqw(P.rahmen.breitUnten) : 0;

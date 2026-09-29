@@ -144,6 +144,7 @@ export async function GET(request: NextRequest) {
       bild: gotisch ? new Uint8Array(gotisch.data) : quelle,
       ...(gotisch ? { bildTyp: "png" as const } : {}),
       ...(m.posterDunkel ? { dunkel: true } : {}),
+      ...(m.posterVoll && !eigenes ? { vollflaechig: true } : {}),
       titel: seinTitel || [info.titel, info.jahr].filter(Boolean).join(", ") || (m.name ?? ""),
       text: seinSatz || (m.kunstAn ? kunstBlattSatz(m.kunstStil) : posterZeile(info, kachel?.hook ?? "")),
       qrZiel: filmSeite(mandant, kachel?.i ?? -1),

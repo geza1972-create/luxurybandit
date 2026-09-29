@@ -26,7 +26,7 @@ export const posterStilStil: React.CSSProperties = {
  * Poster mit Pixelschrift wäre in drei Rasterbreiten drei verschiedene Entwürfe.
  */
 export default function Poster({ bildHoch, nameBreit, qrEcke, qrLink, bildKnopf, textKnopf, stil, bildEcke,
-  kopf, bild, profil, name, leben, titel, text, qr, scan, marke, recht, siegel, klasse = "", dunkel = false,
+  kopf, bild, profil, name, leben, titel, text, qr, scan, marke, recht, siegel, klasse = "", dunkel = false, vollflaechig = false,
 }: {
   kopf?: string;
   /** Das Werk — kommt von aussen, weil in der Kachel ein Film daran hängt. */
@@ -44,6 +44,8 @@ export default function Poster({ bildHoch, nameBreit, qrEcke, qrLink, bildKnopf,
   siegel?: boolean;
   /** Schwarzes Blatt, weisse Schrift — wie auf dem Shirt (Owner 28.09.2026). */
   dunkel?: boolean;
+  /** Das Werk randlos über das ganze Blatt, nur der Titel darauf (Owner 29.09.2026). */
+  vollflaechig?: boolean;
   /** Etwas in der unteren rechten Bildecke — der Vergrössern-Knopf (Owner 17.09.2026). */
   bildEcke?: React.ReactNode;
   text?: React.ReactNode;
@@ -91,6 +93,32 @@ export default function Poster({ bildHoch, nameBreit, qrEcke, qrLink, bildKnopf,
      steht bei den Maßen (`posterTextBreit`), weil Blatt, Eingabefeld und Druckdatei dieselbe
      brauchen. Ist der Satz ein Bauteil (der Kunde schreibt selbst), rechnet es dort weiter. */
   const textBreit = posterTextBreit(typeof text === "string" ? text : "", qrEcke);
+
+  /**
+   * ── RANDLOS, NUR DER TITEL (Owner 29.09.2026: „mach mir alle Poster vollflächig ohne den
+   * schwarzen Rahmen, und nur der Titel wird auf dem Bild erscheinen") ──────────────────────
+   * Das Werk füllt das ganze A-Blatt (angeschnitten, wo sein Format abweicht), unten liegt ein
+   * leichter Verlauf, darauf der Titel in Weiss. Kein Papier, kein Satz, kein Code, kein Siegel.
+   * Dieselbe Regel in der Druckdatei (`lib/lakatosbandi-druckdatei.ts`, `vollflaechig`).
+   */
+  if (vollflaechig) {
+    return (
+      <div className={`lb-poster-karte relative overflow-hidden ${klasse}`}
+        style={{ aspectRatio: `1 / ${POSTER_VERHAELTNIS}`, containerType: "inline-size", background: "#111" }}>
+        <div className="absolute inset-0 [&_img]:!h-full [&_img]:!max-h-none [&_img]:!w-full [&_img]:!max-w-none [&_img]:!object-cover [&_video]:!h-full [&_video]:!w-full [&_video]:!object-cover">
+          {bild}
+        </div>
+        {titel ? (
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 text-center"
+            style={{ padding: "18cqw 6cqw 7cqw", background: "linear-gradient(to top, rgba(0,0,0,.62), rgba(0,0,0,0))" }}>
+            <p className="m-0 font-serif italic leading-[1.1] text-white"
+              style={{ fontSize: "6.2cqw", textShadow: "0 1px 12px rgba(0,0,0,.35)" }}>{titel}</p>
+          </div>
+        ) : null}
+        {bildEcke ? <div className="absolute" style={{ right: "3cqw", bottom: "3cqw" }}>{bildEcke}</div> : null}
+      </div>
+    );
+  }
 
   return (
     <div

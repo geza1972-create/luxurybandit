@@ -248,6 +248,7 @@ async function dateiAnhaenge(b: Bestellung, materialien: (p: BestellPosten) => b
         bild: gotisch ? new Uint8Array(gotisch.data) : bild,
         ...(gotisch ? { bildTyp: "png" as const } : {}),
         ...(m.posterDunkel && !eigenes ? { dunkel: true } : {}),
+        ...(m.posterVoll && !eigenes ? { vollflaechig: true } : {}),
         /* Kein Name und kein Profilbild auf dem Blatt (Owner 17.09.2026: „Gerry Louisett raus")
            — dieselbe Zeile wie auf dem Schirm: oben der TITEL, unten nur die Adresse. Fehlt der
            Titel, trägt die grosse Zeile den Namen. */

@@ -765,6 +765,7 @@ export default async function PortalKuenstler({ params, searchParams }: Props) {
                          Produktseite, wo das Blatt gross ist. */
                       <Poster
                         dunkel={!!m.posterDunkel}
+                        vollflaechig={!!m.posterVoll}
                         klasse="lb-rahmen-fest"
                         titel={zeilen.gross}
                         siegel={!m.reproduktion}
@@ -905,6 +906,7 @@ export default async function PortalKuenstler({ params, searchParams }: Props) {
               vorschau: (
                 <Poster
                   dunkel={!!m.posterDunkel}
+                  vollflaechig={!!m.posterVoll}
                   kopf={POSTER_TITEL}
                   profil={m.profilBild ? mitAdmin(`/api/portal-werk?m=${encodeURIComponent(kuenstler)}&i=profil`) : undefined}
                   name={m.name}
