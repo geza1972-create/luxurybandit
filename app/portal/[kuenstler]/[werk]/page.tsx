@@ -23,7 +23,7 @@ import KaufKnopf from "@/components/KaufKnopf";
 import Korb from "@/components/Korb";
 import { preisSatz, preisText } from "@/lib/lakatosbandi-preis";
 import PreisLabel from "@/components/PreisLabel";
-import { druckPreisCents, druckGroessenFuer, druckSpanneCents, posterPreisA3Cents, KLEIDUNG_AN, istTextil } from "@/lib/lakatosbandi-druck";
+import { druckPreisCents, druckGroessenFuer, druckSpanneCents, posterPreisA3Cents, posterPreisFuer, KLEIDUNG_AN, istTextil } from "@/lib/lakatosbandi-druck";
 import { eur } from "@/lib/pricing";
 
 /**
@@ -338,7 +338,7 @@ export default async function PortalWerk({ params, searchParams }: Props) {
                       ? druckPreisCents(textilArt, druckGroessenFuer(textilArt)[0] ?? "")
                       : wx?.produkt
                       ? druckPreisCents(wx.produkt, druckGroessenFuer(wx.produkt)[0] ?? "")
-                      : druckPreisCents("poster", "A3", !m.reproduktion && !m.kunstAn, posterPreisA3Cents(wx?.posterPreis));
+                      : druckPreisCents("poster", "A3", !m.reproduktion && !m.kunstAn, posterPreisFuer(m, wx));
                     return (
                       <li key={x.i} className="lb-poster-block">
                         <a href={href} className="block text-[#111] no-underline">

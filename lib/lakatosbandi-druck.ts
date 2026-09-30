@@ -457,3 +457,13 @@ export function posterPreisA3Cents(roh: unknown): number | undefined {
   if (!Number.isFinite(n) || n < 5 || n > 5000) return undefined;
   return Math.round(n * 100);
 }
+
+/**
+ * DER POSTERPREIS EINES WERKS: sein eigener, sonst der Grundpreis des Künstlers (Owner 30.09.2026:
+ * „alle Poster fangen bei 200 Euro an") — `posterPreisAb` am Künstler gilt für jedes Werk ohne
+ * eigenen Preis, auch für neu hochgeladene. Fehlt beides, gilt die Tabelle.
+ */
+export const posterPreisFuer = (
+  m: { posterPreisAb?: string } | null | undefined,
+  wi: { posterPreis?: string } | null | undefined,
+): number | undefined => posterPreisA3Cents(wi?.posterPreis) ?? posterPreisA3Cents(m?.posterPreisAb);

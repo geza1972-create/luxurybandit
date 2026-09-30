@@ -501,6 +501,8 @@ export type MandantAngaben = {
   posterDunkel?: boolean;
   /** Poster randlos: das Werk über das ganze Blatt, nur der Titel darauf (Owner 29.09.2026). Von Hand gesetzt. */
   posterVoll?: boolean;
+  /** Grundpreis seiner Poster (A3 ohne Rahmen, Euro), wo ein Werk keinen eigenen hat (Owner 30.09.2026). Von Hand gesetzt. */
+  posterPreisAb?: string;
   posterViu?: boolean;
   /**
    * Sein Stil als Rezept (siehe `StilRezept`) — die Vorlage für erzeugte Porträts „im Stil von".

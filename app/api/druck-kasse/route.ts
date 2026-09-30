@@ -4,7 +4,7 @@ import { mandantLesen } from "@/lib/versusforge-mandanten";
 import { mandantPruefen } from "@/lib/versusforge-mandant";
 import { EIGENER_MANDANT } from "@/lib/versusforge-namen";
 import { werkKacheln, portalPfade } from "@/lib/lakatosbandi";
-import { druckPreisCents, druckAbzugCents, istDatei, istEigenesStueck, istTextil, druckVersandCents, posterPreisA3Cents, DRUCK_LAENDER } from "@/lib/lakatosbandi-druck";
+import { druckPreisCents, druckAbzugCents, istDatei, istEigenesStueck, istTextil, druckVersandCents, posterPreisA3Cents, posterPreisFuer, DRUCK_LAENDER } from "@/lib/lakatosbandi-druck";
 import { kundenbildZettel } from "@/lib/lakatosbandi-kundenbild";
 import { korbAblegen } from "@/lib/lakatosbandi-bestellung";
 import { createPackCheckout, stripeConfigured } from "@/lib/stripe";
@@ -141,7 +141,7 @@ export async function POST(request: Request) {
     const anteil = !istEigenesStueck(material) && !m.reproduktion && !eigenes && m.kunstAn !== true;
     const schluessel = String(kachel.i) === "-1" ? "standard" : String(kachel.i);
     /* Sein eigener Posterpreis (Owner 25.09.2026) — aus dem Datensatz, nie aus dem Browser. */
-    const cents = druckPreisCents(material, groesse, anteil, posterPreisA3Cents(m.werkInfo?.[schluessel]?.posterPreis));
+    const cents = druckPreisCents(material, groesse, anteil, posterPreisFuer(m, m.werkInfo?.[schluessel]));
     if (cents === null) return NextResponse.json({ ok: false, grund: "kein-preis" }, { status: 400 });
 
     /* Und nur die Werke, die er angehakt hat (Owner 16.09.2026: „auch bei jedem bild"). Hat er

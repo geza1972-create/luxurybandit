@@ -22,7 +22,7 @@ import BildVollbild from "@/components/BildVollbild";
 import { textilBild } from "@/lib/lakatosbandi-adressen";
 import Korb from "@/components/Korb";
 import { preisSatz, preisText } from "@/lib/lakatosbandi-preis";
-import { druckPreisCents, druckGroessenFuer, druckSpanneCents, posterPreisA3Cents, DRUCK_KUENSTLER_CENTS, DRUCK_VERSAND_CENTS, KLEIDUNG_AN, KUNST_CENTS, istTextil } from "@/lib/lakatosbandi-druck";
+import { druckPreisCents, druckGroessenFuer, druckSpanneCents, posterPreisA3Cents, posterPreisFuer, DRUCK_KUENSTLER_CENTS, DRUCK_VERSAND_CENTS, KLEIDUNG_AN, KUNST_CENTS, istTextil } from "@/lib/lakatosbandi-druck";
 import { eur } from "@/lib/pricing";
 import PreisLabel from "@/components/PreisLabel";
 import { mandantPruefen } from "@/lib/versusforge-mandant";
@@ -749,7 +749,7 @@ export default async function PortalKuenstler({ params, searchParams }: Props) {
                  einen gesetzt hat. Dieselbe Rechnung wie am Kaufknopf der Produktseite. */
               const ab = wk?.produkt
                 ? druckPreisCents(wk.produkt, druckGroessenFuer(wk.produkt)[0] ?? "")
-                : druckPreisCents("poster", "A3", !m.reproduktion && !m.kunstAn, posterPreisA3Cents(wk?.posterPreis));
+                : druckPreisCents("poster", "A3", !m.reproduktion && !m.kunstAn, posterPreisFuer(m, wk));
               return (
                 <li key={k.i} id={`w-${nr}`} className="lb-poster-block">
                   <a href={href} className="block text-[#111] no-underline">
