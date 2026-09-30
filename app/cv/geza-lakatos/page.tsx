@@ -148,7 +148,7 @@ export default function GezaLakatosCvPage() {
             </p>
             <div className="gl-contact-row">
               <span>German (C2) · English (C1) · Romanian (C2) · Hungarian (B2)</span>
-              <span>Timisoara, Romania · remote</span>
+              <span>100% remote</span>
             </div>
           </div>
         </header>
@@ -477,13 +477,13 @@ export default function GezaLakatosCvPage() {
               <h2 className="gl-section-title">How I work</h2>
             </div>
             <div className="gl-skills-row">
-              <span className="gl-skill">Figma</span>
-              <span className="gl-skill">Design systems</span>
-              <span className="gl-skill">BITV 2 / WCAG</span>
-              <span className="gl-skill">UX research &amp; prototyping</span>
-              <span className="gl-skill">Workshop facilitation</span>
               <span className="gl-skill">Claude &amp; Claude Code</span>
-              <span className="gl-skill">React / Vite</span>
+              <span className="gl-skill">React / Next.js / TypeScript</span>
+              <span className="gl-skill">Design systems</span>
+              <span className="gl-skill">UX research &amp; prototyping</span>
+              <span className="gl-skill">Figma</span>
+              <span className="gl-skill">BITV 2 / WCAG</span>
+              <span className="gl-skill">Workshop facilitation</span>
               <span className="gl-skill">Agile collaboration</span>
             </div>
           </div>
