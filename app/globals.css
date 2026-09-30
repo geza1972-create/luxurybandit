@@ -93,6 +93,14 @@
      Webseite will ich haben" — artsy.net). Ein Raster aus Werken lebt von der Breite; in der
      Handy-Spalte stünde eine Kachel pro Zeile. Die Seite setzt ihre eigene Breite (1120 px). */
   .lb-frame:has(.lb-portal),
+  /* DIE STARTSEITE / DER THEMEN-KATALOG (Owner 30.09.2026: „soll ich eine desktop
+     version noch machen? ich habe nur mobile" → „mach das"). Seit versusforge.com die
+     Visitenkarte fuer Geschaeftskontakte ist (Recruiter, Firmen, Bewerbungs-Links),
+     oeffnen sie Leute am SCHREIBTISCH — dort stand die Handy-Spalte mit schwarzer
+     Leere links und rechts. Der Inhalt setzt seine eigene Breite (max-w-3xl, mittig);
+     die Produkt-Funnels bleiben bewusst in der Handy-Spalte, dort kommt der
+     Meta-Traffic vom Handy. */
+  .lb-frame:has(.lb-katalog),
   .lb-frame:has(.lb-zentrale) {
     width: 100%;
     max-width: none;

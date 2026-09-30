@@ -1037,7 +1037,9 @@ export default async function ThemesCatalog({ searchParams }: {
   }));
 
   return (
-    <main className="lb-bg min-h-[100dvh] text-white">
+    /* `lb-katalog`: hebt am Desktop die 440er-Handy-Spalte auf (globals.css) — der
+       Inhalt hat seine eigene Breite (max-w-3xl) schon immer dabei. */
+    <main className="lb-bg lb-katalog min-h-[100dvh] text-white">
       {/* Startseite: kein Zurück-Pfeil, hier endet der Weg nach hinten. */}
       <TopNav back={false} />
       <TrackView event="themes_view" lookId="themes-themes" lookName="Themen-Uebersicht" />
